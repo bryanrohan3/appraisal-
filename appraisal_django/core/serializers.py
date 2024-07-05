@@ -49,6 +49,7 @@ class DealershipSerializer(serializers.ModelSerializer):
 class DealerProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     dealerships = DealershipSerializer(many=True, read_only=True)  # Use the DealershipSerializer to serialize dealerships
+    role = serializers.CharField(source='get_role_display')
 
     class Meta:
         model = DealerProfile
@@ -82,21 +83,18 @@ class DealerProfileSerializer(serializers.ModelSerializer):
         return instance
     
     def get_dealerships(self, instance):
-        return list(instance.dealerships.values_list('id', flat=True))
-
-    # def get_dealerships(self, instance):
-    #     user = instance.user
-    #     role = instance.role
+        user = instance.user
+        role = instance.role
         
-    #     # Fetch associated dealerships based on user's role
-    #     if role == 'S':  # Sales dealer
-    #         dealerships = user.sales_dealerships.values_list('id', flat=True)
-    #     elif role == 'M':  # Management dealer
-    #         dealerships = user.managed_dealerships.values_list('id', flat=True)
-    #     else:
-    #         dealerships = []
-
-    #     return list(dealerships)
+        # Fetch associated dealerships based on user's role
+        if role == 'S':  # Sales dealer
+            dealerships = instance.dealerships.values_list('id', flat=True)
+        elif role == 'M':  # Management dealer
+            dealerships = user.managed_dealerships.values_list('id', flat=True)
+        else:
+            dealerships = []
+        
+        return list(dealerships)
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
