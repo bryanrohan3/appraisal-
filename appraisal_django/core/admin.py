@@ -56,3 +56,25 @@ class WholesalerProfileAdmin(admin.ModelAdmin):
     def user_username(self, obj):
         return obj.user.username
     user_username.short_description = 'Username'  # Customize column header
+
+
+@admin.register(Appraisal)
+class AppraisalAdmin(admin.ModelAdmin):
+    list_display = ('id', 'customer_first_name', 'customer_last_name', 'vehicle_make', 'vehicle_model', 'vehicle_registration', 'dealership')
+    list_filter = ('dealership',)
+    search_fields = ('customer_first_name', 'customer_last_name', 'vehicle_make', 'vehicle_model', 'vehicle_registration')
+
+    # Optional: To display nested photos inline
+    class PhotoInline(admin.StackedInline):
+        model = Photo
+        extra = 1
+
+    inlines = [PhotoInline]
+
+
+@admin.register(Photo)
+class PhotoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'appraisal', 'description', 'location')
+    list_filter = ('location',)
+    search_fields = ('description', 'location')
+

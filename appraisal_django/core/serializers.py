@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from .models import *
+from datetime import timezone, datetime
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -48,8 +49,7 @@ class DealershipSerializer(serializers.ModelSerializer):
 
 class DealerProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()
-    dealerships = DealershipSerializer(many=True, read_only=True)  # Use the DealershipSerializer to serialize dealerships
-    role = serializers.CharField(source='get_role_display')
+    dealerships = serializers.PrimaryKeyRelatedField(queryset=Dealership.objects.all(), many=True, required=False)  # Change to PrimaryKeyRelatedField
 
     class Meta:
         model = DealerProfile
@@ -130,3 +130,63 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
         instance.phone = validated_data.get('phone', instance.phone)
         instance.save()
         return instance
+    
+
+class PhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Photo
+        fields = ['id', 'appraisal', 'photo', 'description']
+
+    def create(self, validated_data):
+        return Photo.objects.create(**validated_data)
+    
+
+class AppraisalSerializer(serializers.ModelSerializer):
+    damage_photos = PhotoSerializer(many=True, read_only=True, source='damage_photos_set')
+    vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
+    sent_to_management = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
+
+    class Meta:
+        model = Appraisal
+        fields = [
+            'id', 'start_date', 'last_updated', 'is_active',
+            'dealership', 'initiating_dealer', 'last_updating_dealer',
+            'customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone',
+            'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin', 'vehicle_registration',
+            'color', 'odometer_reading', 'engine_type', 'transmission', 'body_type', 'fuel_type',
+            'damage_description', 'damage_location', 'repair_cost_estimate',
+            'damage_photos', 'vehicle_photos',
+            'reserve_price',
+            'sent_to_management',
+        ]
+        read_only_fields = ['initiating_dealer', 'dealership', 'last_updating_dealer']
+
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        user = request.user
+        dealer_profile = DealerProfile.objects.get(user=user)
+
+        if not dealer_profile.dealerships.exists():
+            raise serializers.ValidationError("You are not associated with any dealership.")
+
+        dealership = dealer_profile.dealerships.first()
+        validated_data['initiating_dealer'] = dealer_profile
+        validated_data['dealership'] = dealership
+        validated_data['last_updating_dealer'] = dealer_profile
+
+        sent_to_management_ids = validated_data.pop('sent_to_management', [])
+        damage_photos_data = request.FILES.getlist('damage_photos', [])
+        vehicle_photos_data = request.FILES.getlist('vehicle_photos', [])
+
+        appraisal = Appraisal.objects.create(**validated_data)
+
+        for damage_photo_data in damage_photos_data:
+            Photo.objects.create(appraisal=appraisal, image=damage_photo_data, location='damage')
+
+        for vehicle_photo_data in vehicle_photos_data:
+            Photo.objects.create(appraisal=appraisal, image=vehicle_photo_data, location='vehicle')
+
+        appraisal.sent_to_management.set(sent_to_management_ids)
+
+        return appraisal

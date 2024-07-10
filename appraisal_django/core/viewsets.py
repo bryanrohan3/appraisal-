@@ -102,7 +102,7 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
     serializer_class = DealerProfileSerializer
 
     permission_classes_by_action = {
-        'create': [IsManagementDealerOrReadOnly, CanManageDealerships, SalesDealerPermission],
+        'create': [IsManagementDealerOrReadOnly],
         'default': [permissions.IsAuthenticatedOrReadOnly],
     }
 
@@ -113,28 +113,37 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
             return [permission() for permission in self.permission_classes_by_action['default']]
 
     def create(self, request, *args, **kwargs):
-        # Check if the authenticated user is a management dealer ("M")
-        if request.user.dealerprofile.role != 'M':
-            return Response({"error": "Only Management Dealers can create Sales Dealers."}, status=status.HTTP_403_FORBIDDEN)
+        role = request.data.get('role')
+        if role == 'M':
+            # Allow creation of Management Dealer without authentication
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        elif role == 'S':
+            # Ensure that only Management Dealers can create Sales Dealers
+            user = request.user
+            dealership_ids = [int(id) for id in request.data.get('dealerships', [])]
+            managed_dealerships = user.managed_dealerships.values_list('id', flat=True)
+            
+            for dealership_id in dealership_ids:
+                if dealership_id not in managed_dealerships:
+                    return Response({"error": "You do not have permission to associate sales dealers with this dealership."},
+                                    status=status.HTTP_403_FORBIDDEN)
+            
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            # Require authentication for other roles
+            if not request.user.is_authenticated:
+                return Response({"error": "Authentication required to create this user."}, status=status.HTTP_403_FORBIDDEN)
 
-        # Validate if the management dealer manages the specified dealership
-        dealership_ids = request.data.get('dealerships', [])
-        for dealership_id in dealership_ids:
-            if dealership_id not in request.user.dealerprofile.user.managed_dealerships.values_list('id', flat=True):
-                return Response({"error": "You can only assign dealerships you manage."}, status=status.HTTP_403_FORBIDDEN)
-
-        # Create the dealer profile
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-
-        # Get the created dealer profile instance
-        instance = serializer.instance
-
-        # Assign the dealer to the specified dealerships
-        instance.dealerships.set(dealership_ids)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
     def list(self, request, *args, **kwargs):
@@ -171,3 +180,44 @@ class WholesalerProfileViewSet(viewsets.ModelViewSet):
     queryset = WholesalerProfile.objects.all()
     serializer_class = WholesalerProfileSerializer
     permission_classes = [permissions.AllowAny] 
+
+
+class AppraisalViewSet(viewsets.ModelViewSet):
+    queryset = Appraisal.objects.all()
+    serializer_class = AppraisalSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Ensure that only management dealers of the associated dealership can be in sent_to_management
+        sent_to_management_ids = request.data.get('sent_to_management', [])
+
+        # Perform any validation if needed
+
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    # list appraisals by dealership id
+    def list(self, request, *args, **kwargs):
+        dealership_id = request.query_params.get('dealership_id')
+        if not dealership_id:
+            return Response({'error': 'Dealership ID parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            dealership = Dealership.objects.get(id=dealership_id)
+            appraisals = Appraisal.objects.filter(dealership=dealership)
+            serializer = self.get_serializer(appraisals, many=True)
+            return Response(serializer.data)
+        except Dealership.DoesNotExist:
+            return Response({'error': 'Dealership not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            appraisal = self.get_object()
+            serializer = self.get_serializer(appraisal)
+            return Response(serializer.data)
+        except Appraisal.DoesNotExist:
+            return Response({'error': 'Appraisal not found'}, status=status.HTTP_404_NOT_FOUND)
