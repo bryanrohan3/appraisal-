@@ -22,14 +22,12 @@ class Dealership(models.Model):
     postcode = models.CharField(max_length=4)
     email = models.EmailField()
     phone = models.CharField(max_length=15)  # Format: +61XXXXXXXXX for Australian numbers
-    management_dealers = models.ManyToManyField(User, related_name='managed_dealerships', blank=True)
     wholesalers = models.ManyToManyField(User, related_name='wholesaler_dealerships', blank=True)
-    sales_dealers = models.ManyToManyField(User, related_name='sales_dealerships', blank=True)
     is_active = models.BooleanField(default=True)  # Set to False if the dealership is inactive/deleted
 
     def __str__(self):
         return f"{self.dealership_name}, {self.street_address}, {self.suburb}, {self.get_state_display()} {self.postcode}"
-
+    
     
 class DealerProfile(models.Model):
     ROLE_CHOICES = (

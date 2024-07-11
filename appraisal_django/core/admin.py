@@ -9,11 +9,9 @@ class DealershipAdmin(admin.ModelAdmin):
     list_filter = ('state',)  # Add filters as needed
     search_fields = ('dealership_name', 'street_address', 'suburb', 'postcode', 'email', 'phone')
 
-    # Add raw_id_fields as needed (undecided on id or username)
-    # raw_id_fields = ('management_dealers',)  
-
     def management_dealers_list(self, obj):
-        return ", ".join([user.get_full_name() for user in obj.management_dealers.all()])
+        management_dealers = DealerProfile.objects.filter(dealerships=obj, role='M')
+        return ", ".join([dealer.user.get_full_name() for dealer in management_dealers])
     management_dealers_list.short_description = 'Management Dealers'  # Customize column header
 
 
@@ -34,13 +32,8 @@ class DealerProfileAdmin(admin.ModelAdmin):
     user_username.short_description = 'Username'  # Customize column header
 
     def dealership_name(self, obj):
-        # Check if the user has any dealership associated
-        if obj.role == 'M':  # Management dealer
-            return ', '.join([dealer.dealership_name for dealer in obj.user.managed_dealerships.all()])
-        elif obj.role == 'S':  # Sales dealer
-            return ', '.join([dealer.dealership_name for dealer in obj.dealerships.all()])
-        else:
-            return '-'
+        dealerships = obj.dealerships.all()
+        return ', '.join([dealership.dealership_name for dealership in dealerships])
     dealership_name.short_description = 'Dealership'  # Customize column header
 
 

@@ -27,25 +27,25 @@ class UserLoginSerializer(serializers.Serializer):
     password = serializers.CharField()
 
 class DealershipSerializer(serializers.ModelSerializer):
-    management_dealers = UserSerializer(many=True, read_only=True)
-    sales_dealers = UserSerializer(many=True, read_only=True)
+    dealers = serializers.SerializerMethodField()
 
     class Meta:
         model = Dealership
-        fields = ['id', 'dealership_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'wholesalers', 'management_dealers', 'sales_dealers']
+        fields = ['id', 'dealership_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'wholesalers', 'dealers']
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        
-        # Fetch management dealers and sales dealers for the dealership
-        management_dealers = instance.management_dealers.filter(dealerprofile__role='M')
-        sales_dealers = instance.sales_dealers.filter(dealerprofile__role='S')
+    def get_dealers(self, obj):
+        dealers = DealerProfile.objects.filter(dealerships=obj)
+        return DealerProfileSerializer(dealers, many=True).data
 
-        # Serialize management dealers and sales dealers
-        representation['management_dealers'] = UserSerializer(management_dealers, many=True).data
-        representation['sales_dealers'] = UserSerializer(sales_dealers, many=True).data
+    def get_dealers(self, obj):
+        role = self.context['request'].query_params.get('role')
         
-        return representation
+        if role and role in ['M', 'S']:
+            dealers = DealerProfile.objects.filter(dealerships=obj, role=role)
+        else:
+            dealers = DealerProfile.objects.filter(dealerships=obj)
+        
+        return DealerProfileSerializer(dealers, many=True).data
 
 class DealerProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()
@@ -58,6 +58,21 @@ class DealerProfileSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user_data = validated_data.pop('user')
         dealership_data = validated_data.pop('dealerships', [])
+        
+        # Check if the creating user is allowed to create the dealer profile
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            creator_profile = DealerProfile.objects.get(user=request.user)
+            if creator_profile.role != 'M':
+                raise serializers.ValidationError("Only Management Dealers can create new users.")
+            
+            if validated_data.get('role') == 'M' or validated_data.get('role') == 'S':
+                creator_dealership_ids = set(creator_profile.dealerships.values_list('id', flat=True))
+                new_dealership_ids = set([dealership.id for dealership in dealership_data])
+
+                # Ensure there is at least one common dealership ID
+                if not new_dealership_ids.intersection(creator_dealership_ids):
+                    raise serializers.ValidationError("Cannot create dealer for dealership you don't work for")
 
         user = UserSerializer().create(user_data)
         dealer_profile = DealerProfile.objects.create(user=user, **validated_data)
@@ -67,7 +82,7 @@ class DealerProfileSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user')
-        dealerships_data = validated_data.pop('dealerships', instance.user.managed_dealerships.all())
+        dealerships_data = validated_data.pop('dealerships', instance.dealerships.all())
 
         user_serializer = UserSerializer(instance.user, data=user_data, partial=True)
         if user_serializer.is_valid():
@@ -77,8 +92,7 @@ class DealerProfileSerializer(serializers.ModelSerializer):
         instance.role = validated_data.get('role', instance.role)
         instance.save()
 
-        # Update the associated dealerships for the user
-        instance.user.managed_dealerships.set(dealerships_data)
+        instance.dealerships.set(dealerships_data)
         
         return instance
     
@@ -86,11 +100,10 @@ class DealerProfileSerializer(serializers.ModelSerializer):
         user = instance.user
         role = instance.role
         
-        # Fetch associated dealerships based on user's role
         if role == 'S':  # Sales dealer
             dealerships = instance.dealerships.values_list('id', flat=True)
         elif role == 'M':  # Management dealer
-            dealerships = user.managed_dealerships.values_list('id', flat=True)
+            dealerships = DealerProfile.objects.filter(user=user, role='M').values_list('dealerships__id', flat=True)
         else:
             dealerships = []
         
@@ -100,7 +113,22 @@ class DealerProfileSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation['dealerships'] = self.get_dealerships(instance)
         return representation
-    
+
+
+
+class DealerProfileNestedSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+
+    class Meta:
+        model = DealerProfile
+        fields = ['id', 'first_name', 'last_name']
+
+class DealershipNestedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Dealership
+        fields = ['id', 'dealership_name']
+
 
 class WholesalerProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()
@@ -141,7 +169,11 @@ class PhotoSerializer(serializers.ModelSerializer):
         return Photo.objects.create(**validated_data)
     
 
+
 class AppraisalSerializer(serializers.ModelSerializer):
+    initiating_dealer = DealerProfileNestedSerializer(read_only=True)
+    last_updating_dealer = DealerProfileNestedSerializer(read_only=True)
+    dealership = DealershipNestedSerializer(read_only=True)
     damage_photos = PhotoSerializer(many=True, read_only=True, source='damage_photos_set')
     vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
     sent_to_management = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
@@ -149,18 +181,13 @@ class AppraisalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Appraisal
         fields = [
-            'id', 'start_date', 'last_updated', 'is_active',
-            'dealership', 'initiating_dealer', 'last_updating_dealer',
-            'customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone',
-            'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin', 'vehicle_registration',
-            'color', 'odometer_reading', 'engine_type', 'transmission', 'body_type', 'fuel_type',
-            'damage_description', 'damage_location', 'repair_cost_estimate',
-            'damage_photos', 'vehicle_photos',
-            'reserve_price',
-            'sent_to_management',
+            'id', 'start_date', 'last_updated', 'is_active', 'dealership', 'initiating_dealer', 
+            'last_updating_dealer', 'customer_first_name', 'customer_last_name', 'customer_email', 
+            'customer_phone', 'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin', 
+            'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 'transmission', 
+            'body_type', 'fuel_type', 'damage_description', 'damage_location', 'repair_cost_estimate', 
+            'reserve_price', 'damage_photos', 'vehicle_photos', 'sent_to_management'
         ]
-        read_only_fields = ['initiating_dealer', 'dealership', 'last_updating_dealer']
-
 
     def create(self, validated_data):
         request = self.context.get('request')
