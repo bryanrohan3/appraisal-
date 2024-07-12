@@ -1,18 +1,29 @@
+from typing import Any
 from django.contrib import admin
+from django.db.models.query import QuerySet
+from django.http import HttpRequest
 from core.models import *
 
 # Register your models here.
+
+class DealerProfileInline(admin.TabularInline):  # or admin.StackedInline for different display
+    model = DealerProfile.dealerships.through
+    verbose_name_plural = 'Dealer Profiles'
+    extra = 1
 
 @admin.register(Dealership)
 class DealershipAdmin(admin.ModelAdmin):
     list_display = ('dealership_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'management_dealers_list')
     list_filter = ('state',)  # Add filters as needed
     search_fields = ('dealership_name', 'street_address', 'suburb', 'postcode', 'email', 'phone')
+    inlines = [DealerProfileInline]
 
     def management_dealers_list(self, obj):
         management_dealers = DealerProfile.objects.filter(dealerships=obj, role='M')
         return ", ".join([dealer.user.get_full_name() for dealer in management_dealers])
     management_dealers_list.short_description = 'Management Dealers'  # Customize column header
+
+
 
 
 

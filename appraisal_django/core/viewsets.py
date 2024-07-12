@@ -12,19 +12,20 @@ from django.db.models import Q
 
 
 class DealershipViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing dealerships.
-    """
     queryset = Dealership.objects.all()
     serializer_class = DealershipSerializer
 
     permission_classes_by_action = {
         'list': [permissions.AllowAny],
         'create': [permissions.AllowAny],
+        'update': [IsManagementDealerFromSameDealership],  # Adding 'update'
+        'partial_update': [IsManagementDealerFromSameDealership],
         'default': [permissions.IsAuthenticated],
+        'dealers': [IsManagementDealerFromSameDealership],
     }
 
     def get_permissions(self):
+        print(f"Action: {self.action}")  # Debug: print the action name
         try:
             return [permission() for permission in self.permission_classes_by_action[self.action]]
         except KeyError:
@@ -33,22 +34,35 @@ class DealershipViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
 
-        # Filter the queryset based on dealership_id
         dealership_id = request.query_params.get('dealership_id')
         if dealership_id:
             queryset = queryset.filter(id=dealership_id)
 
-        # Filter the queryset based on role (if provided)
         role = request.query_params.get('role')
         if role and role in ['M', 'S']:
-            queryset = queryset.filter(dealer_profiles__role=role)  # Use 'dealer_profiles__role' here
+            queryset = queryset.filter(dealer_profiles__role=role)
 
-        # Serialize the queryset
         serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
 
         return Response(data)
+    
+    @action(detail=True, methods=['get'], permission_classes=[IsManagementDealerFromSameDealership])
+    def dealers(self, request, pk=None):
+        dealership = self.get_object()
+        
+        try:
+            dealer_profile = DealerProfile.objects.get(user=request.user)
+            if dealer_profile.role != 'M' or dealership not in dealer_profile.dealerships.all():
+                return Response({'detail': 'Not authorized to view dealers of this dealership.'}, status=403)
+        except DealerProfile.DoesNotExist:
+            return Response({'detail': 'Not authorized to view dealers of this dealership.'}, status=403)
 
+        dealers = DealerProfile.objects.filter(dealerships=dealership)
+        serializer = DealerProfileSerializer(dealers, many=True)
+        return Response(serializer.data)
+    
+    
 
 class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin):
     """
@@ -101,6 +115,7 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
     permission_classes_by_action = {
         'create': [permissions.IsAuthenticated, IsManagementDealerOrReadOnly],
         'default': [permissions.IsAuthenticatedOrReadOnly],
+        'promote': [permissions.IsAuthenticated, IsDealerFromSameDealership],
     }
 
     def get_permissions(self):
@@ -134,7 +149,28 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         except DealerProfile.DoesNotExist:
             return Response({'error': 'Dealer Profile not found for the given user ID'}, status=status.HTTP_404_NOT_FOUND)
+        
+    @action(detail=False, methods=['POST'], url_path='(?P<user_id>[^/.]+)/promote')
+    def promote_dealer(self, request, user_id=None):
+        try:
+            # Fetch the management dealer (requesting user)
+            management_dealer = self.request.user.dealerprofile  # Assuming 'dealerprofile' is the related name
 
+            # Fetch the dealer to promote
+            dealer_to_promote = DealerProfile.objects.get(user_id=user_id, dealerships=management_dealer.dealerships.first(), role='S')
+        except DealerProfile.DoesNotExist:
+            return Response({'error': 'Dealer not found or not promotable'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if the requesting user is a management dealer
+        if management_dealer.role != 'M':
+            return Response({'error': 'You are not authorized to perform this action'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Perform promotion action here
+        dealer_to_promote.role = 'M'
+        dealer_to_promote.save()
+
+        serializer = self.get_serializer(dealer_to_promote)
+        return Response(serializer.data)
 
 class WholesalerProfileViewSet(viewsets.ModelViewSet):
     """
@@ -142,8 +178,58 @@ class WholesalerProfileViewSet(viewsets.ModelViewSet):
     """
     queryset = WholesalerProfile.objects.all()
     serializer_class = WholesalerProfileSerializer
-    permission_classes = [permissions.AllowAny] 
+    permission_classes = [permissions.IsAuthenticated, IsWholesalerOwnerOrReadOnly]
 
+    def perform_create(self, serializer):
+        # Automatically set the current user as the owner of the profile
+        serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['GET'])
+    def current_user_profile(self, request):
+        """
+        Retrieve the profile of the current authenticated user.
+        """
+        user_id = request.user.id
+        try:
+            wholesaler_profile = WholesalerProfile.objects.get(user_id=user_id)
+            serializer = self.get_serializer(wholesaler_profile)
+            return Response(serializer.data)
+        except WholesalerProfile.DoesNotExist:
+            return Response({'error': 'Wholesaler Profile not found for the authenticated user'}, status=status.HTTP_404_NOT_FOUND)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Ensure only the owner can update their profile
+        if request.user != instance.user:
+            return Response({'error': 'You do not have permission to perform this action.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    @action(detail=True, methods=['put'], url_path='deactivate')
+    def deactivate_profile(self, request, pk=None):
+        """
+        Deactivate the wholesaler profile by setting is_active to False.
+        """
+        instance = self.get_object()
+        
+        # Ensure only the owner can deactivate their profile
+        if request.user != instance.user:
+            return Response({'error': 'You do not have permission to perform this action.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        instance.is_active = False
+        instance.save()
+        
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 class AppraisalViewSet(viewsets.ModelViewSet):
     queryset = Appraisal.objects.all()
@@ -151,12 +237,19 @@ class AppraisalViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsDealerFromSameDealership]
 
     def get_queryset(self):
+        # Get the dealerships associated with the authenticated user
         user_dealership_ids = self.request.user.dealerprofile.dealerships.values_list('id', flat=True)
+        
+        # Debug statement
+        print(f"User {self.request.user.username} belongs to dealerships: {list(user_dealership_ids)}")
+
+        # Filter appraisals by these dealerships
         queryset = Appraisal.objects.filter(dealership_id__in=user_dealership_ids)
 
         # Debug statement
         print(f"Initial queryset for user {self.request.user.username}: {queryset}")
 
+        # Additional filters based on query params
         dealership_id = self.request.query_params.get('dealership_id')
         if dealership_id:
             queryset = queryset.filter(dealership_id=dealership_id)
@@ -200,17 +293,17 @@ class AppraisalViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        appraisal = self.get_object() # Get the object from the queryset
-        dealership_id = appraisal.dealership.id # Get the ID of the dealership associated with the object
+        appraisal = self.get_object()  # Get the object from the queryset
+        dealership_id = appraisal.dealership.id  # Get the ID of the dealership associated with the object
 
         # Check permissions for management dealers
         self.check_object_permissions(request, appraisal) 
 
+        # Debug statement
         print(f"Retrieving appraisal for user {request.user.username}") 
 
-        serializer = self.get_serializer(appraisal) # Serialize 
+        serializer = self.get_serializer(appraisal)  # Serialize 
         return Response(serializer.data) 
-
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()

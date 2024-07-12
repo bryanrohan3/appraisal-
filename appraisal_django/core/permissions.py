@@ -56,19 +56,39 @@ class IsDealerFromSameDealership(permissions.BasePermission):
         return request.user and request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
-        if request.user.dealerprofile.role in ['M', 'S']:
-            user_dealership_ids = request.user.dealerprofile.dealerships.values_list('id', flat=True)  # Get the IDs of the user's dealerships
-            print("User:", request.user.username)  # Log the user's username
-            print("User Role:", request.user.dealerprofile.role)
-            print("User Dealership IDs:", list(user_dealership_ids))
-            print("Object Dealership ID:", obj.dealership.id)
+        if request.user.dealerprofile.role == 'M':
+            user_dealership_ids = request.user.dealerprofile.dealerships.values_list('id', flat=True)
+            return obj.dealership.id in user_dealership_ids
+        return False
 
-            if obj.dealership.id in user_dealership_ids:
-                print("Access Granted")
-                return True
-            else:
-                print("Access Denied: Dealership Mismatch")
-                return False
-        else:
-            print("Access Denied: Role Not Authorized")
+
+class IsWholesalerOwnerOrReadOnly(permissions.BasePermission):
+    """
+    Custom permission to allow only owners of an object to edit it.
+    """
+    def has_object_permission(self, request, view, obj):
+        # Read permissions are allowed to any request,
+        # so we'll always allow GET, HEAD, or OPTIONS requests.
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        # Write permissions are only allowed to the owner of the profile.
+        return obj.user == request.user
+    
+
+class IsManagementDealerFromSameDealership(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return request.user and request.user.is_authenticated and hasattr(request.user, 'dealerprofile')
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        try:
+            dealer_profile = DealerProfile.objects.get(user=request.user)
+            print(f"User: {request.user.username}, Role: {dealer_profile.role}, Dealerships: {dealer_profile.dealerships.all()}")
+            return dealer_profile.role == 'M' and obj in dealer_profile.dealerships.all()
+        except DealerProfile.DoesNotExist:
             return False

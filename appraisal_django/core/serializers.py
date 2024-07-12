@@ -31,7 +31,7 @@ class DealershipSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Dealership
-        fields = ['id', 'dealership_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'wholesalers', 'dealers']
+        fields = ['id', 'dealership_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'wholesalers', 'is_active' ,'dealers']
 
     def get_dealers(self, obj):
         dealers = DealerProfile.objects.filter(dealerships=obj)
@@ -135,7 +135,7 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WholesalerProfile
-        fields = ['user', 'wholesaler_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone']
+        fields = ['user', 'wholesaler_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'is_active']
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')
@@ -144,11 +144,10 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
         return wholesaler_profile
 
     def update(self, instance, validated_data):
-        user_data = validated_data.pop('user')
-        user_serializer = UserSerializer(instance.user, data=user_data, partial=True)
-        if user_serializer.is_valid():
-            user_serializer.save()
+        # Remove 'user' from validated_data to avoid KeyError
+        validated_data.pop('user', None)
 
+        # Update fields directly
         instance.wholesaler_name = validated_data.get('wholesaler_name', instance.wholesaler_name)
         instance.street_address = validated_data.get('street_address', instance.street_address)
         instance.suburb = validated_data.get('suburb', instance.suburb)
@@ -157,6 +156,7 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
         instance.email = validated_data.get('email', instance.email)
         instance.phone = validated_data.get('phone', instance.phone)
         instance.save()
+        
         return instance
     
 
