@@ -82,3 +82,13 @@ class PhotoAdmin(admin.ModelAdmin):
     list_filter = ('location',)
     search_fields = ('description', 'location')
 
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ['user', 'get_appraisal', 'comment', 'comment_date_time']
+    list_filter = ['comment_date_time']
+
+    def get_appraisal(self, obj):
+        # Assuming each comment is associated with an appraisal
+        return ", ".join([appraisal.vehicle_vin for appraisal in obj.appraisal_private_comments.all() | obj.appraisal_general_comments.all()])
+    get_appraisal.short_description = 'Appraisal'
+
+admin.site.register(Comment, CommentAdmin)

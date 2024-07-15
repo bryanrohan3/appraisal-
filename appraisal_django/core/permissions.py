@@ -56,7 +56,7 @@ class IsDealerFromSameDealership(permissions.BasePermission):
         return request.user and request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
-        if request.user.dealerprofile.role == 'M':
+        if request.user.dealerprofile.role in ['M', 'S']:
             user_dealership_ids = request.user.dealerprofile.dealerships.values_list('id', flat=True)
             return obj.dealership.id in user_dealership_ids
         return False
@@ -92,3 +92,74 @@ class IsManagementDealerFromSameDealership(permissions.BasePermission):
             return dealer_profile.role == 'M' and obj in dealer_profile.dealerships.all()
         except DealerProfile.DoesNotExist:
             return False
+        
+
+class CanMakeOffer(permissions.BasePermission):
+    """
+    Custom permission to allow only users with is_wholesaler=True to make an offer.
+    """
+
+    def has_permission(self, request, view):
+        # Allow safe methods (GET, HEAD, OPTIONS) without restrictions
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        # Check if the authenticated user is a wholesaler
+        try:
+            return request.user.wholesalerprofile.is_wholesaler
+        except WholesalerProfile.DoesNotExist:
+            return False
+        
+
+class IsDealerFromSameDealershipOrWholesaler(permissions.BasePermission):
+    """
+    Custom permission to allow only dealers from the same dealership to access, and wholesalers to read and make offers.
+    """
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        # Allow safe methods for everyone
+        if request.method in SAFE_METHODS:
+            return True
+        
+        # Check if the user is a dealer and belongs to the same dealership
+        if hasattr(user, 'dealerprofile'):
+            dealer_profile = user.dealerprofile
+            user_dealership_ids = dealer_profile.dealerships.values_list('id', flat=True)
+            return obj.dealership.id in user_dealership_ids
+        
+        # Check if the user is a wholesaler
+        if hasattr(user, 'wholesalerprofile'):
+            return True  # Wholesalers can read and make offers (which is a non-safe method)
+        
+        return False
+
+class CanMakeOffer(permissions.BasePermission):
+    """
+    Custom permission to allow only users with is_wholesaler=True to make an offer.
+    """
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        try:
+            return request.user.wholesalerprofile.is_wholesaler
+        except WholesalerProfile.DoesNotExist:
+            return False
+        
+
+class CanViewOffers(permissions.BasePermission):
+    """
+    Custom permission to allow only Management Dealers ('M' role) to view offers.
+    """
+
+    def has_permission(self, request, view):
+        if request.user.dealerprofile.role == 'M':
+            return True
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        # Optionally, you can check object-level permissions here
+        return self.has_permission(request, view)

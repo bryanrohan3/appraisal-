@@ -8,7 +8,8 @@ from .models import *
 from .serializers import *
 from .permissions import *
 from django.db.models import Q
-
+from django.http import HttpResponse
+import csv
 
 
 class DealershipViewSet(viewsets.ModelViewSet):
@@ -234,34 +235,48 @@ class WholesalerProfileViewSet(viewsets.ModelViewSet):
 class AppraisalViewSet(viewsets.ModelViewSet):
     queryset = Appraisal.objects.all()
     serializer_class = AppraisalSerializer
-    permission_classes = [permissions.IsAuthenticated, IsDealerFromSameDealership]
+    # permission_classes = [permissions.IsAuthenticated, IsDealerFromSameDealership]
+
+    permission_classes_by_action = {
+        'create': [permissions.IsAuthenticated, IsDealerFromSameDealership],
+        'update': [permissions.IsAuthenticated, IsDealerFromSameDealership, IsManagementDealerOrReadOnly],
+        'partial_update': [permissions.IsAuthenticated, IsDealerFromSameDealership, IsManagementDealerOrReadOnly],
+        'retrieve': [permissions.IsAuthenticated, IsDealerFromSameDealership],
+        'list': [permissions.IsAuthenticated],
+        'list_offers': [permissions.IsAuthenticated, CanViewOffers],
+        'make_offer': [permissions.IsAuthenticated, CanMakeOffer],
+    }
+
+    def get_serializer_class(self):
+        if self.action == 'list_offers' and self.request.user.dealerprofile.role == 'S':
+            return SalesSerializer
+        return AppraisalSerializer
 
     def get_queryset(self):
-        # Get the dealerships associated with the authenticated user
-        user_dealership_ids = self.request.user.dealerprofile.dealerships.values_list('id', flat=True)
-        
-        # Debug statement
-        print(f"User {self.request.user.username} belongs to dealerships: {list(user_dealership_ids)}")
+        # Check if the user is a wholesaler
+        if hasattr(self.request.user, 'wholesalerprofile'):
+            return Appraisal.objects.all()
 
-        # Filter appraisals by these dealerships
-        queryset = Appraisal.objects.filter(dealership_id__in=user_dealership_ids)
-
-        # Debug statement
-        print(f"Initial queryset for user {self.request.user.username}: {queryset}")
-
-        # Additional filters based on query params
-        dealership_id = self.request.query_params.get('dealership_id')
-        if dealership_id:
-            queryset = queryset.filter(dealership_id=dealership_id)
+        # If the user is a dealer, filter by dealerships
+        if hasattr(self.request.user, 'dealerprofile'):
+            user_dealership_ids = self.request.user.dealerprofile.dealerships.values_list('id', flat=True)
+            # Debug statement
+            print(f"User {self.request.user.username} belongs to dealerships: {list(user_dealership_ids)}")
+            queryset = Appraisal.objects.filter(dealership_id__in=user_dealership_ids)
+            # Debug statement
+            print(f"Initial queryset for user {self.request.user.username}: {queryset}")
+            # Additional filters based on query params
+            dealership_id = self.request.query_params.get('dealership_id')
+            if dealership_id:
+                queryset = queryset.filter(dealership_id=dealership_id)
+            user_id = self.request.query_params.get('user_id')
+            if user_id:
+                queryset = queryset.filter(Q(initiating_dealer__user__id=user_id) | Q(last_updating_dealer__user__id=user_id))
+            # Debug statement
+            print(f"Filtered queryset for user {self.request.user.username}: {queryset}")
+            return queryset
         
-        user_id = self.request.query_params.get('user_id')
-        if user_id:
-            queryset = queryset.filter(Q(initiating_dealer__user__id=user_id) | Q(last_updating_dealer__user__id=user_id))
-        
-        # Debug statement
-        print(f"Filtered queryset for user {self.request.user.username}: {queryset}")
-        
-        return queryset
+        return Appraisal.objects.none()
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -336,3 +351,98 @@ class AppraisalViewSet(viewsets.ModelViewSet):
         partial_match_query = Q(dealership__dealership_name__icontains=keyword) | Q(vehicle_vin__icontains=keyword) | Q(vehicle_registration__icontains=keyword) | Q(vehicle_make__icontains=keyword) | Q(vehicle_model__icontains=keyword)
         queryset = queryset.filter(partial_match_query)
         return queryset
+    
+    @action(detail=True, methods=['POST'])
+    def add_private_comment(self, request, pk=None):
+        appraisal = self.get_object()
+        user = request.user
+        data = request.data
+
+        if 'comment' not in data:
+            return Response({"error": "Comment data not provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        comment = Comment.objects.create(user=user, comment=data['comment'])
+        appraisal.private_comments.add(comment)
+
+        return Response({"message": "Private comment added successfully."}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['POST'])
+    def add_general_comment(self, request, pk=None):
+        appraisal = self.get_object()
+        user = request.user
+        data = request.data
+
+        if 'comment' not in data:
+            return Response({"error": "Comment data not provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        comment = Comment.objects.create(user=user, comment=data['comment'])
+        appraisal.general_comments.add(comment)
+
+        return Response({"message": "General comment added successfully."}, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['post'], url_path='csv')
+    def download_csv(self, request, pk=None):
+        appraisal = self.get_object()
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="appraisal_{appraisal.id}.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(['Field', 'Value'])
+        writer.writerow(['ID', appraisal.id])
+        writer.writerow(['Start Date', appraisal.start_date])
+        writer.writerow(['Last Updated', appraisal.last_updated])
+        writer.writerow(['Is Active', appraisal.is_active])
+        writer.writerow(['Dealership', appraisal.dealership.dealership_name])
+        writer.writerow(['Initiating Dealer', f"{appraisal.initiating_dealer.user.first_name} {appraisal.initiating_dealer.user.last_name}"])
+        writer.writerow(['Last Updating Dealer', f"{appraisal.last_updating_dealer.user.first_name} {appraisal.last_updating_dealer.user.last_name}"])
+        writer.writerow(['Customer First Name', appraisal.customer_first_name])
+        writer.writerow(['Customer Last Name', appraisal.customer_last_name])
+        writer.writerow(['Customer Email', appraisal.customer_email])
+        writer.writerow(['Customer Phone', appraisal.customer_phone])
+        writer.writerow(['Make', appraisal.vehicle_make])
+        writer.writerow(['Model', appraisal.vehicle_model])
+        writer.writerow(['Year', appraisal.vehicle_year])
+        writer.writerow(['VIN', appraisal.vehicle_vin])
+        writer.writerow(['Registration', appraisal.vehicle_registration])
+        writer.writerow(['Color', appraisal.color])
+        writer.writerow(['Odometer Reading', appraisal.odometer_reading])
+        writer.writerow(['Engine Type', appraisal.engine_type])
+        writer.writerow(['Transmission', appraisal.transmission])
+        writer.writerow(['Body Type', appraisal.body_type])
+        writer.writerow(['Fuel Type', appraisal.fuel_type])
+        writer.writerow(['Damage Description', appraisal.damage_description])
+        writer.writerow(['Damage Location', appraisal.damage_location])
+        writer.writerow(['Repair Cost Estimate', appraisal.repair_cost_estimate])
+        writer.writerow(['Reserve Price', appraisal.reserve_price])
+
+        # Write comments
+        writer.writerow([])
+        writer.writerow(['General Comments'])
+        for comment in appraisal.general_comments.all():
+            writer.writerow([comment.comment_date_time, comment.comment])
+
+        return response
+    
+    @action(detail=True, methods=['POST'], url_path='make_offer')
+    def make_offer(self, request, pk=None):
+        appraisal = self.get_object()
+        user = request.user
+
+        # Ensure only Wholesalers can make an offer
+        if not hasattr(user, 'wholesalerprofile') or not user.wholesalerprofile.is_wholesaler:
+            return Response({"detail": "Only wholesalers can make an offer."}, status=status.HTTP_403_FORBIDDEN)
+
+        data = request.data
+        serializer = OfferSerializer(data=data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save(appraisal=appraisal)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(detail=True, methods=['get'], url_path='offers', permission_classes=[permissions.IsAuthenticated, CanViewOffers])
+    def list_offers(self, request, pk=None):
+        appraisal = self.get_object()
+        offers = Offer.objects.filter(appraisal=appraisal)
+        serializer = OfferSerializer(offers, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -58,10 +58,15 @@ class WholesalerProfile(models.Model):
     email = models.EmailField()
     phone = models.CharField(max_length=15)  # Format: +61XXXXXXXXX for Australian numbers
     is_active = models.BooleanField(default=True)  # Set to False if the wholesaler is inactive/deleted
+    is_wholesaler = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.user.username}) - Wholesaler Name: {self.wholesaler_name}"
 
+class Comment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    comment = models.TextField()
+    comment_date_time = models.DateTimeField(auto_now_add=True)
 
 class Appraisal(models.Model):    
     # Appraisal Information
@@ -80,6 +85,12 @@ class Appraisal(models.Model):
     customer_last_name = models.CharField(max_length=50)
     customer_email = models.EmailField()
     customer_phone = models.CharField(max_length=15)
+
+    # Comments
+   # Comments
+    private_comments = models.ManyToManyField(Comment, related_name='appraisal_private_comments', blank=True)
+    general_comments = models.ManyToManyField(Comment, related_name='appraisal_general_comments', blank=True)
+
 
     # Vehicle Information
     vehicle_make = models.CharField(max_length=50)
@@ -124,3 +135,15 @@ class Photo(models.Model):
 
     def __str__(self):
         return f"{self.description} - {self.location}"
+    
+class Offer(models.Model):
+    appraisal = models.ForeignKey('Appraisal', on_delete=models.CASCADE, related_name='offers')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('appraisal', 'user')  # Ensure each user can only make one offer per appraisal
+
+    def __str__(self):
+        return f"Offer by {self.user.username} on {self.appraisal.vehicle_registration}"

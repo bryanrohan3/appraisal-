@@ -135,7 +135,7 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WholesalerProfile
-        fields = ['user', 'wholesaler_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'is_active']
+        fields = ['user', 'wholesaler_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'is_active', 'is_wholesaler']
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')
@@ -168,6 +168,39 @@ class PhotoSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return Photo.objects.create(**validated_data)
     
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ['id', 'user', 'comment', 'comment_date_time']
+
+
+class OfferSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Offer
+        fields = ['id', 'user', 'amount', 'created_at']
+        read_only_fields = ['user']
+
+    def get_user(self, obj):
+        user = obj.user
+        return {
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name
+        }
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if not hasattr(user, 'wholesalerprofile') or not user.wholesalerprofile.is_wholesaler:
+            raise serializers.ValidationError("Only wholesalers can make an offer.")
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        validated_data['user'] = user
+        return super().create(validated_data)
+
 
 
 class AppraisalSerializer(serializers.ModelSerializer):
@@ -177,6 +210,9 @@ class AppraisalSerializer(serializers.ModelSerializer):
     damage_photos = PhotoSerializer(many=True, read_only=True, source='damage_photos_set')
     vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
     sent_to_management = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
+    private_comments = CommentSerializer(many=True, read_only=True)
+    general_comments = CommentSerializer(many=True, read_only=True)
+    offers = OfferSerializer(many=True, read_only=True)
 
     class Meta:
         model = Appraisal
@@ -186,7 +222,8 @@ class AppraisalSerializer(serializers.ModelSerializer):
             'customer_phone', 'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin', 
             'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 'transmission', 
             'body_type', 'fuel_type', 'damage_description', 'damage_location', 'repair_cost_estimate', 
-            'reserve_price', 'damage_photos', 'vehicle_photos', 'sent_to_management'
+            'reserve_price', 'damage_photos', 'vehicle_photos', 'sent_to_management', 'private_comments', 'general_comments', 
+            'offers'
         ]
 
     def create(self, validated_data):
@@ -217,3 +254,16 @@ class AppraisalSerializer(serializers.ModelSerializer):
         appraisal.sent_to_management.set(sent_to_management_ids)
 
         return appraisal
+
+    
+class SalesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Appraisal
+        fields = '__all__'  # Include all fields initially
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Remove 'offers' field if user is Sales Dealer
+        if self.context['request'].user.groups.filter(name='SalesDealer').exists():
+            del data['offers']
+        return data
