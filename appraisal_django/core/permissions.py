@@ -4,6 +4,9 @@ from .models import *
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS', 'POST')
 
 
+# Leverage the filter_queryset in viewsets
+# Permissions can be boiled down to Is Dealer, Is Manager, Is Sales or Is Wholesaler
+
 
 class IsManagementDealerOrReadOnly(permissions.BasePermission):
     """
@@ -94,22 +97,6 @@ class IsManagementDealerFromSameDealership(permissions.BasePermission):
             return False
         
 
-class CanMakeOffer(permissions.BasePermission):
-    """
-    Custom permission to allow only users with is_wholesaler=True to make an offer.
-    """
-
-    def has_permission(self, request, view):
-        # Allow safe methods (GET, HEAD, OPTIONS) without restrictions
-        if request.method in permissions.SAFE_METHODS:
-            return True
-
-        # Check if the authenticated user is a wholesaler
-        try:
-            return request.user.wholesalerprofile.is_wholesaler
-        except WholesalerProfile.DoesNotExist:
-            return False
-        
 
 class IsDealerFromSameDealershipOrWholesaler(permissions.BasePermission):
     """
@@ -162,4 +149,66 @@ class CanViewOffers(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         # Optionally, you can check object-level permissions here
+        return self.has_permission(request, view)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+class IsDealer(permissions.BasePermission):
+    """
+    Allows access only to dealers (either sales or management) from the same dealership.
+    """
+    def has_permission(self, request, view):
+        # Check if the user is authenticated and has a dealer profile
+        return request.user and request.user.is_authenticated and hasattr(request.user, 'dealerprofile')
+
+    def has_object_permission(self, request, view, obj):
+        # Allow safe methods for everyone
+        if request.method in SAFE_METHODS:
+            return True
+        
+        # Check if the user is a dealer and belongs to the same dealership as the object
+        if hasattr(request.user, 'dealerprofile'):
+            dealer_profile = request.user.dealerprofile
+            return obj.dealership == dealer_profile.dealership
+        
+        return False
+
+class IsWholesaler(permissions.BasePermission):
+    """
+    Allows access only to wholesalers.
+    """
+    def has_permission(self, request, view):
+        # Check if the user is authenticated and has a wholesaler profile
+        return request.user and request.user.is_authenticated and hasattr(request.user, 'wholesalerprofile')
+
+    def has_object_permission(self, request, view, obj):
+        # Allow any authenticated wholesaler to perform any action
+        return True
+
+class IsSales(permissions.BasePermission):
+    """
+    Allows access only to sales dealers.
+    """
+    def has_permission(self, request, view):
+        # Check if the user is authenticated and has a dealer profile with sales role
+        return request.user and request.user.is_authenticated and (
+            hasattr(request.user, 'dealerprofile') and request.user.dealerprofile.role == 'S'
+        )
+
+    def has_object_permission(self, request, view, obj):
+        # Mirror the permission check for the `has_permission` method
+        return self.has_permission(request, view)
+
+class IsManagement(permissions.BasePermission):
+    """
+    Allows access only to management dealers.
+    """
+    def has_permission(self, request, view):
+        # Check if the user is authenticated and has a dealer profile with management role
+        return request.user and request.user.is_authenticated and (
+            hasattr(request.user, 'dealerprofile') and request.user.dealerprofile.role == 'M'
+        )
+
+    def has_object_permission(self, request, view, obj):
+        # Mirror the permission check for the `has_permission` method
         return self.has_permission(request, view)

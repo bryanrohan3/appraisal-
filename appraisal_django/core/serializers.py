@@ -46,39 +46,67 @@ class DealershipSerializer(serializers.ModelSerializer):
             dealers = DealerProfile.objects.filter(dealerships=obj)
         
         return DealerProfileSerializer(dealers, many=True).data
+    
+
+class DealershipBasicSerializer(serializers.ModelSerializer):
+    '''
+    Basic serializer for Dealership. Used for Searching for Dealerships.
+    '''
+    class Meta:
+        model = Dealership
+        fields = ['id', 'dealership_name', 'phone', 'email']
+
 
 class DealerProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for DealerProfile model.
+    """
     user = UserSerializer()
-    dealerships = serializers.PrimaryKeyRelatedField(queryset=Dealership.objects.all(), many=True, required=False)  # Change to PrimaryKeyRelatedField
+    dealerships = serializers.PrimaryKeyRelatedField(queryset=Dealership.objects.all(), many=True, required=False)
 
     class Meta:
         model = DealerProfile
         fields = ['user', 'phone', 'role', 'dealerships']
 
     def create(self, validated_data):
+        """
+        Custom create method to handle creation of dealer profiles.
+        For 'M' (Management Dealer), authentication is bypassed.
+        """
         user_data = validated_data.pop('user')
         dealership_data = validated_data.pop('dealerships', [])
-        
-        # Check if the creating user is allowed to create the dealer profile
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
+        role = validated_data.get('role')
+
+        if role == 'M':
+            # Create the user without authentication check
+            user = UserSerializer().create(user_data)
+            dealer_profile = DealerProfile.objects.create(user=user, **validated_data)
+            dealer_profile.dealerships.set(dealership_data)
+            return dealer_profile
+
+        else:
+            request = self.context.get('request')
+            if not request or not request.user.is_authenticated:
+                raise serializers.ValidationError("Authentication credentials were not provided.")
+
+            # Check if the authenticated user has permission to create the dealer profile
             creator_profile = DealerProfile.objects.get(user=request.user)
             if creator_profile.role != 'M':
                 raise serializers.ValidationError("Only Management Dealers can create new users.")
-            
-            if validated_data.get('role') == 'M' or validated_data.get('role') == 'S':
-                creator_dealership_ids = set(creator_profile.dealerships.values_list('id', flat=True))
-                new_dealership_ids = set([dealership.id for dealership in dealership_data])
 
-                # Ensure there is at least one common dealership ID
-                if not new_dealership_ids.intersection(creator_dealership_ids):
-                    raise serializers.ValidationError("Cannot create dealer for dealership you don't work for")
+            # Validate that the creator has access to the specified dealerships
+            creator_dealership_ids = set(creator_profile.dealerships.values_list('id', flat=True))
+            new_dealership_ids = set([dealership.id for dealership in dealership_data])
 
-        user = UserSerializer().create(user_data)
-        dealer_profile = DealerProfile.objects.create(user=user, **validated_data)
-        dealer_profile.dealerships.set(dealership_data)
+            if not new_dealership_ids.intersection(creator_dealership_ids):
+                raise serializers.ValidationError("Cannot create dealer for dealership you don't work for")
 
-        return dealer_profile
+            # Create the user and dealer profile
+            user = UserSerializer().create(user_data)
+            dealer_profile = DealerProfile.objects.create(user=user, **validated_data)
+            dealer_profile.dealerships.set(dealership_data)
+            return dealer_profile
+
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user')
@@ -135,7 +163,7 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WholesalerProfile
-        fields = ['user', 'wholesaler_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'is_active', 'is_wholesaler']
+        fields = ['user', 'wholesaler_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'is_active']
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')
@@ -201,18 +229,31 @@ class OfferSerializer(serializers.ModelSerializer):
         validated_data['user'] = user
         return super().create(validated_data)
 
+class DamageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Damage
+        fields = ('id', 'damage_description', 'damage_location', 'damage_photos', 'repair_cost_estimate')
 
+    def create(self, validated_data):
+        damage_photos_data = validated_data.pop('damage_photos', [])
+        damage = Damage.objects.create(**validated_data)
+
+        for photo_data in damage_photos_data:
+            Photo.objects.create(damage=damage, image=photo_data)
+
+        return damage
 
 class AppraisalSerializer(serializers.ModelSerializer):
     initiating_dealer = DealerProfileNestedSerializer(read_only=True)
     last_updating_dealer = DealerProfileNestedSerializer(read_only=True)
     dealership = DealershipNestedSerializer(read_only=True)
-    damage_photos = PhotoSerializer(many=True, read_only=True, source='damage_photos_set')
+    # damage_photos = PhotoSerializer(many=True, read_only=True, source='damage_photos_set')
+    damages = DamageSerializer(many=True)
     vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
     sent_to_management = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
-    private_comments = CommentSerializer(many=True, read_only=True)
-    general_comments = CommentSerializer(many=True, read_only=True)
-    offers = OfferSerializer(many=True, read_only=True)
+    private_comments = CommentSerializer(many=True, read_only=True )
+    general_comments = CommentSerializer(many=True, read_only=True )
+    offers = OfferSerializer(many=True, required=False)
 
     class Meta:
         model = Appraisal
@@ -221,9 +262,8 @@ class AppraisalSerializer(serializers.ModelSerializer):
             'last_updating_dealer', 'customer_first_name', 'customer_last_name', 'customer_email', 
             'customer_phone', 'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin', 
             'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 'transmission', 
-            'body_type', 'fuel_type', 'damage_description', 'damage_location', 'repair_cost_estimate', 
-            'reserve_price', 'damage_photos', 'vehicle_photos', 'sent_to_management', 'private_comments', 'general_comments', 
-            'offers'
+            'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos', 
+            'sent_to_management', 'private_comments', 'general_comments', 'offers'
         ]
 
     def create(self, validated_data):
@@ -240,16 +280,16 @@ class AppraisalSerializer(serializers.ModelSerializer):
         validated_data['last_updating_dealer'] = dealer_profile
 
         sent_to_management_ids = validated_data.pop('sent_to_management', [])
-        damage_photos_data = request.FILES.getlist('damage_photos', [])
-        vehicle_photos_data = request.FILES.getlist('vehicle_photos', [])
+        damage_data = validated_data.pop('damages', [])  # Get the list of damages
 
         appraisal = Appraisal.objects.create(**validated_data)
 
-        for damage_photo_data in damage_photos_data:
-            Photo.objects.create(appraisal=appraisal, image=damage_photo_data, location='damage')
+        for damage_item in damage_data:
+            damage_photos_data = damage_item.pop('damage_photos', [])  # Extract damage photos if needed
+            damage = Damage.objects.create(appraisal=appraisal, **damage_item)
 
-        for vehicle_photo_data in vehicle_photos_data:
-            Photo.objects.create(appraisal=appraisal, image=vehicle_photo_data, location='vehicle')
+            for photo_data in damage_photos_data:
+                Photo.objects.create(damage=damage, image=photo_data)
 
         appraisal.sent_to_management.set(sent_to_management_ids)
 

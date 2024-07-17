@@ -10,51 +10,88 @@ from .permissions import *
 from django.db.models import Q
 from django.http import HttpResponse
 import csv
+from django.utils import timezone
 
-
-class DealershipViewSet(viewsets.ModelViewSet):
+# TODO: Very important: Start pagination early
+# TODO: Use the generic view set instead of the modelviewset, and use mixins
+# We actually don't need list
+# For dealership lookups, you can use an action route, accept a search param. ?name=asdf 
+class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = Dealership.objects.all()
     serializer_class = DealershipSerializer
-
-    permission_classes_by_action = {
-        'list': [permissions.AllowAny],
-        'create': [permissions.AllowAny],
-        'update': [IsManagementDealerFromSameDealership],  # Adding 'update'
-        'partial_update': [IsManagementDealerFromSameDealership],
-        'default': [permissions.IsAuthenticated],
-        'dealers': [IsManagementDealerFromSameDealership],
+    permission_classes = [permissions.IsAuthenticated, IsDealer]
+    serializer_classes = {
+        'default': DealershipSerializer,
+        'search': DealershipBasicSerializer
     }
 
-    def get_permissions(self):
-        print(f"Action: {self.action}")  # Debug: print the action name
-        try:
-            return [permission() for permission in self.permission_classes_by_action[self.action]]
-        except KeyError:
-            return [permission() for permission in self.permission_classes_by_action['default']]
+    def get_serializer_class(self):
+        return self.serializer_classes.get(self.action, self.serializer_classes['default'])
 
-    def list(self, request, *args, **kwargs):
+
+
+    # Un-needed
+    # permission_classes_by_action = {
+    #     'list': [permissions.AllowAny],
+    #     'create': [permissions.AllowAny],
+    #     'update': [IsManagementDealerFromSameDealership],  # Adding 'update'
+    #     'partial_update': [IsManagementDealerFromSameDealership],
+    #     'default': [permissions.IsAuthenticated],
+    #     'dealers': [IsManagementDealerFromSameDealership],
+    # }
+
+    # def get_permissions(self):
+    #     print(f"Action: {self.action}")  # Debug: print the action name
+    #     try:
+    #         return [permission() for permission in self.permission_classes_by_action[self.action]]
+    #     except KeyError:
+    #         return [permission() for permission in self.permission_classes_by_action['default']]
+
+    def get_queryset(self):
+        """
+        Restricts the returned queryset to dealerships the user is associated with.
+        """
+        user = self.request.user
+        if user.is_authenticated:
+            try:
+                dealer_profile = DealerProfile.objects.get(user=user)
+                return dealer_profile.dealerships.all()  # Only dealerships associated with the dealer
+            except DealerProfile.DoesNotExist:
+                return Dealership.objects.none()  # If dealer profile doesn't exist, return empty queryset
+        return Dealership.objects.none()  # Return empty queryset for anonymous users
+    
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Retrieve a specific dealership by ID.
+        """
+        return super().retrieve(request, *args, **kwargs)
+
+
+    @action(detail=False, methods=['get'], permission_classes=[IsDealer])
+    def search(self, request):
+        """
+        Custom action to search for dealerships by name or other parameters.
+        """
         queryset = self.get_queryset()
 
-        dealership_id = request.query_params.get('dealership_id')
-        if dealership_id:
-            queryset = queryset.filter(id=dealership_id)
-
-        role = request.query_params.get('role')
-        if role and role in ['M', 'S']:
-            queryset = queryset.filter(dealer_profiles__role=role)
+        dealership_name = request.query_params.get('dealership_name')
+        if dealership_name:
+            queryset = queryset.filter(dealership_name__icontains=dealership_name)
 
         serializer = self.get_serializer(queryset, many=True)
-        data = serializer.data
-
-        return Response(data)
+        # serializer = DealershipBasicSerializer(queryset, many=True)
+        return Response(serializer.data)
     
-    @action(detail=True, methods=['get'], permission_classes=[IsManagementDealerFromSameDealership])
+    @action(detail=True, methods=['get'], permission_classes=[IsDealer])
     def dealers(self, request, pk=None):
+        """
+        Retrieve dealers associated with a specific dealership.
+        """
         dealership = self.get_object()
-        
+
         try:
             dealer_profile = DealerProfile.objects.get(user=request.user)
-            if dealer_profile.role != 'M' or dealership not in dealer_profile.dealerships.all():
+            if dealership not in dealer_profile.dealerships.all():
                 return Response({'detail': 'Not authorized to view dealers of this dealership.'}, status=403)
         except DealerProfile.DoesNotExist:
             return Response({'detail': 'Not authorized to view dealers of this dealership.'}, status=403)
@@ -64,7 +101,7 @@ class DealershipViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     
-
+#  TODO: Get rid of create update and list
 class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin):
     """
     ViewSet for managing users.
@@ -84,14 +121,18 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
 
         return self.serializer_classes.get(self.action, self.serializer_class)
 
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if request.user != instance:
-            return Response({"error": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-        return super().update(request, *args, **kwargs)
+    # # TODO: Remove create, move to dealerprofileviewset
+    # def create(self, request, *args, **kwargs):
+    #     return super().create(request, *args, **kwargs)
+    
+    # # api/dealership/?dealship_id=1 -> 
+    # # api/dealership/1 
+    # # TODO: Remove update and move to dealerprofileviewset and wholesalerprofileviewset
+    # def update(self, request, *args, **kwargs):
+    #     instance = self.get_object()
+    #     if request.user != instance:
+    #         return Response({"error": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+    #     return super().update(request, *args, **kwargs)
 
     @action(detail=False, methods=['POST'], permission_classes=[])
     def login(self, request):
@@ -110,80 +151,87 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing dealer profiles.
     """
+
     queryset = DealerProfile.objects.all()
     serializer_class = DealerProfileSerializer
 
-    permission_classes_by_action = {
-        'create': [permissions.IsAuthenticated, IsManagementDealerOrReadOnly],
-        'default': [permissions.IsAuthenticatedOrReadOnly],
-        'promote': [permissions.IsAuthenticated, IsDealerFromSameDealership],
-    }
-
-    def get_permissions(self):
-        try:
-            return [permission() for permission in self.permission_classes_by_action[self.action]]
-        except KeyError:
-            return [permission() for permission in self.permission_classes_by_action['default']]
-    
-    def list(self, request, *args, **kwargs):
-        user_id = request.query_params.get('user_id')
-        if user_id:
-            queryset = DealerProfile.objects.filter(user__id=user_id)
-        else:
-            queryset = self.get_queryset()
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['GET'])
-    def current_user_profile(self, request):
+    def create(self, request, *args, **kwargs):
         """
-        Retrieve the profile of the current authenticated user.
+        Custom create method to handle creation of dealer profiles.
+        For 'M' (Management Dealer), authentication is bypassed.
         """
-        user_id = request.query_params.get('user_id')
-        if not user_id:
-            return Response({'error': 'User ID parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            dealer_profile = DealerProfile.objects.get(user_id=user_id)
-            serializer = self.get_serializer(dealer_profile)
-            return Response(serializer.data)
-        except DealerProfile.DoesNotExist:
-            return Response({'error': 'Dealer Profile not found for the given user ID'}, status=status.HTTP_404_NOT_FOUND)
+        if request.data.get('role') == 'M':
+            # Bypass authentication for 'M' role during creation
+            self.request.user = None
         
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def get_queryset(self):
+        """
+        Override queryset to filter based on the authenticated user's dealership.
+        """
+        queryset = super().get_queryset()
+
+        if self.request.user.is_authenticated:
+            user = self.request.user
+            if hasattr(user, 'dealerprofile'):
+                dealer_profile = user.dealerprofile
+                queryset = queryset.filter(dealerships__in=dealer_profile.dealerships.all())
+
+        return queryset
+
     @action(detail=False, methods=['POST'], url_path='(?P<user_id>[^/.]+)/promote')
     def promote_dealer(self, request, user_id=None):
+        """
+        Action to promote a Sales Dealer to Management Dealer by a Management Dealer.
+        """
         try:
-            # Fetch the management dealer (requesting user)
-            management_dealer = self.request.user.dealerprofile  # Assuming 'dealerprofile' is the related name
-
-            # Fetch the dealer to promote
-            dealer_to_promote = DealerProfile.objects.get(user_id=user_id, dealerships=management_dealer.dealerships.first(), role='S')
+            management_dealer = self.request.user.dealerprofile
+            
+            # Use filter_queryset to get the queryset of dealers that the management dealer can promote
+            queryset = self.filter_queryset(self.get_queryset())
+            dealer_to_promote = queryset.get(user_id=user_id, dealerships=management_dealer.dealerships.first(), role='S')
         except DealerProfile.DoesNotExist:
             return Response({'error': 'Dealer not found or not promotable'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Check if the requesting user is a management dealer
         if management_dealer.role != 'M':
             return Response({'error': 'You are not authorized to perform this action'}, status=status.HTTP_403_FORBIDDEN)
         
-        # Perform promotion action here
         dealer_to_promote.role = 'M'
         dealer_to_promote.save()
 
         serializer = self.get_serializer(dealer_to_promote)
         return Response(serializer.data)
+    
+        # Whole request can be boiled down to:
+        # dealer_to_promote = self.get_object() -> only work if we have the filter_queryset
+        # DealerProfile.objects.filter(id=dealer_to_promote.id).update(role='M')
+        # serializer = self.get_serializer(dealer_to_promote)
+        # return Response(serializer.data)
 
-class WholesalerProfileViewSet(viewsets.ModelViewSet):
+
+# Use the generic, + mixins
+class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin):
     """
     ViewSet for managing wholesaler profiles.
     """
     queryset = WholesalerProfile.objects.all()
     serializer_class = WholesalerProfileSerializer
-    permission_classes = [permissions.IsAuthenticated, IsWholesalerOwnerOrReadOnly]
+    permission_classes = [IsWholesaler]
 
-    def perform_create(self, serializer):
-        # Automatically set the current user as the owner of the profile
-        serializer.save(user=self.request.user)
+    # TODO: Set this in the serializer, we actually dont need this at all. 
+    # def perform_create(self, serializer):
+    #     # Automatically set the current user as the owner of the profile
+    #     serializer.save(user=self.request.user)
+    #     # eg:
+    #     # inside WholesalerProfileSerializer
+    #     # def save(self, validated_data, args, kwargs)
+    #     # get request from context
+        # validated_data["user"] = self.request.user
 
     @action(detail=False, methods=['GET'])
     def current_user_profile(self, request):
@@ -232,72 +280,105 @@ class WholesalerProfileViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-class AppraisalViewSet(viewsets.ModelViewSet):
+
+class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin, viewsets.mixins.RetrieveModelMixin, viewsets.mixins.UpdateModelMixin, viewsets.mixins.ListModelMixin):
     queryset = Appraisal.objects.all()
     serializer_class = AppraisalSerializer
     # permission_classes = [permissions.IsAuthenticated, IsDealerFromSameDealership]
+    permission_classes = [permissions.IsAuthenticated]
 
-    permission_classes_by_action = {
-        'create': [permissions.IsAuthenticated, IsDealerFromSameDealership],
-        'update': [permissions.IsAuthenticated, IsDealerFromSameDealership, IsManagementDealerOrReadOnly],
-        'partial_update': [permissions.IsAuthenticated, IsDealerFromSameDealership, IsManagementDealerOrReadOnly],
-        'retrieve': [permissions.IsAuthenticated, IsDealerFromSameDealership],
-        'list': [permissions.IsAuthenticated],
-        'list_offers': [permissions.IsAuthenticated, CanViewOffers],
-        'make_offer': [permissions.IsAuthenticated, CanMakeOffer],
-    }
+    # permission_classes_by_action = {
+    #     'create': [permissions.IsAuthenticated, IsDealerFromSameDealership],
+    #     'update': [permissions.IsAuthenticated, IsDealerFromSameDealership, IsManagementDealerOrReadOnly],
+    #     'partial_update': [permissions.IsAuthenticated, IsDealerFromSameDealership, IsManagementDealerOrReadOnly],
+    #     'retrieve': [permissions.IsAuthenticated, IsDealerFromSameDealership],
+    #     'list': [permissions.IsAuthenticated],
+    #     'list_offers': [permissions.IsAuthenticated, CanViewOffers],
+    #     'make_offer': [permissions.IsAuthenticated, CanMakeOffer],
+    #     'duplicate': [permissions.IsAuthenticated, IsDealerFromSameDealership, IsManagementDealerOrReadOnly],
+    # }
 
-    def get_serializer_class(self):
-        if self.action == 'list_offers' and self.request.user.dealerprofile.role == 'S':
-            return SalesSerializer
-        return AppraisalSerializer
-
+    # def get_serializer_class(self):
+    #     if self.action == 'list_offers' and self.request.user.dealerprofile.role == 'S':
+    #         return SalesSerializer
+    #     return AppraisalSerializer
+    
     def get_queryset(self):
-        # Check if the user is a wholesaler
-        if hasattr(self.request.user, 'wholesalerprofile'):
+        user = self.request.user
+
+        if hasattr(user, 'wholesalerprofile'):
             return Appraisal.objects.all()
 
-        # If the user is a dealer, filter by dealerships
-        if hasattr(self.request.user, 'dealerprofile'):
-            user_dealership_ids = self.request.user.dealerprofile.dealerships.values_list('id', flat=True)
-            # Debug statement
-            print(f"User {self.request.user.username} belongs to dealerships: {list(user_dealership_ids)}")
+        elif hasattr(user, 'dealerprofile'):
+            user_dealership_ids = user.dealerprofile.dealerships.values_list('id', flat=True)
             queryset = Appraisal.objects.filter(dealership_id__in=user_dealership_ids)
-            # Debug statement
-            print(f"Initial queryset for user {self.request.user.username}: {queryset}")
-            # Additional filters based on query params
+
             dealership_id = self.request.query_params.get('dealership_id')
             if dealership_id:
                 queryset = queryset.filter(dealership_id=dealership_id)
+
             user_id = self.request.query_params.get('user_id')
             if user_id:
                 queryset = queryset.filter(Q(initiating_dealer__user__id=user_id) | Q(last_updating_dealer__user__id=user_id))
-            # Debug statement
-            print(f"Filtered queryset for user {self.request.user.username}: {queryset}")
+
             return queryset
-        
+
         return Appraisal.objects.none()
+    
+    def get_serializer_class(self):
+        if self.action == 'list_offers' and self.request.user.dealerprofile.role == 'S':
+            return SalesSerializer
+        return self.serializer_class
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    # def get_queryset(self):
+    #     # Check if the user is a wholesaler
+    #     if hasattr(self.request.user, 'wholesalerprofile'):
+    #         return Appraisal.objects.all()
 
-        user = request.user
-        dealer_profile = DealerProfile.objects.get(user=user)
-        if not dealer_profile.dealerships.exists():
-            return Response({"detail": "You are not associated with any dealership."}, status=status.HTTP_400_BAD_REQUEST)
+    #     # If the user is a dealer, filter by dealerships
+    #     if hasattr(self.request.user, 'dealerprofile'):
+    #         user_dealership_ids = self.request.user.dealerprofile.dealerships.values_list('id', flat=True)
+    #         # Debug statement
+    #         print(f"User {self.request.user.username} belongs to dealerships: {list(user_dealership_ids)}")
+    #         queryset = Appraisal.objects.filter(dealership_id__in=user_dealership_ids)
+    #         # Debug statement
+    #         print(f"Initial queryset for user {self.request.user.username}: {queryset}")
+    #         # Additional filters based on query params
+    #         dealership_id = self.request.query_params.get('dealership_id')
+    #         if dealership_id:
+    #             queryset = queryset.filter(dealership_id=dealership_id)
+    #         user_id = self.request.query_params.get('user_id')
+    #         if user_id:
+    #             queryset = queryset.filter(Q(initiating_dealer__user__id=user_id) | Q(last_updating_dealer__user__id=user_id))
+    #         # Debug statement
+    #         print(f"Filtered queryset for user {self.request.user.username}: {queryset}")
+    #         return queryset
         
-        dealership = dealer_profile.dealerships.first()
-        validated_data = serializer.validated_data
-        validated_data['initiating_dealer'] = dealer_profile
-        validated_data['dealership'] = dealership
-        validated_data['last_updating_dealer'] = dealer_profile
+    #     return Appraisal.objects.none()
 
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
-    def list(self, request, *args, **kwargs):
+    # @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
+    # def custom_create(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+
+    #     user = request.user
+    #     dealer_profile = DealerProfile.objects.get(user=user)
+    #     if not dealer_profile.dealerships.exists():
+    #         return Response({"detail": "You are not associated with any dealership."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    #     dealership = dealer_profile.dealerships.first()
+    #     validated_data = serializer.validated_data
+    #     validated_data['initiating_dealer'] = dealer_profile
+    #     validated_data['dealership'] = dealership
+    #     validated_data['last_updating_dealer'] = dealer_profile
+
+    #     self.perform_create(serializer)
+    #     headers = self.get_success_headers(serializer.data)
+    #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
+    def custom_list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
 
         keyword = request.query_params.get('filter')
@@ -307,7 +388,9 @@ class AppraisalViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    def retrieve(self, request, *args, **kwargs):
+    # TODO: Sales Dealers can still see Offers here which defeats the purpose of list_offers below
+    @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
+    def custom_retrieve(self, request, *args, **kwargs):
         appraisal = self.get_object()  # Get the object from the queryset
         dealership_id = appraisal.dealership.id  # Get the ID of the dealership associated with the object
 
@@ -320,7 +403,8 @@ class AppraisalViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(appraisal)  # Serialize 
         return Response(serializer.data) 
 
-    def update(self, request, *args, **kwargs):
+    @action(detail=True, methods=['POST'], permission_classes=[IsManagement])
+    def custom_update(self, request, *args, **kwargs):
         instance = self.get_object()
 
         # Check if the user is a Sales Dealer
@@ -336,7 +420,8 @@ class AppraisalViewSet(viewsets.ModelViewSet):
         else:
             return Response({"message": "You do not have permission to update this appraisal"}, status=status.HTTP_403_FORBIDDEN)
 
-    def partial_update(self, request, *args, **kwargs):
+    @action(detail=True, methods=['POST'], permission_classes=[IsManagement])
+    def custom_partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         if request.user.dealerprofile.role == 'S':
             return Response({"message": "Sales Dealers are not allowed to update appraisals"}, status=status.HTTP_403_FORBIDDEN)
@@ -352,7 +437,7 @@ class AppraisalViewSet(viewsets.ModelViewSet):
         queryset = queryset.filter(partial_match_query)
         return queryset
     
-    @action(detail=True, methods=['POST'])
+    @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
     def add_private_comment(self, request, pk=None):
         appraisal = self.get_object()
         user = request.user
@@ -366,7 +451,7 @@ class AppraisalViewSet(viewsets.ModelViewSet):
 
         return Response({"message": "Private comment added successfully."}, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['POST'])
+    @action(detail=True, methods=['POST'], permission_classes=[IsDealer, IsWholesaler])
     def add_general_comment(self, request, pk=None):
         appraisal = self.get_object()
         user = request.user
@@ -380,7 +465,7 @@ class AppraisalViewSet(viewsets.ModelViewSet):
 
         return Response({"message": "General comment added successfully."}, status=status.HTTP_201_CREATED)
     
-    @action(detail=True, methods=['post'], url_path='csv')
+    @action(detail=True, methods=['post'], url_path='csv', permission_classes=[IsManagement])
     def download_csv(self, request, pk=None):
         appraisal = self.get_object()
         response = HttpResponse(content_type='text/csv')
@@ -423,7 +508,7 @@ class AppraisalViewSet(viewsets.ModelViewSet):
 
         return response
     
-    @action(detail=True, methods=['POST'], url_path='make_offer')
+    @action(detail=True, methods=['POST'], url_path='make_offer', permission_classes=[IsWholesaler])
     def make_offer(self, request, pk=None):
         appraisal = self.get_object()
         user = request.user
@@ -440,9 +525,59 @@ class AppraisalViewSet(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-    @action(detail=True, methods=['get'], url_path='offers', permission_classes=[permissions.IsAuthenticated, CanViewOffers])
+    @action(detail=True, methods=['get'], url_path='offers', permission_classes=[IsManagement])
     def list_offers(self, request, pk=None):
         appraisal = self.get_object()
         offers = Offer.objects.filter(appraisal=appraisal)
         serializer = OfferSerializer(offers, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+    @action(detail=True, methods=['POST'], url_path='duplicate', permission_classes=[IsDealer])
+    def duplicate(self, request, pk=None):
+        instance = self.get_object()
+
+        # Retrieve authenticated user's DealerProfile
+        dealer_profile = DealerProfile.objects.get(user=request.user)
+
+        # Create a new Appraisal instance with copied fields
+        new_appraisal = Appraisal(
+            initiating_dealer=instance.initiating_dealer,
+            dealership=instance.dealership,
+            last_updating_dealer=dealer_profile,
+            customer_first_name=instance.customer_first_name,
+            customer_last_name=instance.customer_last_name,
+            customer_email=instance.customer_email,
+            customer_phone=instance.customer_phone,
+            vehicle_make=instance.vehicle_make,
+            vehicle_model=instance.vehicle_model,
+            vehicle_year=instance.vehicle_year,
+            vehicle_vin=instance.vehicle_vin,
+            vehicle_registration=instance.vehicle_registration,
+            color=instance.color,
+            odometer_reading=instance.odometer_reading,
+            engine_type=instance.engine_type,
+            transmission=instance.transmission,
+            body_type=instance.body_type,
+            fuel_type=instance.fuel_type,
+            reserve_price=instance.reserve_price,
+            start_date=timezone.now(),
+            last_updated=timezone.now(),
+            is_active=True,
+        )
+
+        # Save the new appraisal instance to assign it an ID
+        new_appraisal.save()
+
+        # Clear offers related to the new appraisal (assuming a related_name 'offers')
+        new_appraisal.offers.set([])  # Set an empty list to clear all related offers
+
+        # Update last_updated to current time
+        new_appraisal.last_updated = timezone.now()
+
+        # Save the new appraisal instance again to update last_updated
+        new_appraisal.save()
+
+        # Serialize the new instance to return in response
+        serializer = self.get_serializer(new_appraisal)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
