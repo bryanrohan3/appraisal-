@@ -34,10 +34,6 @@ class DealershipSerializer(serializers.ModelSerializer):
         fields = ['id', 'dealership_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'wholesalers', 'is_active' ,'dealers']
 
     def get_dealers(self, obj):
-        dealers = DealerProfile.objects.filter(dealerships=obj)
-        return DealerProfileSerializer(dealers, many=True).data
-
-    def get_dealers(self, obj):
         role = self.context['request'].query_params.get('role')
         
         if role and role in ['M', 'S']:
@@ -46,6 +42,7 @@ class DealershipSerializer(serializers.ModelSerializer):
             dealers = DealerProfile.objects.filter(dealerships=obj)
         
         return DealerProfileSerializer(dealers, many=True).data
+
     
 
 class DealershipBasicSerializer(serializers.ModelSerializer):
@@ -63,10 +60,12 @@ class DealerProfileSerializer(serializers.ModelSerializer):
     """
     user = UserSerializer()
     dealerships = serializers.PrimaryKeyRelatedField(queryset=Dealership.objects.all(), many=True, required=False)
+    received_requests = serializers.SerializerMethodField()
+    sent_requests = serializers.SerializerMethodField()
 
     class Meta:
         model = DealerProfile
-        fields = ['user', 'phone', 'role', 'dealerships']
+        fields = ['user', 'phone', 'role', 'dealerships', 'received_requests', 'sent_requests']
 
     def create(self, validated_data):
         """
@@ -79,8 +78,8 @@ class DealerProfileSerializer(serializers.ModelSerializer):
 
         if role == 'M':
             # Create the user without authentication check
-            user = UserSerializer().create(user_data)
-            dealer_profile = DealerProfile.objects.create(user=user, **validated_data)
+            user = UserSerializer().create(user_data) # bypass authentication
+            dealer_profile = DealerProfile.objects.create(user=user, **validated_data) 
             dealer_profile.dealerships.set(dealership_data)
             return dealer_profile
 
@@ -106,7 +105,6 @@ class DealerProfileSerializer(serializers.ModelSerializer):
             dealer_profile = DealerProfile.objects.create(user=user, **validated_data)
             dealer_profile.dealerships.set(dealership_data)
             return dealer_profile
-
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user')
@@ -137,10 +135,23 @@ class DealerProfileSerializer(serializers.ModelSerializer):
         
         return list(dealerships)
 
+    def get_received_requests(self, instance):
+        # Adjusted logic to get received requests for the dealer's dealerships
+        received_requests = FriendRequest.objects.filter(dealership__in=instance.dealerships.all())
+        return FriendRequestSerializer(received_requests, many=True).data
+
+    def get_sent_requests(self, instance):
+        # Check if the user has a wholesaler profile before accessing it
+        if hasattr(instance.user, 'wholesalerprofile'):
+            sent_requests = FriendRequest.objects.filter(sender=instance.user.wholesalerprofile)
+            return FriendRequestSerializer(sent_requests, many=True).data
+        return []
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['dealerships'] = self.get_dealerships(instance)
         return representation
+
 
 
 
@@ -306,4 +317,24 @@ class SalesSerializer(serializers.ModelSerializer):
         # Remove 'offers' field if user is Sales Dealer
         if self.context['request'].user.groups.filter(name='SalesDealer').exists():
             del data['offers']
+        return data
+
+
+class FriendRequestSerializer(serializers.ModelSerializer):
+    sender = serializers.ReadOnlyField(source='sender.user.username')
+    dealership = serializers.PrimaryKeyRelatedField(queryset=Dealership.objects.all())
+
+    class Meta:
+        model = FriendRequest
+        fields = ['id', 'sender', 'dealership', 'status', 'created_at']
+        read_only_fields = ['sender', 'status', 'created_at']
+
+
+    def validate(self, data):
+        '''
+        Checks if user is a wholesaler or not
+        '''
+        user = self.context['request'].user
+        if not hasattr(user, 'wholesalerprofile'):
+            raise serializers.ValidationError("Only wholesalers can send requests.")
         return data

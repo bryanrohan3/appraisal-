@@ -93,3 +93,7 @@ class PhotoAdmin(admin.ModelAdmin):
 
 # admin.site.register(Comment, CommentAdmin)
 admin.site.register(Comment)
+
+admin.site.register(Offer)
+
+admin.site.register(FriendRequest)

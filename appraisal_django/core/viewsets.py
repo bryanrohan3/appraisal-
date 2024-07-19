@@ -11,6 +11,10 @@ from django.db.models import Q
 from django.http import HttpResponse
 import csv
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from django.db import IntegrityError
+
+
 
 # TODO: Very important: Start pagination early
 # TODO: Use the generic view set instead of the modelviewset, and use mixins
@@ -27,25 +31,6 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
 
     def get_serializer_class(self):
         return self.serializer_classes.get(self.action, self.serializer_classes['default'])
-
-
-
-    # Un-needed
-    # permission_classes_by_action = {
-    #     'list': [permissions.AllowAny],
-    #     'create': [permissions.AllowAny],
-    #     'update': [IsManagementDealerFromSameDealership],  # Adding 'update'
-    #     'partial_update': [IsManagementDealerFromSameDealership],
-    #     'default': [permissions.IsAuthenticated],
-    #     'dealers': [IsManagementDealerFromSameDealership],
-    # }
-
-    # def get_permissions(self):
-    #     print(f"Action: {self.action}")  # Debug: print the action name
-    #     try:
-    #         return [permission() for permission in self.permission_classes_by_action[self.action]]
-    #     except KeyError:
-    #         return [permission() for permission in self.permission_classes_by_action['default']]
 
     def get_queryset(self):
         """
@@ -154,6 +139,7 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
 
     queryset = DealerProfile.objects.all()
     serializer_class = DealerProfileSerializer
+    
 
     def create(self, request, *args, **kwargs):
         """
@@ -581,3 +567,94 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         # Serialize the new instance to return in response
         serializer = self.get_serializer(new_appraisal)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+class RequestViewSet(viewsets.ModelViewSet):
+    queryset = FriendRequest.objects.all()
+    serializer_class = FriendRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    permission_classes_by_action = {
+        'create': [IsWholesaler],
+        'respond_to_friend_request': [IsManagement],
+        'list_received_requests': [IsManagement],  # Ensure permission check for this action
+    }
+
+    def get_permissions(self):
+        try:
+            return [permission() for permission in self.permission_classes_by_action[self.action]]
+        except KeyError:
+            return super().get_permissions()
+
+    def perform_create(self, serializer):
+        user = self.request.user 
+        try:
+            wholesaler_profile = user.wholesalerprofile
+        except WholesalerProfile.DoesNotExist:
+            raise serializers.ValidationError({'error': 'Only wholesalers can send friend requests.'})
+
+        dealership_id = self.request.data.get('dealership')  # Get the dealership ID from the request data
+        dealership = get_object_or_404(Dealership, id=dealership_id)  # Get the dealership object
+        serializer.save(sender=wholesaler_profile, dealership=dealership)  # Save the friend request
+
+    @action(detail=True, methods=['put'], url_path='respond')
+    def respond_to_friend_request(self, request, pk=None):
+        friend_request = get_object_or_404(FriendRequest, id=pk)
+        try:
+            dealer_profile = request.user.dealerprofile
+        except DealerProfile.DoesNotExist:
+            return Response({'error': 'User does not have a dealer profile.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if dealer_profile.role != 'M':
+            return Response({'error': 'Only dealership managers can respond to this request'}, status=status.HTTP_403_FORBIDDEN)
+
+        response_status = request.data.get('status')
+        if response_status not in ['accepted', 'rejected']:
+            return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+        friend_request.status = response_status
+        friend_request.save()
+
+        if response_status == 'accepted':
+            # Update the dealership's wholesalers list
+            dealership = friend_request.dealership
+            wholesaler_profile = friend_request.sender
+            dealership.wholesalers.add(wholesaler_profile.user)
+            dealership.save()
+
+        serializer = self.get_serializer(friend_request)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='sent')
+    def list_sent_requests(self, request):
+        try:
+            wholesaler_profile = request.user.wholesalerprofile
+        except WholesalerProfile.DoesNotExist:
+            return Response({'error': 'User does not have a wholesaler profile.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        sent_requests = FriendRequest.objects.filter(sender=wholesaler_profile)
+        serializer = self.get_serializer(sent_requests, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='received')
+    def list_received_requests(self, request):
+        try:
+            dealer_profile = request.user.dealerprofile
+        except DealerProfile.DoesNotExist:
+            return Response({'error': 'User does not have a dealer profile.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Check if dealer is a manager
+        if dealer_profile.role != 'M':
+            return Response({'error': 'Only dealership managers can view received friend requests.'}, status=status.HTTP_403_FORBIDDEN)
+
+        dealership_id = request.query_params.get('dealership')
+        if not dealership_id:
+            return Response({'error': 'Dealership ID must be provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        dealership = get_object_or_404(Dealership, id=dealership_id)
+
+        # Ensure the dealer is associated with the dealership
+        if dealership not in dealer_profile.dealerships.all():
+            return Response({'error': 'Dealer does not belong to the specified dealership.'}, status=status.HTTP_403_FORBIDDEN)
+
+        received_requests = FriendRequest.objects.filter(dealership=dealership)
+        serializer = self.get_serializer(received_requests, many=True)
+        return Response(serializer.data)
