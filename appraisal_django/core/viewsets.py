@@ -169,6 +169,24 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(dealerships__in=dealer_profile.dealerships.all())
 
         return queryset
+    
+    @action(detail=False, methods=['PATCH'], url_path='deactivate')
+    def deactivate_dealer(self, request):
+        """
+        Action to deactivate (soft delete) the authenticated dealer's profile and user.
+        """
+        try:
+            dealer_profile = self.request.user.dealerprofile
+            dealer_profile.is_active = False
+            dealer_profile.save()
+
+            user = dealer_profile.user
+            user.is_active = False
+            user.save()
+
+            return Response({'status': 'Dealer and user deactivated'}, status=status.HTTP_200_OK)
+        except DealerProfile.DoesNotExist:
+            return Response({'error': 'Dealer profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=False, methods=['POST'], url_path='(?P<user_id>[^/.]+)/promote')
     def promote_dealer(self, request, user_id=None):
@@ -270,25 +288,8 @@ class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
 class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin, viewsets.mixins.RetrieveModelMixin, viewsets.mixins.UpdateModelMixin, viewsets.mixins.ListModelMixin):
     queryset = Appraisal.objects.all()
     serializer_class = AppraisalSerializer
-    # permission_classes = [permissions.IsAuthenticated, IsDealerFromSameDealership]
     permission_classes = [permissions.IsAuthenticated]
 
-    # permission_classes_by_action = {
-    #     'create': [permissions.IsAuthenticated, IsDealerFromSameDealership],
-    #     'update': [permissions.IsAuthenticated, IsDealerFromSameDealership, IsManagementDealerOrReadOnly],
-    #     'partial_update': [permissions.IsAuthenticated, IsDealerFromSameDealership, IsManagementDealerOrReadOnly],
-    #     'retrieve': [permissions.IsAuthenticated, IsDealerFromSameDealership],
-    #     'list': [permissions.IsAuthenticated],
-    #     'list_offers': [permissions.IsAuthenticated, CanViewOffers],
-    #     'make_offer': [permissions.IsAuthenticated, CanMakeOffer],
-    #     'duplicate': [permissions.IsAuthenticated, IsDealerFromSameDealership, IsManagementDealerOrReadOnly],
-    # }
-
-    # def get_serializer_class(self):
-    #     if self.action == 'list_offers' and self.request.user.dealerprofile.role == 'S':
-    #         return SalesSerializer
-    #     return AppraisalSerializer
-    
     def get_queryset(self):
         user = self.request.user
 
@@ -316,52 +317,6 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
             return SalesSerializer
         return self.serializer_class
 
-    # def get_queryset(self):
-    #     # Check if the user is a wholesaler
-    #     if hasattr(self.request.user, 'wholesalerprofile'):
-    #         return Appraisal.objects.all()
-
-    #     # If the user is a dealer, filter by dealerships
-    #     if hasattr(self.request.user, 'dealerprofile'):
-    #         user_dealership_ids = self.request.user.dealerprofile.dealerships.values_list('id', flat=True)
-    #         # Debug statement
-    #         print(f"User {self.request.user.username} belongs to dealerships: {list(user_dealership_ids)}")
-    #         queryset = Appraisal.objects.filter(dealership_id__in=user_dealership_ids)
-    #         # Debug statement
-    #         print(f"Initial queryset for user {self.request.user.username}: {queryset}")
-    #         # Additional filters based on query params
-    #         dealership_id = self.request.query_params.get('dealership_id')
-    #         if dealership_id:
-    #             queryset = queryset.filter(dealership_id=dealership_id)
-    #         user_id = self.request.query_params.get('user_id')
-    #         if user_id:
-    #             queryset = queryset.filter(Q(initiating_dealer__user__id=user_id) | Q(last_updating_dealer__user__id=user_id))
-    #         # Debug statement
-    #         print(f"Filtered queryset for user {self.request.user.username}: {queryset}")
-    #         return queryset
-        
-    #     return Appraisal.objects.none()
-
-
-    # @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
-    # def custom_create(self, request, *args, **kwargs):
-    #     serializer = self.get_serializer(data=request.data)
-    #     serializer.is_valid(raise_exception=True)
-
-    #     user = request.user
-    #     dealer_profile = DealerProfile.objects.get(user=user)
-    #     if not dealer_profile.dealerships.exists():
-    #         return Response({"detail": "You are not associated with any dealership."}, status=status.HTTP_400_BAD_REQUEST)
-        
-    #     dealership = dealer_profile.dealerships.first()
-    #     validated_data = serializer.validated_data
-    #     validated_data['initiating_dealer'] = dealer_profile
-    #     validated_data['dealership'] = dealership
-    #     validated_data['last_updating_dealer'] = dealer_profile
-
-    #     self.perform_create(serializer)
-    #     headers = self.get_success_headers(serializer.data)
-    #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
     def custom_list(self, request, *args, **kwargs):
@@ -436,6 +391,25 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         appraisal.private_comments.add(comment)
 
         return Response({"message": "Private comment added successfully."}, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['PATCH'], url_path='deactivate', permission_classes=[IsManagement])
+    def deactivate(self, request, pk=None):
+        """
+        Action to deactivate an appraisal. Only Management Dealers can perform this action.
+        """
+        try:
+            appraisal = self.get_object()
+            user = request.user
+
+            if not hasattr(user, 'dealerprofile') or user.dealerprofile.role != 'M':
+                return Response({"message": "Only Management Dealers can deactivate appraisals"}, status=status.HTTP_403_FORBIDDEN)
+
+            appraisal.is_active = False
+            appraisal.save()
+
+            return Response({'status': 'Appraisal deactivated'}, status=status.HTTP_200_OK)
+        except Appraisal.DoesNotExist:
+            return Response({'error': 'Appraisal not found'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['POST'], permission_classes=[IsDealer, IsWholesaler])
     def add_general_comment(self, request, pk=None):

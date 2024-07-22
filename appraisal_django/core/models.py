@@ -58,6 +58,7 @@ class WholesalerProfile(models.Model):
     email = models.EmailField()
     phone = models.CharField(max_length=15)  # Format: +61XXXXXXXXX for Australian numbers
     is_active = models.BooleanField(default=True)  # Set to False if the wholesaler is inactive/deleted
+    friends = models.ManyToManyField('self', blank=True)
 
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.user.username}) - Wholesaler Name: {self.wholesaler_name}"
