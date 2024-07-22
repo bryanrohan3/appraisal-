@@ -13,6 +13,8 @@ import csv
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
+from rest_framework import status
+from django.db import transaction
 
 
 # TODO: Very important: Start pagination early
@@ -533,7 +535,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         user = request.user
 
         # Ensure only Wholesalers can make an offer
-        if not hasattr(user, 'wholesalerprofile') or not user.wholesalerprofile.is_wholesaler:
+        if not hasattr(user, 'wholesalerprofile'):
             return Response({"detail": "Only wholesalers can make an offer."}, status=status.HTTP_403_FORBIDDEN)
 
         data = request.data
@@ -616,6 +618,29 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         # Serialize the new instance to return in response
         serializer = self.get_serializer(new_appraisal)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['POST'], url_path='select_winner/(?P<offer_id>\d+)', permission_classes=[IsManagement])
+    def select_winner(self, request, pk=None, offer_id=None):
+        appraisal = self.get_object()
+
+        # Ensure the offer ID is provided and is an integer
+        if not offer_id:
+            return Response({"error": "Offer ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Retrieve the offer and ensure it belongs to the appraisal
+            selected_offer = appraisal.offers.get(id=offer_id)
+        except Offer.DoesNotExist:
+            return Response({"error": "Offer not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Set all offers for the appraisal to loser
+        appraisal.offers.update(winner=False)
+
+        # Set the selected offer as the winner
+        selected_offer.winner = True
+        selected_offer.save()
+
+        return Response({"message": "Winning offer selected successfully"}, status=status.HTTP_200_OK)
     
 
 class RequestViewSet(viewsets.ModelViewSet):

@@ -215,7 +215,7 @@ class OfferSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Offer
-        fields = ['id', 'user', 'amount', 'adjusted_amount', 'created_at']
+        fields = ['id', 'user', 'amount', 'adjusted_amount', 'winner', 'created_at']
         read_only_fields = ['user', 'adjusted_amount']
 
     def get_user(self, obj):
@@ -228,7 +228,7 @@ class OfferSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         user = self.context['request'].user
-        if not hasattr(user, 'wholesalerprofile') or not user.wholesalerprofile.is_wholesaler:
+        if not hasattr(user, 'wholesalerprofile'):
             raise serializers.ValidationError("Only wholesalers can make an offer.")
         return attrs
 
