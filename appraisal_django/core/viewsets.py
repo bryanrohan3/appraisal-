@@ -649,10 +649,10 @@ class RequestViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     permission_classes_by_action = {
         'create': [IsWholesaler],
-        'respond_to_friend_request': [IsManagement],
-        'list_received_requests': [IsManagement],  # Ensure permission check for this action
+        'respond_to_friend_request': [IsManagement | IsWholesaler],
+        'list_sent_requests': [IsWholesaler],
+        'list_received_requests': [IsManagement],
     }
-
 
     def get_permissions(self):
         try:
@@ -660,46 +660,74 @@ class RequestViewSet(viewsets.ModelViewSet):
         except KeyError:
             return super().get_permissions()
 
-
     def perform_create(self, serializer):
-        user = self.request.user 
+        user = self.request.user
         try:
             wholesaler_profile = user.wholesalerprofile
         except WholesalerProfile.DoesNotExist:
             raise serializers.ValidationError({'error': 'Only wholesalers can send friend requests.'})
 
-        dealership_id = self.request.data.get('dealership')  # Get the dealership ID from the request data
-        dealership = get_object_or_404(Dealership, id=dealership_id)  # Get the dealership object
-        serializer.save(sender=wholesaler_profile, dealership=dealership)  # Save the friend request
+        recipient_wholesaler = self.request.data.get('recipient_wholesaler')
+        dealership_id = self.request.data.get('dealership')
 
+        if recipient_wholesaler:
+            recipient_wholesaler = get_object_or_404(WholesalerProfile, id=recipient_wholesaler)
+            serializer.save(sender=wholesaler_profile, recipient_wholesaler=recipient_wholesaler)
+        elif dealership_id:
+            dealership = get_object_or_404(Dealership, id=dealership_id)
+            serializer.save(sender=wholesaler_profile, dealership=dealership)
+        else:
+            raise serializers.ValidationError({'error': 'Recipient wholesaler or dealership must be specified.'})
 
     @action(detail=True, methods=['put'], url_path='respond')
     def respond_to_friend_request(self, request, pk=None):
         friend_request = get_object_or_404(FriendRequest, id=pk)
-        try:
-            dealer_profile = request.user.dealerprofile
-        except DealerProfile.DoesNotExist:
-            return Response({'error': 'User does not have a dealer profile.'}, status=status.HTTP_403_FORBIDDEN)
-
-        if dealer_profile.role != 'M':
-            return Response({'error': 'Only dealership managers can respond to this request'}, status=status.HTTP_403_FORBIDDEN)
-
+        
         response_status = request.data.get('status')
         if response_status not in ['accepted', 'rejected']:
             return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
-
+        
+        if friend_request.recipient_wholesaler:
+            try:
+                wholesaler_profile = request.user.wholesalerprofile
+                if friend_request.recipient_wholesaler != wholesaler_profile:
+                    return Response({'error': 'You can only respond to requests sent to you'}, status=status.HTTP_403_FORBIDDEN)
+            except WholesalerProfile.DoesNotExist:
+                return Response({'error': 'Only the recipient wholesaler can respond to this request'}, status=status.HTTP_403_FORBIDDEN)
+        elif friend_request.dealership:
+            try:
+                dealer_profile = request.user.dealerprofile
+                if dealer_profile.role != 'M':
+                    return Response({'error': 'Only dealership managers can respond to this request'}, status=status.HTTP_403_FORBIDDEN)
+                if friend_request.dealership not in dealer_profile.dealerships.all():
+                    return Response({'error': 'Dealer does not belong to the specified dealership.'}, status=status.HTTP_403_FORBIDDEN)
+            except DealerProfile.DoesNotExist:
+                return Response({'error': 'Only a dealership manager can respond to this request'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            return Response({'error': 'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
+        
         friend_request.status = response_status
         friend_request.save()
 
         if response_status == 'accepted':
-            # Update the dealership's wholesalers list
-            dealership = friend_request.dealership
-            wholesaler_profile = friend_request.sender
-            dealership.wholesalers.add(wholesaler_profile.user)
-            dealership.save()
+            if friend_request.recipient_wholesaler:
+                # Update wholesaler friends list
+                sender = friend_request.sender
+                recipient = friend_request.recipient_wholesaler
+                sender.friends.add(recipient)
+                recipient.friends.add(sender)
+                sender.save()
+                recipient.save()
+            elif friend_request.dealership:
+                # Update the dealership's wholesalers list
+                dealership = friend_request.dealership
+                wholesaler_profile = friend_request.sender
+                dealership.wholesalers.add(wholesaler_profile.user)
+                dealership.save()
 
         serializer = self.get_serializer(friend_request)
         return Response(serializer.data)
+
 
 
     @action(detail=False, methods=['get'], url_path='sent')
@@ -713,7 +741,6 @@ class RequestViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(sent_requests, many=True)
         return Response(serializer.data)
 
-
     @action(detail=False, methods=['get'], url_path='received')
     def list_received_requests(self, request):
         try:
@@ -721,7 +748,6 @@ class RequestViewSet(viewsets.ModelViewSet):
         except DealerProfile.DoesNotExist:
             return Response({'error': 'User does not have a dealer profile.'}, status=status.HTTP_403_FORBIDDEN)
 
-        # Check if dealer is a manager
         if dealer_profile.role != 'M':
             return Response({'error': 'Only dealership managers can view received friend requests.'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -731,11 +757,9 @@ class RequestViewSet(viewsets.ModelViewSet):
 
         dealership = get_object_or_404(Dealership, id=dealership_id)
 
-        # Ensure the dealer is associated with the dealership
         if dealership not in dealer_profile.dealerships.all():
             return Response({'error': 'Dealer does not belong to the specified dealership.'}, status=status.HTTP_403_FORBIDDEN)
 
         received_requests = FriendRequest.objects.filter(dealership=dealership)
         serializer = self.get_serializer(received_requests, many=True)
         return Response(serializer.data)
-    

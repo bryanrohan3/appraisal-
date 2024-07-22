@@ -171,7 +171,7 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WholesalerProfile
-        fields = ['user', 'wholesaler_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'is_active']
+        fields = ['user', 'wholesaler_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'friends', 'is_active']
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')
@@ -327,19 +327,25 @@ class SalesSerializer(serializers.ModelSerializer):
 
 class FriendRequestSerializer(serializers.ModelSerializer):
     sender = serializers.ReadOnlyField(source='sender.user.username')
-    dealership = serializers.PrimaryKeyRelatedField(queryset=Dealership.objects.all())
+    dealership = serializers.PrimaryKeyRelatedField(queryset=Dealership.objects.all(), required=False)
+    recipient_wholesaler = serializers.PrimaryKeyRelatedField(queryset=WholesalerProfile.objects.all(), required=False)
 
     class Meta:
         model = FriendRequest
-        fields = ['id', 'sender', 'dealership', 'status', 'created_at']
+        fields = ['id', 'sender', 'dealership', 'recipient_wholesaler', 'status', 'created_at']
         read_only_fields = ['sender', 'status', 'created_at']
 
     def validate(self, data):
-        '''
-        Checks if user is a wholesaler or not
-        '''
         user = self.context['request'].user
         if not hasattr(user, 'wholesalerprofile'):
             raise serializers.ValidationError("Only wholesalers can send requests.")
-        return data
+        
+        # Ensure either recipient wholesaler or dealership is specified
+        if not data.get('recipient_wholesaler') and not data.get('dealership'):
+            raise serializers.ValidationError("Either recipient wholesaler or dealership must be specified.")
 
+        # Ensure both fields are not specified simultaneously
+        if data.get('recipient_wholesaler') and data.get('dealership'):
+            raise serializers.ValidationError("Cannot specify both recipient wholesaler and dealership.")
+
+        return data

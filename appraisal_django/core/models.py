@@ -196,13 +196,26 @@ def default_wholesaler():
     return WholesalerProfile.objects.get(id=7).id
 
 
+# class FriendRequest(models.Model):
+#     # sender = models.ForeignKey(User, related_name='sent_requests', on_delete=models.CASCADE)
+#     sender = models.ForeignKey(WholesalerProfile, related_name='sent_requests', on_delete=models.CASCADE, default=default_wholesaler)
+#     dealership = models.ForeignKey(Dealership, related_name='friend_requests_received', on_delete=models.CASCADE)
+#     status = models.CharField(max_length=10, choices=[('pending', 'Pending'), ('accepted', 'Accepted'), ('rejected', 'Rejected')], default='pending')
+#     created_at = models.DateTimeField(auto_now_add=True)
+
+#     def __str__(self):
+#         return f"Friend Request from {self.sender.user.username if self.sender else 'Default Wholesaler'} to Dealership {self.dealership.dealership_name}"
+
 class FriendRequest(models.Model):
-    # sender = models.ForeignKey(User, related_name='sent_requests', on_delete=models.CASCADE)
     sender = models.ForeignKey(WholesalerProfile, related_name='sent_requests', on_delete=models.CASCADE, default=default_wholesaler)
-    dealership = models.ForeignKey(Dealership, related_name='friend_requests_received', on_delete=models.CASCADE)
+    dealership = models.ForeignKey(Dealership, related_name='friend_requests_received', on_delete=models.CASCADE, null=True, blank=True)
+    recipient_wholesaler = models.ForeignKey(WholesalerProfile, related_name='received_requests', on_delete=models.CASCADE, null=True, blank=True)
     status = models.CharField(max_length=10, choices=[('pending', 'Pending'), ('accepted', 'Accepted'), ('rejected', 'Rejected')], default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Friend Request from {self.sender.user.username if self.sender else 'Default Wholesaler'} to Dealership {self.dealership.dealership_name}"
-
+        if self.dealership:
+            return f"Friend Request from {self.sender.user.username if self.sender else 'Unknown'} to Dealership {self.dealership.dealership_name}"
+        elif self.recipient_wholesaler:
+            return f"Friend Request from {self.sender.user.username if self.sender else 'Unknown'} to Wholesaler {self.recipient_wholesaler.user.username}"
+        return "Invalid Friend Request"
