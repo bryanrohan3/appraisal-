@@ -44,7 +44,6 @@ class DealershipSerializer(serializers.ModelSerializer):
         return DealerProfileSerializer(dealers, many=True).data
 
     
-
 class DealershipBasicSerializer(serializers.ModelSerializer):
     '''
     Basic serializer for Dealership. Used for Searching for Dealerships.
@@ -153,8 +152,6 @@ class DealerProfileSerializer(serializers.ModelSerializer):
         return representation
 
 
-
-
 class DealerProfileNestedSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name')
     last_name = serializers.CharField(source='user.last_name')
@@ -240,6 +237,7 @@ class OfferSerializer(serializers.ModelSerializer):
         validated_data['user'] = user
         return super().create(validated_data)
 
+
 class DamageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Damage
@@ -253,6 +251,7 @@ class DamageSerializer(serializers.ModelSerializer):
             Photo.objects.create(damage=damage, image=photo_data)
 
         return damage
+
 
 class AppraisalSerializer(serializers.ModelSerializer):
     initiating_dealer = DealerProfileNestedSerializer(read_only=True)
@@ -329,7 +328,6 @@ class FriendRequestSerializer(serializers.ModelSerializer):
         fields = ['id', 'sender', 'dealership', 'status', 'created_at']
         read_only_fields = ['sender', 'status', 'created_at']
 
-
     def validate(self, data):
         '''
         Checks if user is a wholesaler or not
@@ -338,3 +336,4 @@ class FriendRequestSerializer(serializers.ModelSerializer):
         if not hasattr(user, 'wholesalerprofile'):
             raise serializers.ValidationError("Only wholesalers can send requests.")
         return data
+

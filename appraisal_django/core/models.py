@@ -63,6 +63,7 @@ class WholesalerProfile(models.Model):
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.user.username}) - Wholesaler Name: {self.wholesaler_name}"
 
+
 # TODO:
 # Foreign Key to Appraisal, not M2M
 # need flag if comment is private or not 
@@ -73,12 +74,14 @@ class Comment(models.Model):
     comment_date_time = models.DateTimeField(auto_now_add=True) 
     is_private = models.BooleanField(default=False)
 
+
 class Damage(models.Model):
     appraisal = models.ForeignKey('Appraisal', on_delete=models.CASCADE, related_name='damages')
     damage_description = models.TextField()
     damage_location = models.CharField(max_length=100)
     damage_photos = models.ManyToManyField('Photo', related_name='damage_photos', blank=True)
     repair_cost_estimate = models.DecimalField(max_digits=10, decimal_places=2)
+
 
 class Appraisal(models.Model):    
     # Appraisal Information
@@ -97,13 +100,6 @@ class Appraisal(models.Model):
     customer_last_name = models.CharField(max_length=50)
     customer_email = models.EmailField()
     customer_phone = models.CharField(max_length=15)
-
-    # Comments
-   # Comments
-#    TODO: Can remove when fk done
-    # private_comments = models.ManyToManyField(Comment, related_name='appraisal_private_comments', blank=True)
-    # general_comments = models.ManyToManyField(Comment, related_name='appraisal_general_comments', blank=True)
-
 
     # Vehicle Information
     vehicle_make = models.CharField(max_length=50)
@@ -136,8 +132,6 @@ class Appraisal(models.Model):
     # vehicle_photos = models.ForeignKey('Photo', on_delete=models.CASCADE, related_name='vehicle_appraisals', blank=True, null=True)
     vehicle_photos = models.ManyToManyField('Photo', related_name='vehicle_photos', blank=True)
 
-
-
     # Comments
     # general_comments = models.TextField(blank=True)
     # privacy_comments = models.TextField(blank=True)
@@ -145,12 +139,12 @@ class Appraisal(models.Model):
     # commented_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments', null=True) #
     # comment_date_time = models.DateTimeField(auto_now_add=True)
 
-
     # Appraisal Details
     reserve_price = models.DecimalField(max_digits=10, decimal_places=2) 
 
     def __str__(self):
         return f"{self.vehicle_registration} - {self.vehicle_vin}"
+
 
 # TODO: Pillow needed for photos
 class Photo(models.Model):
@@ -182,6 +176,7 @@ class Photo(models.Model):
 # ---- Sam is dealing with the wholesaler
 # ---- Bryan is Sams boss, he might set the reserve himself
 
+
 class Offer(models.Model):
     appraisal = models.ForeignKey('Appraisal', on_delete=models.CASCADE, related_name='offers')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -198,6 +193,7 @@ class Offer(models.Model):
 def default_wholesaler():
     return WholesalerProfile.objects.get(id=7).id
 
+
 class FriendRequest(models.Model):
     # sender = models.ForeignKey(User, related_name='sent_requests', on_delete=models.CASCADE)
     sender = models.ForeignKey(WholesalerProfile, related_name='sent_requests', on_delete=models.CASCADE, default=default_wholesaler)
@@ -207,3 +203,4 @@ class FriendRequest(models.Model):
 
     def __str__(self):
         return f"Friend Request from {self.sender.user.username if self.sender else 'Default Wholesaler'} to Dealership {self.dealership.dealership_name}"
+

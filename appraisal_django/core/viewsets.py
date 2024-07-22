@@ -15,7 +15,6 @@ from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
 
 
-
 # TODO: Very important: Start pagination early
 # TODO: Use the generic view set instead of the modelviewset, and use mixins
 # We actually don't need list
@@ -29,8 +28,10 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         'search': DealershipBasicSerializer
     }
 
+
     def get_serializer_class(self):
         return self.serializer_classes.get(self.action, self.serializer_classes['default'])
+
 
     def get_queryset(self):
         """
@@ -45,6 +46,7 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
                 return Dealership.objects.none()  # If dealer profile doesn't exist, return empty queryset
         return Dealership.objects.none()  # Return empty queryset for anonymous users
     
+
     def retrieve(self, request, *args, **kwargs):
         """
         Retrieve a specific dealership by ID.
@@ -67,6 +69,7 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         # serializer = DealershipBasicSerializer(queryset, many=True)
         return Response(serializer.data)
     
+
     @action(detail=True, methods=['get'], permission_classes=[IsDealer])
     def dealers(self, request, pk=None):
         """
@@ -99,12 +102,14 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
         'login': UserLoginSerializer,
     }
 
+
     def get_serializer_class(self):
         """
         Override to use different serializer classes based on action.
         """
 
         return self.serializer_classes.get(self.action, self.serializer_class)
+
 
     # # TODO: Remove create, move to dealerprofileviewset
     # def create(self, request, *args, **kwargs):
@@ -119,6 +124,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
     #         return Response({"error": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
     #     return super().update(request, *args, **kwargs)
 
+
     @action(detail=False, methods=['POST'], permission_classes=[])
     def login(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -131,6 +137,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
             return Response({'message': 'Login successful', 'user': UserSerializer(user).data, 'token': token.key})
         else:
             return Response({'error': 'Invalid email or password'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class DealerProfileViewSet(viewsets.ModelViewSet):
     """
@@ -156,6 +163,7 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
     def get_queryset(self):
         """
         Override queryset to filter based on the authenticated user's dealership.
@@ -170,6 +178,7 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
 
         return queryset
     
+
     @action(detail=False, methods=['PATCH'], url_path='deactivate')
     def deactivate_dealer(self, request):
         """
@@ -187,6 +196,7 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
             return Response({'status': 'Dealer and user deactivated'}, status=status.HTTP_200_OK)
         except DealerProfile.DoesNotExist:
             return Response({'error': 'Dealer profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
     @action(detail=False, methods=['POST'], url_path='(?P<user_id>[^/.]+)/promote')
     def promote_dealer(self, request, user_id=None):
@@ -237,6 +247,7 @@ class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
     #     # get request from context
         # validated_data["user"] = self.request.user
 
+
     @action(detail=False, methods=['GET'])
     def current_user_profile(self, request):
         """
@@ -249,6 +260,7 @@ class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
             return Response(serializer.data)
         except WholesalerProfile.DoesNotExist:
             return Response({'error': 'Wholesaler Profile not found for the authenticated user'}, status=status.HTTP_404_NOT_FOUND)
+
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -266,6 +278,7 @@ class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
 
     def perform_update(self, serializer):
         serializer.save()
+
 
     @action(detail=True, methods=['put'], url_path='deactivate')
     def deactivate_profile(self, request, pk=None):
@@ -290,6 +303,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
     serializer_class = AppraisalSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
     def get_queryset(self):
         user = self.request.user
 
@@ -312,6 +326,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
 
         return Appraisal.objects.none()
     
+
     def get_serializer_class(self):
         if self.action == 'list_offers' and self.request.user.dealerprofile.role == 'S':
             return SalesSerializer
@@ -329,6 +344,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+
     # TODO: Sales Dealers can still see Offers here which defeats the purpose of list_offers below
     @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
     def custom_retrieve(self, request, *args, **kwargs):
@@ -343,6 +359,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
 
         serializer = self.get_serializer(appraisal)  # Serialize 
         return Response(serializer.data) 
+
 
     @action(detail=True, methods=['POST'], permission_classes=[IsManagement])
     def custom_update(self, request, *args, **kwargs):
@@ -361,6 +378,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         else:
             return Response({"message": "You do not have permission to update this appraisal"}, status=status.HTTP_403_FORBIDDEN)
 
+
     @action(detail=True, methods=['POST'], permission_classes=[IsManagement])
     def custom_partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -372,12 +390,14 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         self.perform_update(serializer)
         return Response(serializer.data)
 
+
     def filter_queryset_by_keyword(self, queryset, keyword):
         # Filter queryset to find exact match for dealership name
         partial_match_query = Q(dealership__dealership_name__icontains=keyword) | Q(vehicle_vin__icontains=keyword) | Q(vehicle_registration__icontains=keyword) | Q(vehicle_make__icontains=keyword) | Q(vehicle_model__icontains=keyword)
         queryset = queryset.filter(partial_match_query)
         return queryset
     
+
     @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
     def add_private_comment(self, request, pk=None):
         appraisal = self.get_object()
@@ -392,6 +412,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
 
         return Response({"message": "Private comment added successfully."}, status=status.HTTP_201_CREATED)
     
+
     @action(detail=True, methods=['PATCH'], url_path='deactivate', permission_classes=[IsManagement])
     def deactivate(self, request, pk=None):
         """
@@ -411,6 +432,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         except Appraisal.DoesNotExist:
             return Response({'error': 'Appraisal not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
     @action(detail=True, methods=['POST'], permission_classes=[IsDealer, IsWholesaler])
     def add_general_comment(self, request, pk=None):
         appraisal = self.get_object()
@@ -425,6 +447,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
 
         return Response({"message": "General comment added successfully."}, status=status.HTTP_201_CREATED)
     
+
     @action(detail=True, methods=['post'], url_path='csv', permission_classes=[IsManagement])
     def download_csv(self, request, pk=None):
         appraisal = self.get_object()
@@ -468,6 +491,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
 
         return response
     
+
     @action(detail=True, methods=['POST'], url_path='make_offer', permission_classes=[IsWholesaler])
     def make_offer(self, request, pk=None):
         appraisal = self.get_object()
@@ -485,6 +509,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
+
     @action(detail=True, methods=['get'], url_path='offers', permission_classes=[IsManagement])
     def list_offers(self, request, pk=None):
         appraisal = self.get_object()
@@ -542,6 +567,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         serializer = self.get_serializer(new_appraisal)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
+
 class RequestViewSet(viewsets.ModelViewSet):
     queryset = FriendRequest.objects.all()
     serializer_class = FriendRequestSerializer
@@ -552,11 +578,13 @@ class RequestViewSet(viewsets.ModelViewSet):
         'list_received_requests': [IsManagement],  # Ensure permission check for this action
     }
 
+
     def get_permissions(self):
         try:
             return [permission() for permission in self.permission_classes_by_action[self.action]]
         except KeyError:
             return super().get_permissions()
+
 
     def perform_create(self, serializer):
         user = self.request.user 
@@ -568,6 +596,7 @@ class RequestViewSet(viewsets.ModelViewSet):
         dealership_id = self.request.data.get('dealership')  # Get the dealership ID from the request data
         dealership = get_object_or_404(Dealership, id=dealership_id)  # Get the dealership object
         serializer.save(sender=wholesaler_profile, dealership=dealership)  # Save the friend request
+
 
     @action(detail=True, methods=['put'], url_path='respond')
     def respond_to_friend_request(self, request, pk=None):
@@ -597,6 +626,7 @@ class RequestViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(friend_request)
         return Response(serializer.data)
 
+
     @action(detail=False, methods=['get'], url_path='sent')
     def list_sent_requests(self, request):
         try:
@@ -607,6 +637,7 @@ class RequestViewSet(viewsets.ModelViewSet):
         sent_requests = FriendRequest.objects.filter(sender=wholesaler_profile)
         serializer = self.get_serializer(sent_requests, many=True)
         return Response(serializer.data)
+
 
     @action(detail=False, methods=['get'], url_path='received')
     def list_received_requests(self, request):
@@ -632,3 +663,4 @@ class RequestViewSet(viewsets.ModelViewSet):
         received_requests = FriendRequest.objects.filter(dealership=dealership)
         serializer = self.get_serializer(received_requests, many=True)
         return Response(serializer.data)
+    
