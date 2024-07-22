@@ -52,7 +52,21 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         Retrieve a specific dealership by ID.
         """
         return super().retrieve(request, *args, **kwargs)
+    
 
+    @action(detail=True, methods=['get'], permission_classes=[IsDealer])
+    def wholesalers(self, request, pk=None):
+        """
+        Retrieve wholesalers associated with a specific dealership.
+        """
+        dealership = self.get_object()
+        users = dealership.wholesalers.all()
+
+        # Find the wholesaler profiles corresponding to these users
+        wholesaler_profiles = WholesalerProfile.objects.filter(user__in=users)
+        serializer = WholesalerProfileSerializer(wholesaler_profiles, many=True)
+        return Response(serializer.data)
+    
 
     @action(detail=False, methods=['get'], permission_classes=[IsDealer])
     def search(self, request):

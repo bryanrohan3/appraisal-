@@ -42,8 +42,8 @@ class DealershipSerializer(serializers.ModelSerializer):
             dealers = DealerProfile.objects.filter(dealerships=obj)
         
         return DealerProfileSerializer(dealers, many=True).data
-
     
+
 class DealershipBasicSerializer(serializers.ModelSerializer):
     '''
     Basic serializer for Dealership. Used for Searching for Dealerships.
