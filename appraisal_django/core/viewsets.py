@@ -88,6 +88,27 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         serializer = DealerProfileSerializer(dealers, many=True)
         return Response(serializer.data)
     
+    @action(detail=True, methods=['PATCH'], url_path='deactivate', permission_classes=[IsManagement])
+    def deactivate(self, request, pk=None):
+        """
+        Action to deactivate a dealership. Only Management Dealers from the specific dealership can perform this action.
+        """
+        dealership = self.get_object()
+        user = request.user
+
+        try:
+            dealer_profile = DealerProfile.objects.get(user=user)
+
+            # Check if the dealership is associated with the dealer
+            if dealership in dealer_profile.dealerships.all():
+                dealership.is_active = False
+                dealership.save()
+                return Response({'status': 'Dealership deactivated'}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "You do not have permission to deactivate this dealership"}, status=status.HTTP_403_FORBIDDEN)
+        except DealerProfile.DoesNotExist:
+            return Response({'error': 'Dealer profile not found'}, status=status.HTTP_404_NOT_FOUND)
+    
     
 #  TODO: Get rid of create update and list
 class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin):
