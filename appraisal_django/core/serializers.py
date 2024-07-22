@@ -215,8 +215,8 @@ class OfferSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Offer
-        fields = ['id', 'user', 'amount', 'created_at']
-        read_only_fields = ['user']
+        fields = ['id', 'user', 'amount', 'adjusted_amount', 'created_at']
+        read_only_fields = ['user', 'adjusted_amount']
 
     def get_user(self, obj):
         user = obj.user
@@ -236,6 +236,12 @@ class OfferSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         validated_data['user'] = user
         return super().create(validated_data)
+
+
+class AdjustedAmountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Offer
+        fields = ['adjusted_amount']
 
 
 class DamageSerializer(serializers.ModelSerializer):

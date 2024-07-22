@@ -544,6 +544,21 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
+    
+    @action(detail=True, methods=['PATCH'], url_path='update_offer/(?P<offer_id>\d+)', permission_classes=[IsManagement])
+    def update_offer(self, request, pk=None, offer_id=None):
+        appraisal = self.get_object()
+        try:
+            offer = appraisal.offers.get(id=offer_id)
+        except Offer.DoesNotExist:
+            return Response({"detail": "Offer not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AdjustedAmountSerializer(offer, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
 
     @action(detail=True, methods=['get'], url_path='offers', permission_classes=[IsManagement])
     def list_offers(self, request, pk=None):
