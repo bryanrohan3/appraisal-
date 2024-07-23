@@ -13,7 +13,6 @@ api_router.register(r'appraisals', viewsets.AppraisalViewSet)  # Add this line f
 api_router.register(r'friend-requests', viewsets.RequestViewSet, basename='friend-request')
 
 
-
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(api_router.urls)),

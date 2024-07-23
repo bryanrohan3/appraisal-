@@ -345,7 +345,9 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         user = self.request.user
 
         if hasattr(user, 'wholesalerprofile'):
-            return Appraisal.objects.all()
+            invited_appraisal_ids = AppraisalInvite.objects.filter(wholesaler=user.wholesalerprofile).values_list('appraisal_id', flat=True)
+            return Appraisal.objects.filter(id__in=invited_appraisal_ids)
+            # return Appraisal.objects.all()
 
         elif hasattr(user, 'dealerprofile'):
             user_dealership_ids = user.dealerprofile.dealerships.values_list('id', flat=True)
@@ -367,6 +369,11 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
     def get_serializer_class(self):
         if self.action == 'list_offers' and self.request.user.dealerprofile.role == 'S':
             return SalesSerializer
+        return self.serializer_class
+    
+    def get_serializer_class(self):
+        if hasattr(self.request.user, 'wholesalerprofile'):
+            return WholesalerAppraisalSerializer
         return self.serializer_class
 
 
@@ -641,6 +648,48 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         selected_offer.save()
 
         return Response({"message": "Winning offer selected successfully"}, status=status.HTTP_200_OK)
+    
+
+    @action(detail=True, methods=['post'], permission_classes=[IsManagement])
+    def invite_wholesaler(self, request, pk=None):
+        appraisal = self.get_object()
+        user = request.user
+
+        # Check if the user is a Management Dealer
+        if not hasattr(user, 'dealerprofile') or user.dealerprofile.role != 'M':
+            return Response({"message": "Only Management Dealers can invite wholesalers"}, status=status.HTTP_403_FORBIDDEN)
+
+        user_ids = request.data.get('wholesalers', [])
+        if not user_ids:
+            return Response({"message": "No wholesalers provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        invited_wholesalers = []
+        for user_id in user_ids:
+            try:
+                wholesaler_user = User.objects.get(id=user_id)
+                wholesaler = WholesalerProfile.objects.get(user=wholesaler_user)
+                
+                if wholesaler_user.id not in appraisal.dealership.wholesalers.values_list('id', flat=True):
+                    return Response({"message": f"Wholesaler {user_id} is not associated with the dealership"}, status=status.HTTP_400_BAD_REQUEST)
+                
+                invite, created = AppraisalInvite.objects.get_or_create(appraisal=appraisal, wholesaler=wholesaler)
+                if created:
+                    invited_wholesalers.append(user_id)
+            except User.DoesNotExist:
+                return Response({"message": f"User {user_id} does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+            except WholesalerProfile.DoesNotExist:
+                return Response({"message": f"Wholesaler profile for user {user_id} does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"invited_wholesalers": invited_wholesalers}, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'], url_path='list_invites', permission_classes=[permissions.IsAuthenticated])
+    def list_invites(self, request):
+        if not hasattr(request.user, 'wholesalerprofile'):
+            return Response({"detail": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        invites = AppraisalInvite.objects.filter(wholesaler=request.user.wholesalerprofile)
+        serializer = AppraisalInviteSerializer(invites, many=True)
+        return Response(serializer.data)
     
 
 class RequestViewSet(viewsets.ModelViewSet):

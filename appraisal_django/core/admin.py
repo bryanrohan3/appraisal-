@@ -97,3 +97,5 @@ admin.site.register(Comment)
 admin.site.register(Offer)
 
 admin.site.register(FriendRequest)
+
+admin.site.register(AppraisalInvite)

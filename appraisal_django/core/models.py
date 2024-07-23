@@ -88,6 +88,7 @@ class Appraisal(models.Model):
     start_date = models.DateTimeField(auto_now_add=True, null=True)
     last_updated = models.DateTimeField(auto_now=True, null=True)
     is_active = models.BooleanField(default=True)  # Set to False if the appraisal is inactive/deleted
+    invited_wholesalers = models.ManyToManyField('WholesalerProfile', through='AppraisalInvite', related_name='invited_appraisals', blank=True)
 
     # Dealership Information
     dealership = models.ForeignKey(Dealership, on_delete=models.CASCADE, related_name='appraisals')
@@ -219,3 +220,15 @@ class FriendRequest(models.Model):
         elif self.recipient_wholesaler:
             return f"Friend Request from {self.sender.user.username if self.sender else 'Unknown'} to Wholesaler {self.recipient_wholesaler.user.username}"
         return "Invalid Friend Request"
+
+
+class AppraisalInvite(models.Model):
+    appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='invites')
+    wholesaler = models.ForeignKey('WholesalerProfile', on_delete=models.CASCADE, related_name='appraisal_invites')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('appraisal', 'wholesaler')
+
+    def __str__(self):
+        return f"Appraisal {self.appraisal.id} - Wholesaler {self.wholesaler.user.username}"

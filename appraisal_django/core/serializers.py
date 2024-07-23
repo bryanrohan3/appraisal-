@@ -257,7 +257,13 @@ class DamageSerializer(serializers.ModelSerializer):
             Photo.objects.create(damage=damage, image=photo_data)
 
         return damage
+    
 
+class AppraisalInviteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AppraisalInvite
+        fields = ['id', 'appraisal', 'wholesaler', 'created_at']
+    
 
 class AppraisalSerializer(serializers.ModelSerializer):
     initiating_dealer = DealerProfileNestedSerializer(read_only=True)
@@ -270,6 +276,7 @@ class AppraisalSerializer(serializers.ModelSerializer):
     private_comments = CommentSerializer(many=True, read_only=True )
     general_comments = CommentSerializer(many=True, read_only=True )
     offers = OfferSerializer(many=True, required=False)
+    invites = AppraisalInviteSerializer(many=True, read_only=True)
 
     class Meta:
         model = Appraisal
@@ -279,7 +286,7 @@ class AppraisalSerializer(serializers.ModelSerializer):
             'customer_phone', 'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin', 
             'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 'transmission', 
             'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos', 
-            'sent_to_management', 'private_comments', 'general_comments', 'offers'
+            'sent_to_management', 'private_comments', 'general_comments', 'offers', 'invites',
         ]
 
     def create(self, validated_data):
@@ -310,6 +317,25 @@ class AppraisalSerializer(serializers.ModelSerializer):
         appraisal.sent_to_management.set(sent_to_management_ids)
 
         return appraisal
+    
+
+class WholesalerAppraisalSerializer(serializers.ModelSerializer):
+    initiating_dealer = DealerProfileNestedSerializer(read_only=True)
+    last_updating_dealer = DealerProfileNestedSerializer(read_only=True)
+    dealership = DealershipNestedSerializer(read_only=True)
+    damages = DamageSerializer(many=True)
+    vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
+    general_comments = CommentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Appraisal
+        fields = [
+            'id', 'start_date', 'last_updated', 'is_active', 'dealership', 'initiating_dealer',
+            'last_updating_dealer', 'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin',
+            'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 'transmission',
+            'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos',
+            'general_comments',
+        ]
 
     
 class SalesSerializer(serializers.ModelSerializer):
