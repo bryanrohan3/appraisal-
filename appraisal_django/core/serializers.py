@@ -215,7 +215,7 @@ class OfferSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Offer
-        fields = ['id', 'user', 'amount', 'adjusted_amount', 'winner', 'created_at']
+        fields = ['id', 'user', 'amount', 'adjusted_amount', 'created_at']
         read_only_fields = ['user', 'adjusted_amount']
 
     def get_user(self, obj):
@@ -225,6 +225,9 @@ class OfferSerializer(serializers.ModelSerializer):
             'first_name': user.first_name,
             'last_name': user.last_name
         }
+
+    def get_winner(self, obj):
+        return obj.appraisal.winner == obj
 
     def validate(self, attrs):
         user = self.context['request'].user
@@ -277,6 +280,7 @@ class AppraisalSerializer(serializers.ModelSerializer):
     general_comments = CommentSerializer(many=True, read_only=True )
     offers = OfferSerializer(many=True, required=False)
     invites = AppraisalInviteSerializer(many=True, read_only=True)
+    winner = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Appraisal
@@ -286,7 +290,7 @@ class AppraisalSerializer(serializers.ModelSerializer):
             'customer_phone', 'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin', 
             'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 'transmission', 
             'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos', 
-            'sent_to_management', 'private_comments', 'general_comments', 'offers', 'invites',
+            'sent_to_management', 'private_comments', 'general_comments', 'winner', 'offers', 'invites', 
         ]
 
     def create(self, validated_data):

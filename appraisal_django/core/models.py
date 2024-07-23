@@ -142,6 +142,7 @@ class Appraisal(models.Model):
 
     # Appraisal Details
     reserve_price = models.DecimalField(max_digits=10, decimal_places=2) 
+    winner = models.OneToOneField('Offer', on_delete=models.SET_NULL, null=True, blank=True, related_name='winning_appraisal')
 
     def __str__(self):
         return f"{self.vehicle_registration} - {self.vehicle_vin}"
@@ -183,7 +184,7 @@ class Offer(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     adjusted_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True) 
-    winner = models.BooleanField(default=False)
+    # winner = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

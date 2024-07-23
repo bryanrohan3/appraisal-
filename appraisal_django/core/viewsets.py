@@ -630,22 +630,16 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
     def select_winner(self, request, pk=None, offer_id=None):
         appraisal = self.get_object()
 
-        # Ensure the offer ID is provided and is an integer
         if not offer_id:
             return Response({"error": "Offer ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Retrieve the offer and ensure it belongs to the appraisal
             selected_offer = appraisal.offers.get(id=offer_id)
         except Offer.DoesNotExist:
             return Response({"error": "Offer not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Set all offers for the appraisal to loser
-        appraisal.offers.update(winner=False)
-
-        # Set the selected offer as the winner
-        selected_offer.winner = True
-        selected_offer.save()
+        appraisal.winner = selected_offer
+        appraisal.save()
 
         return Response({"message": "Winning offer selected successfully"}, status=status.HTTP_200_OK)
     
