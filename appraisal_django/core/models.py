@@ -22,7 +22,7 @@ class Dealership(models.Model):
     postcode = models.CharField(max_length=4)
     email = models.EmailField()
     phone = models.CharField(max_length=15)  # Format: +61XXXXXXXXX for Australian numbers
-    wholesalers = models.ManyToManyField(User, related_name='wholesaler_dealerships', blank=True)
+    wholesalers = models.ManyToManyField(User, related_name='wholesaler_dealerships', blank=True) # m2m because wholesalers can have multiple dealerships and dealership can have multiple wholesalers
     is_active = models.BooleanField(default=True)  # Set to False if the dealership is inactive/deleted
 
     def __str__(self):
@@ -62,25 +62,6 @@ class WholesalerProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.user.username}) - Wholesaler Name: {self.wholesaler_name}"
-
-
-# TODO:
-# Foreign Key to Appraisal, not M2M
-# need flag if comment is private or not 
-class Comment(models.Model):
-    appraisal = models.ForeignKey('Appraisal', on_delete=models.CASCADE, related_name='comments')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    comment = models.TextField()
-    comment_date_time = models.DateTimeField(auto_now_add=True) 
-    is_private = models.BooleanField(default=False)
-
-
-class Damage(models.Model):
-    appraisal = models.ForeignKey('Appraisal', on_delete=models.CASCADE, related_name='damages')
-    damage_description = models.TextField()
-    damage_location = models.CharField(max_length=100)
-    damage_photos = models.ManyToManyField('Photo', related_name='damage_photos', blank=True)
-    repair_cost_estimate = models.DecimalField(max_digits=10, decimal_places=2)
 
 
 class Appraisal(models.Model):    
@@ -132,7 +113,7 @@ class Appraisal(models.Model):
     # 1-Many -> New table -> FK sits on the Many side. (eg, the FK is in the photos table)
     # Many-Many -> New table
     # vehicle_photos = models.ForeignKey('Photo', on_delete=models.CASCADE, related_name='vehicle_appraisals', blank=True, null=True)
-    vehicle_photos = models.ManyToManyField('Photo', related_name='vehicle_photos', blank=True)
+    # vehicle_photos = models.ManyToManyField('Photo', related_name='vehicle_photos', blank=True)
 
     # Comments
     # general_comments = models.TextField(blank=True)
@@ -147,14 +128,28 @@ class Appraisal(models.Model):
 
     def __str__(self):
         return f"{self.vehicle_registration} - {self.vehicle_vin}"
+    
+
+class Comment(models.Model):
+    appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    comment = models.TextField()
+    comment_date_time = models.DateTimeField(auto_now_add=True) 
+    is_private = models.BooleanField(default=False)
+
+
+class Damage(models.Model):
+    appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='damages')
+    repair_cost_estimate = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.CharField(max_length=100, blank=True)
+    location = models.CharField(max_length=100, blank=True)
 
 
 # TODO: Pillow needed for photos
 class Photo(models.Model):
     image = models.ImageField(upload_to='photos/')
-    description = models.CharField(max_length=100, blank=True)
-    location = models.CharField(max_length=100, blank=True)
     appraisal = models.ForeignKey('Appraisal', on_delete=models.CASCADE, related_name='photos')
+    damage = models.ForeignKey(Damage, on_delete=models.CASCADE, related_name='photos')
 
     def __str__(self):
         return f"{self.description} - {self.location}"
@@ -181,8 +176,8 @@ class Photo(models.Model):
 
 
 class Offer(models.Model):
-    appraisal = models.ForeignKey('Appraisal', on_delete=models.CASCADE, related_name='offers')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='offers')
+    user = models.ForeignKey(User, on_delete=models.CASCADE) # This needs to be WholesalerProfile not User
     amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Allow null values
     adjusted_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True) 
     passed = models.BooleanField(default=False)
