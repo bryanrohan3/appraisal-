@@ -182,9 +182,9 @@ class Photo(models.Model):
 class Offer(models.Model):
     appraisal = models.ForeignKey('Appraisal', on_delete=models.CASCADE, related_name='offers')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Allow null values
     adjusted_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True) 
-    # winner = models.BooleanField(default=False)
+    passed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

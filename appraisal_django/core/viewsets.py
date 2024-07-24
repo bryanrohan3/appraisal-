@@ -546,14 +546,58 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
             return Response({"detail": "Only wholesalers can make an offer."}, status=status.HTTP_403_FORBIDDEN)
 
         data = request.data
-        serializer = OfferSerializer(data=data, context={'request': request})
-        if serializer.is_valid():
-            serializer.save(appraisal=appraisal)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        amount = data.get('amount')
+
+        # Check if there's an existing offer where the user has passed
+        offer = Offer.objects.filter(appraisal=appraisal, user=user).first()
+
+        if offer:
+            if offer.passed:
+                # If previously passed, reset passed to False and update amount
+                offer.passed = False
+                offer.amount = amount
+                offer.save()
+                serializer = OfferSerializer(offer)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                # If offer exists and was not passed, update the amount
+                offer.amount = amount
+                offer.save()
+                serializer = OfferSerializer(offer)
+                return Response(serializer.data, status=status.HTTP_200_OK)
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+            # Create a new offer if none exists
+            serializer = OfferSerializer(data=data, context={'request': request})
+            if serializer.is_valid():
+                serializer.save(appraisal=appraisal, user=user)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['POST'], url_path='pass', permission_classes=[IsWholesaler])
+    def pass_offer(self, request, pk=None):
+        appraisal = self.get_object()
+        user = request.user
+
+        # Ensure only Wholesalers can pass on an offer
+        if not hasattr(user, 'wholesalerprofile'):
+            return Response({"detail": "Only wholesalers can pass on an offer."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Check if an offer already exists
+        offer, created = Offer.objects.get_or_create(
+            appraisal=appraisal, user=user,
+            defaults={'passed': True, 'amount': None}
+        )
+
+        if not created:
+            offer.passed = True
+            offer.amount = None  # Ensure amount is cleared
+            offer.save()
+
+        serializer = OfferSerializer(offer)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
+
     @action(detail=True, methods=['PATCH'], url_path='update_offer/(?P<offer_id>\d+)', permission_classes=[IsManagement])
     def update_offer(self, request, pk=None, offer_id=None):
         appraisal = self.get_object()

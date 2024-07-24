@@ -215,7 +215,7 @@ class OfferSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Offer
-        fields = ['id', 'user', 'amount', 'adjusted_amount', 'created_at']
+        fields = ['id', 'user', 'amount', 'adjusted_amount', 'passed', 'created_at']
         read_only_fields = ['user', 'adjusted_amount']
 
     def get_user(self, obj):
