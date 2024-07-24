@@ -763,6 +763,12 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         # Check if there are any invites
         if appraisal.invites.exists():
             return 'Active'
+        
+        # Check ready_for_management
+        if appraisal.ready_for_management:
+            return 'Pending - Management'
+        else:
+            return 'Pending - Sales'
 
         return 'Unknown'
 

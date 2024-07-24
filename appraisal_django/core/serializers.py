@@ -285,7 +285,7 @@ class AppraisalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Appraisal
         fields = [
-            'id', 'start_date', 'last_updated', 'is_active', 'dealership', 'initiating_dealer', 
+            'id', 'start_date', 'last_updated', 'is_active', 'ready_for_management', 'dealership', 'initiating_dealer', 
             'last_updating_dealer', 'customer_first_name', 'customer_last_name', 'customer_email', 
             'customer_phone', 'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin', 
             'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 'transmission', 

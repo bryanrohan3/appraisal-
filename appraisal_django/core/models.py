@@ -89,6 +89,7 @@ class Appraisal(models.Model):
     last_updated = models.DateTimeField(auto_now=True, null=True)
     is_active = models.BooleanField(default=True)  # Set to False if the appraisal is inactive/deleted
     invited_wholesalers = models.ManyToManyField('WholesalerProfile', through='AppraisalInvite', related_name='invited_appraisals', blank=True)
+    ready_for_management = models.BooleanField(default=False)
 
     # Dealership Information
     dealership = models.ForeignKey(Dealership, on_delete=models.CASCADE, related_name='appraisals')
