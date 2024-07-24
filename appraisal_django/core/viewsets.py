@@ -729,6 +729,70 @@ class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin
         serializer = AppraisalInviteSerializer(invites, many=True)
         return Response(serializer.data)
     
+    @action(detail=True, methods=['get'])
+    def status(self, request, pk=None):
+        appraisal = self.get_object()
+        user = request.user
+
+        # Check for Dealer profile
+        if hasattr(user, 'dealerprofile'):
+            status = self.get_dealer_status(appraisal)
+        
+        # Check for Wholesaler profile
+        elif hasattr(user, 'wholesalerprofile'):
+            status = self.get_wholesaler_status(appraisal, user)
+        
+        else:
+            return Response({"detail": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        # Debug output
+        print(f"Appraisal ID: {appraisal.id}")
+        print(f"Offers: {appraisal.offers.all()}")
+        print(f"Invites: {appraisal.invites.all()}")
+        print(f"Status: {status}")
+
+        return Response({'status': status})
+
+    def get_dealer_status(self, appraisal):
+        if not appraisal.is_active:
+            return 'Trashed'
+
+        if appraisal.winner:
+            return 'Complete'
+
+        # Check if there are any invites
+        if appraisal.invites.exists():
+            return 'Active'
+
+        return 'Unknown'
+
+    def get_wholesaler_status(self, appraisal, user):
+    # Retrieve the offer made by the current wholesaler
+        user_offer = appraisal.offers.filter(user=user).first()
+
+        if not user_offer:
+            # Wholesaler has not placed any offers
+            if appraisal.winner:
+                return 'Complete - Missed'
+            return 'Active'
+
+        # The wholesaler has placed an offer
+        if appraisal.winner == user_offer:
+            return 'Complete - Won'
+
+        if user_offer.amount is not None:
+            if appraisal.winner:
+                return 'Complete - Lost'
+            return 'Complete - Priced'
+
+        # The wholesaler's offer is not winning
+        if appraisal.winner:
+            return 'Complete - Lost'
+
+        # If none of the above conditions met, consider the offer as priced
+        return 'Complete - Priced'
+
+    
 
 class RequestViewSet(viewsets.ModelViewSet):
     queryset = FriendRequest.objects.all()
