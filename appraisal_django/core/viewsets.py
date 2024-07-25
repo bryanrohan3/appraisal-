@@ -18,8 +18,6 @@ from django.db import transaction
 
 
 # TODO: Very important: Start pagination early
-# TODO: Use the generic view set instead of the modelviewset, and use mixins
-# We actually don't need list
 # For dealership lookups, you can use an action route, accept a search param. ?name=asdf 
 class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = Dealership.objects.all()
@@ -76,7 +74,6 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
             queryset = queryset.filter(dealership_name__icontains=dealership_name)
 
         serializer = self.get_serializer(queryset, many=True)
-        # serializer = DealershipBasicSerializer(queryset, many=True)
         return Response(serializer.data)
     
 
@@ -259,11 +256,10 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
 
 
 # Use the generic, + mixins
-class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin):
+class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     """
     ViewSet for managing wholesaler profiles.
     """
-    queryset = WholesalerProfile.objects.all()
     serializer_class = WholesalerProfileSerializer
     permission_classes = [IsWholesaler]
 
@@ -277,40 +273,30 @@ class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
     #     # get request from context
         # validated_data["user"] = self.request.user
 
+    def get_queryset(self):
+        """
+        This viewset should return only the profiles for the current authenticated user.
+        """
+        user_id = self.request.user.id
+        return WholesalerProfile.objects.filter(user_id=user_id)
 
-    @action(detail=False, methods=['GET'])
+
+    @action(detail=False, methods=['GET'], permission_classes=[IsWholesaler])
     def current_user_profile(self, request):
         """
         Retrieve the profile of the current authenticated user.
         """
         user_id = request.user.id
-        try:
-            wholesaler_profile = WholesalerProfile.objects.get(user_id=user_id)
-            serializer = self.get_serializer(wholesaler_profile)
-            return Response(serializer.data)
-        except WholesalerProfile.DoesNotExist:
+        wholesaler_profile = self.get_queryset().first()
+        
+        if wholesaler_profile is None:
             return Response({'error': 'Wholesaler Profile not found for the authenticated user'}, status=status.HTTP_404_NOT_FOUND)
 
-
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        
-        # Ensure only the owner can update their profile
-        if request.user != instance.user:
-            return Response({'error': 'You do not have permission to perform this action.'}, status=status.HTTP_403_FORBIDDEN)
-        
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        
+        serializer = self.get_serializer(wholesaler_profile)
         return Response(serializer.data)
 
-    def perform_update(self, serializer):
-        serializer.save()
 
-
-    @action(detail=True, methods=['put'], url_path='deactivate')
+    @action(detail=True, methods=['put'], url_path='deactivate', permission_classes=[IsWholesaler])
     def deactivate_profile(self, request, pk=None):
         """
         Deactivate the wholesaler profile by setting is_active to False.
@@ -328,10 +314,10 @@ class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
         return Response(serializer.data)
 
 
-class AppraisalViewSet(viewsets.GenericViewSet, viewsets.mixins.CreateModelMixin, viewsets.mixins.RetrieveModelMixin, viewsets.mixins.UpdateModelMixin, viewsets.mixins.ListModelMixin):
+class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin):
     queryset = Appraisal.objects.all()
     serializer_class = AppraisalSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
 
 
     def get_queryset(self):

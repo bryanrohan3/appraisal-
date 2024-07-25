@@ -178,22 +178,18 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**user_data)
         wholesaler_profile = WholesalerProfile.objects.create(user=user, **validated_data)
         return wholesaler_profile
-
+    
     def update(self, instance, validated_data):
-        # Remove 'user' from validated_data to avoid KeyError
-        validated_data.pop('user', None)
+        user_data = validated_data.pop('user', None)
+        if user_data:
+            user_serializer = UserSerializer(instance.user, data=user_data, partial=True)
+            if user_serializer.is_valid():
+                user_serializer.save()
+            else:
+                raise serializers.ValidationError(user_serializer.errors)
 
-        # Update fields directly
-        instance.wholesaler_name = validated_data.get('wholesaler_name', instance.wholesaler_name)
-        instance.street_address = validated_data.get('street_address', instance.street_address)
-        instance.suburb = validated_data.get('suburb', instance.suburb)
-        instance.state = validated_data.get('state', instance.state)
-        instance.postcode = validated_data.get('postcode', instance.postcode)
-        instance.email = validated_data.get('email', instance.email)
-        instance.phone = validated_data.get('phone', instance.phone)
-        instance.save()
-        
-        return instance
+        # Update the wholesaler profile fields
+        return super().update(instance, validated_data)
     
 
 class PhotoSerializer(serializers.ModelSerializer):
