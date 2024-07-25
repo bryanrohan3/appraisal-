@@ -83,21 +83,57 @@ class PhotoAdmin(admin.ModelAdmin):
     search_fields = ('id',)
 
 
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    # Fields to display in the list view
+    list_display = ('id', 'appraisal', 'user', 'comment_date_time', 'is_private')
+    
+    # Fields to search by
+    search_fields = ('appraisal__id', 'user__username', 'comment', 'is_private')
 
-# class CommentAdmin(admin.ModelAdmin):
-#     list_display = ['user', 'get_appraisal', 'comment', 'comment_type', 'comment_date_time']
-#     list_filter = ['comment_date_time']
+    # Filters to be included in the sidebar
+    list_filter = ('appraisal', 'user', 'is_private')
 
-#     def get_appraisal(self, obj):
-#         # Assuming each comment is associated with an appraisal
-#         return ", ".join([appraisal.vehicle_vin for appraisal in obj.appraisal_private_comments.all() | obj.appraisal_general_comments.all()])
-#     get_appraisal.short_description = 'Appraisal'
+    # Optional: Add ordering
+    ordering = ('-comment_date_time',)  # Orders by comment_date_time in descending order
 
-# admin.site.register(Comment, CommentAdmin)
-admin.site.register(Comment)
+    # Optional: Add list per page
+    list_per_page = 20
 
-admin.site.register(Offer)
 
-admin.site.register(FriendRequest)
+@admin.register(Offer)
+class OfferAdmin(admin.ModelAdmin):
+    # Fields to display in the list view
+    list_display = ('id', 'appraisal', 'user', 'amount', 'adjusted_amount', 'passed', 'created_at')
+    
+    # Fields to search by
+    search_fields = ('appraisal__vehicle_registration', 'user__wholesalerprofile__name', 'amount', 'adjusted_amount')
+    
+    # Filters to be included in the sidebar
+    list_filter = ('appraisal', 'user', 'passed', 'created_at')
+    
+    # Optional: Add ordering
+    ordering = ('-created_at',)  # Orders by created_at in descending order
+    
+    # Optional: Add list per page
+    list_per_page = 20
+
+
+@admin.register(FriendRequest)
+class FriendRequestAdmin(admin.ModelAdmin):
+    # Fields to display in the list view
+    list_display = ('id', 'sender', 'dealership', 'recipient_wholesaler', 'status', 'created_at')
+    
+    # Fields to search by
+    search_fields = ('sender__user__username', 'dealership__dealership_name', 'recipient_wholesaler__user__username', 'status')
+    
+    # Filters to be included in the sidebar
+    list_filter = ('status', 'created_at', 'sender', 'dealership', 'recipient_wholesaler')
+    
+    # Optional: Add ordering
+    ordering = ('-created_at',)  # Orders by created_at in descending order
+    
+    # Optional: Add list per page
+    list_per_page = 20
 
 admin.site.register(AppraisalInvite)
