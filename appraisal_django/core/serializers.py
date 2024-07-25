@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from .models import *
 from datetime import timezone, datetime
+from django.db import transaction
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -67,43 +68,35 @@ class DealerProfileSerializer(serializers.ModelSerializer):
         fields = ['user', 'phone', 'role', 'dealerships', 'received_requests', 'sent_requests']
 
     def create(self, validated_data):
-        """
-        Custom create method to handle creation of dealer profiles.
-        For 'M' (Management Dealer), authentication is bypassed.
-        """
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError("Authentication credentials were not provided.")
+
+        # Ensure the creator is a Management Dealer
+        creator_profile = DealerProfile.objects.get(user=request.user)
+        if creator_profile.role != 'M':
+            raise serializers.ValidationError("Only Management Dealers can create new users.")
+
+        # Extract user and dealership data
         user_data = validated_data.pop('user')
         dealership_data = validated_data.pop('dealerships', [])
-        role = validated_data.get('role')
 
-        if role == 'M':
-            # Create the user without authentication check
-            user = UserSerializer().create(user_data) # bypass authentication
-            dealer_profile = DealerProfile.objects.create(user=user, **validated_data) 
-            dealer_profile.dealerships.set(dealership_data)
-            return dealer_profile
+        # Validate that the creator has access to the specified dealerships
+        creator_dealership_ids = set(creator_profile.dealerships.values_list('id', flat=True))
+        new_dealership_ids = set(dealership.id for dealership in dealership_data)
 
-        else:
-            request = self.context.get('request')
-            if not request or not request.user.is_authenticated:
-                raise serializers.ValidationError("Authentication credentials were not provided.")
+        print(f"Creator Dealership IDs: {creator_dealership_ids}")  # Debugging line
+        print(f"New Dealership IDs: {new_dealership_ids}")  # Debugging line
 
-            # Check if the authenticated user has permission to create the dealer profile
-            creator_profile = DealerProfile.objects.get(user=request.user)
-            if creator_profile.role != 'M':
-                raise serializers.ValidationError("Only Management Dealers can create new users.")
+        if not new_dealership_ids.issubset(creator_dealership_ids):
+            raise serializers.ValidationError("You can only assign dealerships you are associated with.")
 
-            # Validate that the creator has access to the specified dealerships
-            creator_dealership_ids = set(creator_profile.dealerships.values_list('id', flat=True))
-            new_dealership_ids = set([dealership.id for dealership in dealership_data])
-
-            if not new_dealership_ids.intersection(creator_dealership_ids):
-                raise serializers.ValidationError("Cannot create dealer for dealership you don't work for")
-
-            # Create the user and dealer profile
+        with transaction.atomic():
             user = UserSerializer().create(user_data)
             dealer_profile = DealerProfile.objects.create(user=user, **validated_data)
             dealer_profile.dealerships.set(dealership_data)
-            return dealer_profile
+        
+        return dealer_profile
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user')

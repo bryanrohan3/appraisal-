@@ -166,7 +166,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
             return Response({'error': 'Invalid email or password'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class DealerProfileViewSet(viewsets.ModelViewSet):
+class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     """
     ViewSet for managing dealer profiles.
     """
@@ -180,10 +180,7 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
         Custom create method to handle creation of dealer profiles.
         For 'M' (Management Dealer), authentication is bypassed.
         """
-        if request.data.get('role') == 'M':
-            # Bypass authentication for 'M' role during creation
-            self.request.user = None
-        
+        # Validate and save the new dealer profile
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -194,25 +191,32 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Override queryset to filter based on the authenticated user's dealership.
+        If the user is not authenticated, return an empty queryset.
         """
+        if not self.request.user.is_authenticated:
+            return DealerProfile.objects.none()  # Return an empty queryset
+
         queryset = super().get_queryset()
+        user = self.request.user
 
-        if self.request.user.is_authenticated:
-            user = self.request.user
-            if hasattr(user, 'dealerprofile'):
-                dealer_profile = user.dealerprofile
-                queryset = queryset.filter(dealerships__in=dealer_profile.dealerships.all())
-
+        if hasattr(user, 'dealerprofile'):
+            dealer_profile = user.dealerprofile
+            queryset = queryset.filter(dealerships__in=dealer_profile.dealerships.all())
+        
         return queryset
     
 
-    @action(detail=False, methods=['PATCH'], url_path='deactivate')
-    def deactivate_dealer(self, request):
+    @action(detail=True, methods=['PATCH'], permission_classes=[IsManagement], url_path='deactivate')
+    def deactivate_dealer(self, request, pk=None):
         """
-        Action to deactivate (soft delete) the authenticated dealer's profile and user.
+        Action to deactivate (soft delete) a dealer's profile and user.
+        Only a Management Dealer can deactivate any dealer, including other Management Dealers,
+        within the same dealership. Sales Dealers cannot deactivate their own account or any other account.
         """
         try:
-            dealer_profile = self.request.user.dealerprofile
+            dealer_profile = self.get_object()  # Get the dealer profile specified by the URL
+
+            # Deactivate the dealer profile and associated user
             dealer_profile.is_active = False
             dealer_profile.save()
 
@@ -222,10 +226,10 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
 
             return Response({'status': 'Dealer and user deactivated'}, status=status.HTTP_200_OK)
         except DealerProfile.DoesNotExist:
-            return Response({'error': 'Dealer profile not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Dealer profile not found or not in the same dealership'}, status=status.HTTP_404_NOT_FOUND)
+        
 
-
-    @action(detail=False, methods=['POST'], url_path='(?P<user_id>[^/.]+)/promote')
+    @action(detail=True, methods=['POST'], url_path='(?P<user_id>[^/.]+)/promote')
     def promote_dealer(self, request, user_id=None):
         """
         Action to promote a Sales Dealer to Management Dealer by a Management Dealer.
@@ -254,24 +258,12 @@ class DealerProfileViewSet(viewsets.ModelViewSet):
         # serializer = self.get_serializer(dealer_to_promote)
         # return Response(serializer.data)
 
-
-# Use the generic, + mixins
 class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     """
     ViewSet for managing wholesaler profiles.
     """
     serializer_class = WholesalerProfileSerializer
     permission_classes = [IsWholesaler]
-
-    # TODO: Set this in the serializer, we actually dont need this at all. 
-    # def perform_create(self, serializer):
-    #     # Automatically set the current user as the owner of the profile
-    #     serializer.save(user=self.request.user)
-    #     # eg:
-    #     # inside WholesalerProfileSerializer
-    #     # def save(self, validated_data, args, kwargs)
-    #     # get request from context
-        # validated_data["user"] = self.request.user
 
     def get_queryset(self):
         """
