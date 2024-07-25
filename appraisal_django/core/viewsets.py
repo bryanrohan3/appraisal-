@@ -39,13 +39,21 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         Restricts the returned queryset to dealerships the user is associated with.
         """
         user = self.request.user
+        queryset = Dealership.objects.none()  # Start with an empty queryset
+        
         if user.is_authenticated:
             try:
                 dealer_profile = DealerProfile.objects.get(user=user)
-                return dealer_profile.dealerships.all()  # Only dealerships associated with the dealer
+                queryset = dealer_profile.dealerships.all()  # Only dealerships associated with the dealer
             except DealerProfile.DoesNotExist:
-                return Dealership.objects.none()  # If dealer profile doesn't exist, return empty queryset
-        return Dealership.objects.none()  # Return empty queryset for anonymous users
+                pass  # Return empty queryset if dealer profile doesn't exist
+
+        # Filter by dealership_id if present in query parameters
+        dealership_id = self.request.query_params.get('dealership_id')
+        if dealership_id:
+            queryset = queryset.filter(id=dealership_id)
+       
+        return queryset
     
 
     @action(detail=True, methods=['get'], permission_classes=[IsDealer])
@@ -115,8 +123,6 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         return Response({'status': 'Dealership deactivated'}, status=status.HTTP_200_OK)
 
     
-    
-#  TODO: Get rid of create update and list
 class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin):
     """
     ViewSet for managing users.
@@ -129,28 +135,12 @@ class UserViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Updat
         'login': UserLoginSerializer,
     }
 
-
     def get_serializer_class(self):
         """
         Override to use different serializer classes based on action.
         """
 
         return self.serializer_classes.get(self.action, self.serializer_class)
-
-
-    # # TODO: Remove create, move to dealerprofileviewset
-    # def create(self, request, *args, **kwargs):
-    #     return super().create(request, *args, **kwargs)
-    
-    # # api/dealership/?dealship_id=1 -> 
-    # # api/dealership/1 
-    # # TODO: Remove update and move to dealerprofileviewset and wholesalerprofileviewset
-    # def update(self, request, *args, **kwargs):
-    #     instance = self.get_object()
-    #     if request.user != instance:
-    #         return Response({"error": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
-    #     return super().update(request, *args, **kwargs)
-
 
     @action(detail=False, methods=['POST'], permission_classes=[])
     def login(self, request):
