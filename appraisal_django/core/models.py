@@ -152,7 +152,8 @@ class Photo(models.Model):
     damage = models.ForeignKey(Damage, on_delete=models.CASCADE, related_name='photos')
 
     def __str__(self):
-        return f"{self.description} - {self.location}"
+        return f"Photo {self.id} - Appraisal {self.appraisal.id} - Damage {self.damage.id}"
+
     
 
 # Dealer sends a car for appraisal

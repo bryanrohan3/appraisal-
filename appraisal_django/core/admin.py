@@ -78,9 +78,11 @@ class AppraisalAdmin(admin.ModelAdmin):
 
 @admin.register(Photo)
 class PhotoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'appraisal', 'description', 'location')
-    list_filter = ('location',)
-    search_fields = ('description', 'location')
+    list_display = ('id', 'appraisal', 'damage')
+    list_filter = ('appraisal', 'damage')
+    search_fields = ('id',)
+
+
 
 # class CommentAdmin(admin.ModelAdmin):
 #     list_display = ['user', 'get_appraisal', 'comment', 'comment_type', 'comment_date_time']
