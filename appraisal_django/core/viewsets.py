@@ -27,6 +27,7 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
     permission_classes = [permissions.IsAuthenticated, IsDealer]
     serializer_classes = {
         'default': DealershipSerializer,
+        'dealers': DealerProfileSerializer,
         'search': DealershipBasicSerializer
     }
 
@@ -47,13 +48,6 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
             except DealerProfile.DoesNotExist:
                 return Dealership.objects.none()  # If dealer profile doesn't exist, return empty queryset
         return Dealership.objects.none()  # Return empty queryset for anonymous users
-    
-
-    def retrieve(self, request, *args, **kwargs):
-        """
-        Retrieve a specific dealership by ID.
-        """
-        return super().retrieve(request, *args, **kwargs)
     
 
     @action(detail=True, methods=['get'], permission_classes=[IsDealer])
@@ -91,39 +85,38 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         """
         Retrieve dealers associated with a specific dealership.
         """
-        dealership = self.get_object()
+        dealership = self.get_object()  # Get the Dealership instance
 
-        try:
-            dealer_profile = DealerProfile.objects.get(user=request.user)
-            if dealership not in dealer_profile.dealerships.all():
-                return Response({'detail': 'Not authorized to view dealers of this dealership.'}, status=403)
-        except DealerProfile.DoesNotExist:
+        # Use filter_queryset to apply any filtering logic (if any)
+        queryset = DealerProfile.objects.filter(dealerships=dealership)
+        filtered_queryset = self.filter_queryset(queryset)
+
+        # Check if the requesting user is authorized to view this dealership's dealers
+        dealer_profile = DealerProfile.objects.filter(user=request.user).first()
+        if not dealer_profile or dealership not in dealer_profile.dealerships.all():
             return Response({'detail': 'Not authorized to view dealers of this dealership.'}, status=403)
 
-        dealers = DealerProfile.objects.filter(dealerships=dealership)
-        serializer = DealerProfileSerializer(dealers, many=True)
+        # Use get_serializer to serialize the data
+        serializer = self.get_serializer(filtered_queryset, many=True)
         return Response(serializer.data)
-    
+
+
     @action(detail=True, methods=['PATCH'], url_path='deactivate', permission_classes=[IsManagement])
     def deactivate(self, request, pk=None):
         """
         Action to deactivate a dealership. Only Management Dealers from the specific dealership can perform this action.
         """
         dealership = self.get_object()
-        user = request.user
 
-        try:
-            dealer_profile = DealerProfile.objects.get(user=user)
+        # Use filter_queryset to validate access
+        queryset = self.filter_queryset(self.get_queryset())
+        if dealership not in queryset:
+            return Response({"message": "You do not have permission to deactivate this dealership"}, status=status.HTTP_403_FORBIDDEN)
+        
+        dealership.is_active = False
+        dealership.save()
+        return Response({'status': 'Dealership deactivated'}, status=status.HTTP_200_OK)
 
-            # Check if the dealership is associated with the dealer
-            if dealership in dealer_profile.dealerships.all():
-                dealership.is_active = False
-                dealership.save()
-                return Response({'status': 'Dealership deactivated'}, status=status.HTTP_200_OK)
-            else:
-                return Response({"message": "You do not have permission to deactivate this dealership"}, status=status.HTTP_403_FORBIDDEN)
-        except DealerProfile.DoesNotExist:
-            return Response({'error': 'Dealer profile not found'}, status=status.HTTP_404_NOT_FOUND)
     
     
 #  TODO: Get rid of create update and list
