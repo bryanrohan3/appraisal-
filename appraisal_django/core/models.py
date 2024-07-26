@@ -2,6 +2,8 @@ from django.contrib.auth.models import User, AbstractUser
 from django.db import models
 from rest_framework.authtoken.models import Token
 
+def default_wholesaler():
+    return WholesalerProfile.objects.get(id=7).id
 
 class Dealership(models.Model):
     AUSTRALIAN_STATES = [
@@ -22,7 +24,7 @@ class Dealership(models.Model):
     postcode = models.CharField(max_length=4)
     email = models.EmailField()
     phone = models.CharField(max_length=15)  # Format: +61XXXXXXXXX for Australian numbers
-    wholesalers = models.ManyToManyField(User, related_name='wholesaler_dealerships', blank=True) # m2m because wholesalers can have multiple dealerships and dealership can have multiple wholesalers
+    wholesalers = models.ManyToManyField('WholesalerProfile', related_name='wholesaler_dealerships', blank=True)
     is_active = models.BooleanField(default=True)  # Set to False if the dealership is inactive/deleted
 
     def __str__(self):
