@@ -15,6 +15,13 @@ from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
 from rest_framework import status
 from django.db import transaction
+from rest_framework.pagination import PageNumberPagination
+
+
+class CustomPagination(PageNumberPagination):
+    page_size = 10  
+    page_size_query_param = 'page_size'
+    max_page_size = 1000  
 
 
 # TODO: Very important: Start pagination early
@@ -28,6 +35,7 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         'dealers': DealerProfileSerializer,
         'search': DealershipBasicSerializer
     }
+    pagination_class = CustomPagination
 
 
     def get_serializer_class(self):
@@ -63,10 +71,18 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         """
         dealership = self.get_object()
         wholesaler_profiles = WholesalerProfile.objects.filter(wholesaler_dealerships=dealership)
+
+        # Apply Pagination
+        page = self.paginate_queryset(wholesaler_profiles)
+        if page is not None:
+            serializer = WholesalerProfileSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = WholesalerProfileSerializer(wholesaler_profiles, many=True)
         return Response(serializer.data)
     
 
+    # Pagination Applied
     @action(detail=False, methods=['get'], permission_classes=[IsDealer])
     def search(self, request):
         """
@@ -77,6 +93,12 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         dealership_name = request.query_params.get('dealership_name')
         if dealership_name:
             queryset = queryset.filter(dealership_name__icontains=dealership_name)
+
+        # Apply Pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -97,6 +119,12 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         dealer_profile = DealerProfile.objects.filter(user=request.user).first()
         if not dealer_profile or dealership not in dealer_profile.dealerships.all():
             return Response({'detail': 'Not authorized to view dealers of this dealership.'}, status=403)
+        
+        # Apply pagination to the filtered queryset
+        page = self.paginate_queryset(filtered_queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
         # Use get_serializer to serialize the data
         serializer = self.get_serializer(filtered_queryset, many=True)
@@ -297,6 +325,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
     queryset = Appraisal.objects.all()
     serializer_class = AppraisalSerializer
     # permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
 
 
     def get_queryset(self):
@@ -333,7 +362,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         if hasattr(self.request.user, 'wholesalerprofile'):
             return WholesalerAppraisalSerializer
         return self.serializer_class
-
+    
 
     @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
     def custom_list(self, request, *args, **kwargs):
@@ -573,10 +602,18 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 
+    # Has Pagination /api/{id}/offers/?page=?
     @action(detail=True, methods=['get'], url_path='offers', permission_classes=[IsManagement])
     def list_offers(self, request, pk=None):
         appraisal = self.get_object()
         offers = Offer.objects.filter(appraisal=appraisal)
+
+        # Apply Pagination
+        page = self.paginate_queryset(offers)
+        if page is not None:
+            serializer = OfferSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = OfferSerializer(offers, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -685,12 +722,21 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
 
         return Response({"invited_wholesalers": invited_wholesalers}, status=status.HTTP_201_CREATED)
 
+
+    # Pagination Applied => api/offers/list_invites/?page={}
     @action(detail=False, methods=['get'], url_path='list_invites', permission_classes=[permissions.IsAuthenticated])
     def list_invites(self, request):
         if not hasattr(request.user, 'wholesalerprofile'):
             return Response({"detail": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
 
         invites = AppraisalInvite.objects.filter(wholesaler=request.user.wholesalerprofile)
+
+        # Apply pagination
+        page = self.paginate_queryset(invites)
+        if page is not None:
+            serializer = AppraisalInviteSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = AppraisalInviteSerializer(invites, many=True)
         return Response(serializer.data)
     
@@ -775,6 +821,7 @@ class RequestViewSet(viewsets.ModelViewSet):
         'list_sent_requests': [IsWholesaler],
         'list_received_requests': [IsManagement],
     }
+    pagination_class = CustomPagination
 
     def get_permissions(self):
         try:
@@ -860,6 +907,13 @@ class RequestViewSet(viewsets.ModelViewSet):
             return Response({'error': 'User does not have a wholesaler profile.'}, status=status.HTTP_400_BAD_REQUEST)
 
         sent_requests = FriendRequest.objects.filter(sender=wholesaler_profile)
+
+        # Apply Pagination
+        page = self.paginate_queryset(sent_requests)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = self.get_serializer(sent_requests, many=True)
         return Response(serializer.data)
 
@@ -883,5 +937,12 @@ class RequestViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Dealer does not belong to the specified dealership.'}, status=status.HTTP_403_FORBIDDEN)
 
         received_requests = FriendRequest.objects.filter(dealership=dealership)
+
+        # Apply Pagination
+        page = self.paginate_queryset(received_requests)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = self.get_serializer(received_requests, many=True)
         return Response(serializer.data)

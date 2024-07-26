@@ -245,7 +245,7 @@ class AdjustedAmountSerializer(serializers.ModelSerializer):
 class DamageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Damage
-        fields = ('id', 'damage_description', 'damage_location', 'damage_photos', 'repair_cost_estimate')
+        fields = ('id', 'location', 'appraisal', 'description', 'repair_cost_estimate')
 
     def create(self, validated_data):
         damage_photos_data = validated_data.pop('damage_photos', [])
