@@ -134,7 +134,8 @@ class Photo(models.Model):
 
 class Offer(models.Model):
     appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='offers')
-    user = models.ForeignKey(User, on_delete=models.CASCADE) # This needs to be WholesalerProfile not User
+    # user = models.ForeignKey(User, on_delete=models.CASCADE, default=default_wholesaler) # This needs to be WholesalerProfile not User
+    user = models.ForeignKey(WholesalerProfile, on_delete=models.CASCADE, null=True, blank=True)  # Temporary field for migration
     amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Allow null values
     adjusted_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True) 
     passed = models.BooleanField(default=False)
@@ -144,7 +145,7 @@ class Offer(models.Model):
         unique_together = ('appraisal', 'user')  # Ensure each user can only make one offer per appraisal
 
     def __str__(self):
-        return f"Offer by {self.user.username} on {self.appraisal.vehicle_registration}"
+        return f"Offer by {self.user} on {self.appraisal.vehicle_registration}"
     
 
 def default_wholesaler():

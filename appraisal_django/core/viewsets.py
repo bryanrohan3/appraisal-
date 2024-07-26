@@ -503,11 +503,12 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         if not hasattr(user, 'wholesalerprofile'):
             return Response({"detail": "Only wholesalers can make an offer."}, status=status.HTTP_403_FORBIDDEN)
 
+        wholesaler_profile = user.wholesalerprofile
         data = request.data
         amount = data.get('amount')
 
         # Check if there's an existing offer where the user has passed
-        offer = Offer.objects.filter(appraisal=appraisal, user=user).first()
+        offer = Offer.objects.filter(appraisal=appraisal, user=wholesaler_profile).first()
 
         if offer:
             if offer.passed:
@@ -527,7 +528,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             # Create a new offer if none exists
             serializer = OfferSerializer(data=data, context={'request': request})
             if serializer.is_valid():
-                serializer.save(appraisal=appraisal, user=user)
+                serializer.save(appraisal=appraisal, user=wholesaler_profile)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -541,9 +542,10 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         if not hasattr(user, 'wholesalerprofile'):
             return Response({"detail": "Only wholesalers can pass on an offer."}, status=status.HTTP_403_FORBIDDEN)
 
+        wholesaler_profile = user.wholesalerprofile
         # Check if an offer already exists
         offer, created = Offer.objects.get_or_create(
-            appraisal=appraisal, user=user,
+            appraisal=appraisal, user=wholesaler_profile,
             defaults={'passed': True, 'amount': None}
         )
 
@@ -655,26 +657,31 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         if not hasattr(user, 'dealerprofile') or user.dealerprofile.role != 'M':
             return Response({"message": "Only Management Dealers can invite wholesalers"}, status=status.HTTP_403_FORBIDDEN)
 
-        user_ids = request.data.get('wholesalers', [])
-        if not user_ids:
+        wholesaler_ids = request.data.get('wholesalers', [])
+        if not wholesaler_ids:
             return Response({"message": "No wholesalers provided"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Fetch the dealership associated with the appraisal
+        dealership = appraisal.dealership
+
+        # Get the list of wholesaler IDs associated with the dealership
+        dealership_wholesaler_ids = dealership.wholesalers.values_list('id', flat=True)
         invited_wholesalers = []
-        for user_id in user_ids:
+
+        for wholesaler_id in wholesaler_ids:
+            if wholesaler_id not in dealership_wholesaler_ids:
+                return Response({"message": f"Wholesaler {wholesaler_id} is not associated with the dealership"}, status=status.HTTP_400_BAD_REQUEST)
+
             try:
-                wholesaler_user = User.objects.get(id=user_id)
-                wholesaler = WholesalerProfile.objects.get(user=wholesaler_user)
+                # Fetch wholesaler profile directly
+                wholesaler = WholesalerProfile.objects.get(id=wholesaler_id)
                 
-                if wholesaler_user.id not in appraisal.dealership.wholesalers.values_list('id', flat=True):
-                    return Response({"message": f"Wholesaler {user_id} is not associated with the dealership"}, status=status.HTTP_400_BAD_REQUEST)
-                
+                # Create or get the invite
                 invite, created = AppraisalInvite.objects.get_or_create(appraisal=appraisal, wholesaler=wholesaler)
                 if created:
-                    invited_wholesalers.append(user_id)
-            except User.DoesNotExist:
-                return Response({"message": f"User {user_id} does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+                    invited_wholesalers.append(wholesaler_id)
             except WholesalerProfile.DoesNotExist:
-                return Response({"message": f"Wholesaler profile for user {user_id} does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message": f"Wholesaler profile for ID {wholesaler_id} does not exist"}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"invited_wholesalers": invited_wholesalers}, status=status.HTTP_201_CREATED)
 
@@ -698,7 +705,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         
         # Check for Wholesaler profile
         elif hasattr(user, 'wholesalerprofile'):
-            status = self.get_wholesaler_status(appraisal, user)
+            status = self.get_wholesaler_status(appraisal, user.wholesalerprofile)
         
         else:
             return Response({"detail": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
@@ -730,9 +737,9 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
 
         return 'Unknown'
 
-    def get_wholesaler_status(self, appraisal, user):
+    def get_wholesaler_status(self, appraisal, wholesaler_profile):
     # Retrieve the offer made by the current wholesaler
-        user_offer = appraisal.offers.filter(user=user).first()
+        user_offer = appraisal.offers.filter(user=wholesaler_profile).first()
 
         if not user_offer:
             # Wholesaler has not placed any offers

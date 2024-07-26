@@ -209,10 +209,16 @@ class OfferSerializer(serializers.ModelSerializer):
 
     def get_user(self, obj):
         user = obj.user
+        if hasattr(user, 'user'):
+            return {
+                'username': user.user.username,  # Assuming `user` is related to a `User` model with `username`
+                'first_name': user.user.first_name,
+                'last_name': user.user.last_name
+            }
         return {
-            'username': user.username,
-            'first_name': user.first_name,
-            'last_name': user.last_name
+            'username': 'Unknown',
+            'first_name': 'Unknown',
+            'last_name': 'Unknown'
         }
 
     def get_winner(self, obj):
