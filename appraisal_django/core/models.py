@@ -97,31 +97,6 @@ class Appraisal(models.Model):
     body_type = models.CharField(max_length=20)
     fuel_type = models.CharField(max_length=20)
 
-    # Damage Information
-    # TODO: These should be on a separate table. You can have damage in multiple places. 
-    # i.e what happens if there is damage on front bumper and also rear tail light
-    # The fk is in the damage table
-    # damage_description = models.TextField()
-    # damage_location = models.CharField(max_length=100)
-    # damage_photos = models.ForeignKey('Photo', on_delete=models.CASCADE, related_name='damage_appraisals', blank=True, null=True)
-    # repair_cost_estimate = models.DecimalField(max_digits=10, decimal_places=2)
-
-    # Photos
-    # TODO: this should be on a separate table so you can have multiple
-    # Do I need a new table? Based entirely on the relationship between the properties.
-    # 1-1 Almost never a need for a new table
-    # 1-Many -> New table -> FK sits on the Many side. (eg, the FK is in the photos table)
-    # Many-Many -> New table
-    # vehicle_photos = models.ForeignKey('Photo', on_delete=models.CASCADE, related_name='vehicle_appraisals', blank=True, null=True)
-    # vehicle_photos = models.ManyToManyField('Photo', related_name='vehicle_photos', blank=True)
-
-    # Comments
-    # general_comments = models.TextField(blank=True)
-    # privacy_comments = models.TextField(blank=True)
-    # TODO: Can get rid of this
-    # commented_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments', null=True) #
-    # comment_date_time = models.DateTimeField(auto_now_add=True)
-
     # Appraisal Details
     reserve_price = models.DecimalField(max_digits=10, decimal_places=2) 
     winner = models.OneToOneField('Offer', on_delete=models.SET_NULL, null=True, blank=True, related_name='winning_appraisal')
@@ -153,27 +128,6 @@ class Photo(models.Model):
 
     def __str__(self):
         return f"Photo {self.id} - Appraisal {self.appraisal.id} - Damage {self.damage.id}"
-
-    
-
-# Dealer sends a car for appraisal
-# Wholesaler 1 appraises it at $12000
-# Wholesaler 2 appraises it at $13000
-# Dealer tells the customer $10000
-# Customer Doesnt accept
-# Dealer tells customre $11000
-# Customer accepts
-# Dealer accepts the Wholesaler 2 offer
-# Dealer pockets $2000
-
-# Dealer says the reserve is $5000
-# Any bid under 5k is rejected
-# Reserve is hidden to wholesalers
-# Why to have reserve?
-# 1) On the UI, show offers above and below the reserve with different colours or something
-# 2) The reserve price may not be set by the person who actually accepts the deal
-# ---- Sam is dealing with the wholesaler
-# ---- Bryan is Sams boss, he might set the reserve himself
 
 
 class Offer(models.Model):
