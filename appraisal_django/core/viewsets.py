@@ -62,10 +62,7 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         Retrieve wholesalers associated with a specific dealership.
         """
         dealership = self.get_object()
-        users = dealership.wholesalers.all()
-
-        # Find the wholesaler profiles corresponding to these users
-        wholesaler_profiles = WholesalerProfile.objects.filter(user__in=users)
+        wholesaler_profiles = WholesalerProfile.objects.filter(wholesaler_dealerships=dealership)
         serializer = WholesalerProfileSerializer(wholesaler_profiles, many=True)
         return Response(serializer.data)
     
