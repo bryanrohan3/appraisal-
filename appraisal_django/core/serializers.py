@@ -293,6 +293,8 @@ class AppraisalSerializer(serializers.ModelSerializer):
         if obj.winner:
             winner_offer = obj.winner  # Directly access the Offer instance
             return {
+                'amount': winner_offer.amount,
+                'offer_id': winner_offer.id,
                 'username': winner_offer.user.user.username,
                 'id': winner_offer.user.id
             }

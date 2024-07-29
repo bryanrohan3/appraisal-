@@ -889,10 +889,35 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             }, status=status.HTTP_200_OK)
         else:
             return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
+        
+    @action(detail=False, methods=['get'], url_path='best_performing_wholesalers')
+    def best_performing_wholesalers(self, request, *args, **kwargs):
+        date_range, error_response = self._parse_date_range(request)
+        if error_response:
+            return error_response
 
+        date_from, date_to = date_range
+        user = request.user
 
+        if hasattr(user, 'dealerprofile'):
+            dealer_id = user.dealerprofile.id
+            queryset = Appraisal.objects.filter(
+                initiating_dealer_id=dealer_id,
+                start_date__range=[date_from, date_to]
+            ).select_related('winner')  # Optimize query to fetch related 'winner'
 
-    
+            # Count by winner's profile ID and get username
+            wholesaler_counts = (queryset
+                                .values('winner__user_id')  # Access winner's profile ID and username
+                                .annotate(count=Count('winner__user_id'))  # Count how many times each ID appears
+                                .order_by('-count'))
+
+            return Response({
+                "wholesaler_counts": wholesaler_counts
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
+
 
 class RequestViewSet(viewsets.ModelViewSet):
     queryset = FriendRequest.objects.all()
