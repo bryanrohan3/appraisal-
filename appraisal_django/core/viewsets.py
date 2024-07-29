@@ -353,43 +353,57 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         return Appraisal.objects.none()
     
 
+    # def get_serializer_class(self):
+    #     if self.action == 'list_offers' and self.request.user.dealerprofile.role == 'S':
+    #         return SalesSerializer
+    #     elif hasattr(self.request.user, 'wholesalerprofile'):
+    #         return WholesalerAppraisalSerializer
+    #     return self.serializer_class
+
     def get_serializer_class(self):
-        if self.action == 'list_offers' and self.request.user.dealerprofile.role == 'S':
-            return SalesSerializer
-        return self.serializer_class
-    
-    def get_serializer_class(self):
-        if hasattr(self.request.user, 'wholesalerprofile'):
+        user = self.request.user
+
+        if hasattr(user, 'dealerprofile'):
+            if user.dealerprofile.role == 'S':
+                return SalesSerializer
+            # Assuming Management Dealer role is 'M' (default)
+            return AppraisalSerializer
+
+        if hasattr(user, 'wholesalerprofile'):
             return WholesalerAppraisalSerializer
+
         return self.serializer_class
+
     
 
-    @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
-    def custom_list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
+    
 
-        keyword = request.query_params.get('filter')
-        if keyword:
-            queryset = self.filter_queryset_by_keyword(queryset, keyword)
+    # @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
+    # def custom_list(self, request, *args, **kwargs):
+    #     queryset = self.get_queryset()
 
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+    #     keyword = request.query_params.get('filter')
+    #     if keyword:
+    #         queryset = self.filter_queryset_by_keyword(queryset, keyword)
+
+    #     serializer = self.get_serializer(queryset, many=True)
+    #     return Response(serializer.data)
 
 
-    # TODO: Sales Dealers can still see Offers here which defeats the purpose of list_offers below
-    @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
-    def custom_retrieve(self, request, *args, **kwargs):
-        appraisal = self.get_object()  # Get the object from the queryset
-        dealership_id = appraisal.dealership.id  # Get the ID of the dealership associated with the object
+    # # TODO: Sales Dealers can still see Offers here which defeats the purpose of list_offers below
+    # @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
+    # def custom_retrieve(self, request, *args, **kwargs):
+    #     appraisal = self.get_object()  # Get the object from the queryset
+    #     dealership_id = appraisal.dealership.id  # Get the ID of the dealership associated with the object
 
-        # Check permissions for management dealers
-        self.check_object_permissions(request, appraisal) 
+    #     # Check permissions for management dealers
+    #     self.check_object_permissions(request, appraisal) 
 
-        # Debug statement
-        print(f"Retrieving appraisal for user {request.user.username}") 
+    #     # Debug statement
+    #     print(f"Retrieving appraisal for user {request.user.username}") 
 
-        serializer = self.get_serializer(appraisal)  # Serialize 
-        return Response(serializer.data) 
+    #     serializer = self.get_serializer(appraisal)  # Serialize 
+    #     return Response(serializer.data) 
 
 
     @action(detail=True, methods=['POST'], permission_classes=[IsManagement])

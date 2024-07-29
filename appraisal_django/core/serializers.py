@@ -332,22 +332,43 @@ class WholesalerAppraisalSerializer(serializers.ModelSerializer):
             'id', 'start_date', 'last_updated', 'is_active', 'dealership', 'initiating_dealer',
             'last_updating_dealer', 'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin',
             'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 'transmission',
-            'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos',
+            'body_type', 'fuel_type', 'damages', 'vehicle_photos',
             'general_comments',
         ]
 
-    
+
 class SalesSerializer(serializers.ModelSerializer):
+    initiating_dealer = DealerProfileNestedSerializer(read_only=True)
+    last_updating_dealer = DealerProfileNestedSerializer(read_only=True)
+    dealership = DealershipNestedSerializer(read_only=True)
+    damages = DamageSerializer(many=True)
+    vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
+    general_comments = CommentSerializer(many=True, read_only=True)
+    private_comments = CommentSerializer(many=True, read_only=True)
+    winner = serializers.PrimaryKeyRelatedField(read_only=True)
+
     class Meta:
         model = Appraisal
-        fields = '__all__'  # Include all fields initially
+        fields = [
+            'id', 'start_date', 'last_updated', 'is_active', 'dealership', 'initiating_dealer',
+            'last_updating_dealer', 'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin',
+            'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 'transmission',
+            'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos',
+            'general_comments', 'private_comments', 'winner',
+        ]
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        # Remove 'offers' field if user is Sales Dealer
-        if self.context['request'].user.groups.filter(name='SalesDealer').exists():
-            del data['offers']
-        return data
+    
+# class SalesSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Appraisal
+#         fields = '__all__'  # Include all fields initially
+
+#     def to_representation(self, instance):
+#         data = super().to_representation(instance)
+#         # Remove 'offers' field if user is Sales Dealer
+#         if self.context['request'].user.groups.filter(name='SalesDealer').exists():
+#             del data['offers']
+#         return data
 
 
 class FriendRequestSerializer(serializers.ModelSerializer):
