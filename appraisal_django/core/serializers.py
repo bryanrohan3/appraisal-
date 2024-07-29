@@ -271,7 +271,8 @@ class AppraisalSerializer(serializers.ModelSerializer):
     vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
     general_comments = CommentSerializer(many=True, read_only=True)
     private_comments = CommentSerializer(many=True, read_only=True)
-    winner = serializers.PrimaryKeyRelatedField(read_only=True)
+    # winner = serializers.PrimaryKeyRelatedField(read_only=True)
+    winner = serializers.SerializerMethodField()
     sent_to_management = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     offers = OfferSerializer(many=True, required=False)
     invites = AppraisalInviteSerializer(many=True, read_only=True)
@@ -286,6 +287,17 @@ class AppraisalSerializer(serializers.ModelSerializer):
             'transmission', 'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos', 
             'sent_to_management', 'private_comments', 'general_comments', 'winner', 'offers', 'invites',
         ]
+
+    def get_winner(self, obj):
+        # Check if the winner field is not None
+        if obj.winner:
+            winner_offer = obj.winner  # Directly access the Offer instance
+            return {
+                'username': winner_offer.user.user.username,
+                'id': winner_offer.user.id
+            }
+        return None
+
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)

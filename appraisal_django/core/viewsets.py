@@ -371,10 +371,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             return WholesalerAppraisalSerializer
 
         return self.serializer_class
-
-    
-
-    
+        
 
     # @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
     # def custom_list(self, request, *args, **kwargs):
