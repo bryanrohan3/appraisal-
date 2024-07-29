@@ -267,26 +267,48 @@ class AppraisalSerializer(serializers.ModelSerializer):
     initiating_dealer = DealerProfileNestedSerializer(read_only=True)
     last_updating_dealer = DealerProfileNestedSerializer(read_only=True)
     dealership = DealershipNestedSerializer(read_only=True)
-    # damage_photos = PhotoSerializer(many=True, read_only=True, source='damage_photos_set')
     damages = DamageSerializer(many=True)
     vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
+    general_comments = CommentSerializer(many=True, read_only=True)
+    private_comments = CommentSerializer(many=True, read_only=True)
+    winner = serializers.PrimaryKeyRelatedField(read_only=True)
     sent_to_management = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
-    private_comments = CommentSerializer(many=True, read_only=True )
-    general_comments = CommentSerializer(many=True, read_only=True )
     offers = OfferSerializer(many=True, required=False)
     invites = AppraisalInviteSerializer(many=True, read_only=True)
-    winner = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Appraisal
         fields = [
-            'id', 'start_date', 'last_updated', 'is_active', 'ready_for_management', 'dealership', 'initiating_dealer', 
-            'last_updating_dealer', 'customer_first_name', 'customer_last_name', 'customer_email', 
-            'customer_phone', 'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin', 
-            'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 'transmission', 
-            'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos', 
-            'sent_to_management', 'private_comments', 'general_comments', 'winner', 'offers', 'invites', 
+            'id', 'start_date', 'last_updated', 'is_active', 'ready_for_management', 'dealership', 
+            'initiating_dealer', 'last_updating_dealer', 'customer_first_name', 'customer_last_name', 
+            'customer_email', 'customer_phone', 'vehicle_make', 'vehicle_model', 'vehicle_year', 
+            'vehicle_vin', 'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 
+            'transmission', 'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos', 
+            'sent_to_management', 'private_comments', 'general_comments', 'winner', 'offers', 'invites',
         ]
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if user and hasattr(user, 'dealerprofile'):
+            if user.dealerprofile.role == 'S':
+                # Remove fields not relevant for Sales Dealers
+                self.fields.pop('offers')
+                self.fields.pop('invites')
+            # Additional logic can be added here for other roles if needed
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        user = request.user
+
+        if hasattr(user, 'dealerprofile') and user.dealerprofile.role == 'S':
+            # Exclude fields for Sales Dealers
+            representation.pop('offers', None)
+            representation.pop('invites', None)
+
+        return representation
 
     def create(self, validated_data):
         request = self.context.get('request')

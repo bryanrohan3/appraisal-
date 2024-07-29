@@ -364,9 +364,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         user = self.request.user
 
         if hasattr(user, 'dealerprofile'):
-            if user.dealerprofile.role == 'S':
-                return SalesSerializer
-            # Assuming Management Dealer role is 'M' (default)
+            # Pass the user to the serializer context
             return AppraisalSerializer
 
         if hasattr(user, 'wholesalerprofile'):
