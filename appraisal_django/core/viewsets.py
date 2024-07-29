@@ -16,6 +16,8 @@ from django.db import IntegrityError
 from rest_framework import status
 from django.db import transaction
 from rest_framework.pagination import PageNumberPagination
+from django.utils.dateparse import parse_datetime
+from django.db.models import Count
 
 
 class CustomPagination(PageNumberPagination):
@@ -24,8 +26,6 @@ class CustomPagination(PageNumberPagination):
     max_page_size = 1000  
 
 
-# TODO: Very important: Start pagination early
-# For dealership lookups, you can use an action route, accept a search param. ?name=asdf 
 class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = Dealership.objects.all()
     serializer_class = DealershipSerializer
@@ -808,6 +808,80 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
 
         # If none of the above conditions met, consider the offer as priced
         return 'Complete - Priced'
+    
+
+    def _parse_date_range(self, request):
+        date_from = request.query_params.get('from')
+        date_to = request.query_params.get('to')
+
+        if not date_from or not date_to:
+            return None, Response({"error": "Both 'from' and 'to' parameters are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            date_from = parse_datetime(date_from)
+            date_to = parse_datetime(date_to)
+
+            if date_from > date_to:
+                return None, Response({"error": "'from' date must be earlier than 'to' date"}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return None, Response({"error": "Invalid date format. Use ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return (date_from, date_to), None
+
+    @action(detail=False, methods=['get'], url_path='count_and_list_by_date_range')
+    def count_and_list_by_date_range(self, request, *args, **kwargs):
+        date_range, error_response = self._parse_date_range(request)
+        if error_response:
+            return error_response
+
+        date_from, date_to = date_range
+        user = request.user
+
+        if hasattr(user, 'dealerprofile'):
+            dealer_id = user.dealerprofile.id
+            queryset = Appraisal.objects.filter(initiating_dealer_id=dealer_id, start_date__range=[date_from, date_to])
+            serializer = self.get_serializer(queryset, many=True)
+
+            page = self.paginate_queryset(serializer.data)
+            if page is not None:
+                return self.get_paginated_response(page)
+
+            appraisal_count = queryset.count()
+
+            return Response({
+                "appraisal_count": appraisal_count,
+                "appraisals": serializer.data
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
+
+    @action(detail=False, methods=['get'], url_path='most_common_cars_by_date_range')
+    def most_common_cars_by_date_range(self, request, *args, **kwargs):
+        date_range, error_response = self._parse_date_range(request)
+        if error_response:
+            return error_response
+
+        date_from, date_to = date_range
+        user = request.user
+
+        if hasattr(user, 'dealerprofile'):
+            dealer_id = user.dealerprofile.id
+            queryset = Appraisal.objects.filter(initiating_dealer_id=dealer_id, start_date__range=[date_from, date_to])
+
+            from django.db.models import Count
+
+            car_counts = (queryset
+                        .values('vehicle_make', 'vehicle_model')
+                        .annotate(count=Count('id'))
+                        .order_by('-count'))
+
+            return Response({
+                "car_counts": car_counts
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
+
+
 
     
 
