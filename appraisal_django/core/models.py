@@ -78,7 +78,7 @@ class Appraisal(models.Model):
     dealership = models.ForeignKey(Dealership, on_delete=models.CASCADE, related_name='appraisals')
     initiating_dealer = models.ForeignKey(DealerProfile, on_delete=models.CASCADE, related_name='initiated_appraisals')
     last_updating_dealer = models.ForeignKey(DealerProfile, on_delete=models.CASCADE, related_name='last_updated_appraisals', null=True)
-    sent_to_management = models.ManyToManyField(User, related_name='appraisals_sent', blank=True)
+    # sent_to_management = models.ManyToManyField(User, related_name='appraisals_sent', blank=True)
 
     # Customer Inoformation
     customer_first_name = models.CharField(max_length=50)
@@ -138,8 +138,7 @@ class Photo(models.Model):
 
 class Offer(models.Model):
     appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='offers')
-    # user = models.ForeignKey(User, on_delete=models.CASCADE, default=default_wholesaler) # This needs to be WholesalerProfile not User
-    user = models.ForeignKey(WholesalerProfile, on_delete=models.CASCADE, null=True, blank=True)  # Temporary field for migration
+    user = models.ForeignKey(WholesalerProfile, on_delete=models.CASCADE, null=True, blank=True)  
     amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Allow null values
     adjusted_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True) 
     passed = models.BooleanField(default=False)
