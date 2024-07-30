@@ -49,7 +49,7 @@ class DealerProfile(models.Model):
     def get_role_display(self):
         return dict(self.ROLE_CHOICES)[self.role]
     
-
+#TODO don't need friends,  just use list of Freinds that are accepted (just display the accpeted)
 class WholesalerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     wholesaler_name = models.CharField(max_length=100)
@@ -114,22 +114,26 @@ class Comment(models.Model):
     comment_date_time = models.DateTimeField(auto_now_add=True) 
     is_private = models.BooleanField(default=False)
 
-
+# TODO: Damage should handle its own images
 class Damage(models.Model):
     appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='damages')
     repair_cost_estimate = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.CharField(max_length=100, blank=True)
     location = models.CharField(max_length=100, blank=True)
-
-
-# TODO: Pillow needed for photos
-class Photo(models.Model):
-    image = models.ImageField(upload_to='photos/')
-    appraisal = models.ForeignKey('Appraisal', on_delete=models.CASCADE, related_name='photos')
-    damage = models.ForeignKey(Damage, on_delete=models.CASCADE, related_name='photos')
+    image = models.ImageField(upload_to='damages/', null=True, blank=True)
 
     def __str__(self):
-        return f"Photo {self.id} - Appraisal {self.appraisal.id} - Damage {self.damage.id}"
+        return f"Damage {self.id} - Appraisal {self.appraisal.id}"
+
+
+# TODO: Pillow needed for photos + add null = True
+class Photo(models.Model):
+    image = models.ImageField(upload_to='photos/', null=True, blank=True)
+    appraisal = models.ForeignKey('Appraisal', on_delete=models.CASCADE, related_name='photos')
+    # damage = models.ForeignKey(Damage, on_delete=models.CASCADE, related_name='photos')
+
+    def __str__(self):
+        return f"Photo {self.id} - Appraisal {self.appraisal.id}"
 
 
 class Offer(models.Model):
@@ -166,7 +170,7 @@ class FriendRequest(models.Model):
             return f"Friend Request from {self.sender.user.username if self.sender else 'Unknown'} to Wholesaler {self.recipient_wholesaler.user.username}"
         return "Invalid Friend Request"
 
-
+#TODO: Handle offer as invite
 class AppraisalInvite(models.Model):
     appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='invites')
     wholesaler = models.ForeignKey('WholesalerProfile', on_delete=models.CASCADE, related_name='appraisal_invites')

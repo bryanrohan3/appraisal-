@@ -78,8 +78,8 @@ class AppraisalAdmin(admin.ModelAdmin):
 
 @admin.register(Photo)
 class PhotoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'appraisal', 'damage')
-    list_filter = ('appraisal', 'damage')
+    list_display = ('id', 'appraisal', 'image')
+    list_filter = ('appraisal',)
     search_fields = ('id',)
 
 
