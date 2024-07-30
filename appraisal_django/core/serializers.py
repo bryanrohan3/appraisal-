@@ -35,6 +35,8 @@ class DealershipSerializer(serializers.ModelSerializer):
         fields = ['id', 'dealership_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'wholesalers', 'is_active' ,'dealers']
 
     def get_dealers(self, obj):
+        # TODO: Querying should be done in the viewset
+        # Only pass the filtered queryset to the serializer
         role = self.context['request'].query_params.get('role')
         
         if role and role in ['M', 'S']:
@@ -54,18 +56,36 @@ class DealershipBasicSerializer(serializers.ModelSerializer):
         fields = ['id', 'dealership_name', 'phone', 'email']
 
 
+class DealershipCurrentUserFKSerializer(serializers.PrimaryKeyRelatedField):
+    class Meta:
+        model = Dealership
+
+    def get_queryset(self):
+        request = self.context.get('request', None)
+        user = request.user
+        return user.dealerprofile.dealerships
+
+
 class DealerProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for DealerProfile model.
     """
     user = UserSerializer()
-    dealerships = serializers.PrimaryKeyRelatedField(queryset=Dealership.objects.all(), many=True, required=False)
+    dealerships = DealershipCurrentUserFKSerializer(many=True, required=False)
     received_requests = serializers.SerializerMethodField()
     sent_requests = serializers.SerializerMethodField()
 
     class Meta:
         model = DealerProfile
         fields = ['user', 'phone', 'role', 'dealerships', 'received_requests', 'sent_requests']
+
+    # TODO: Check if validation passes on phone > 15 characters
+    # If it does, the dealer profile creation can fail after user creation
+    # Which means, the transaction must be atomic
+    # But, we can write a override for vaidate_phone to check 
+    # In the case that we pick up the 15 character thing before user is created
+    # The requests dont need to be atomic
+    # user didn't create when had 15+ chars for phone !TESTED!
 
     def create(self, validated_data):
         request = self.context.get('request')
@@ -81,16 +101,6 @@ class DealerProfileSerializer(serializers.ModelSerializer):
         user_data = validated_data.pop('user')
         dealership_data = validated_data.pop('dealerships', [])
 
-        # Validate that the creator has access to the specified dealerships
-        creator_dealership_ids = set(creator_profile.dealerships.values_list('id', flat=True))
-        new_dealership_ids = set(dealership.id for dealership in dealership_data)
-
-        print(f"Creator Dealership IDs: {creator_dealership_ids}")  # Debugging line
-        print(f"New Dealership IDs: {new_dealership_ids}")  # Debugging line
-
-        if not new_dealership_ids.issubset(creator_dealership_ids):
-            raise serializers.ValidationError("You can only assign dealerships you are associated with.")
-
         with transaction.atomic():
             user = UserSerializer().create(user_data)
             dealer_profile = DealerProfile.objects.create(user=user, **validated_data)
@@ -98,6 +108,10 @@ class DealerProfileSerializer(serializers.ModelSerializer):
         
         return dealer_profile
 
+    # TODO: I would seperate this serializer into "DealerUpdateSerializer"
+    # Consists of UserUpdateSerializer -> UserSerialzer
+    # And DealerUpdateSerializer
+    # DealerSerializer -> Model Serializer -> Phone + Role fields
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user')
         dealerships_data = validated_data.pop('dealerships', instance.dealerships.all())
@@ -106,6 +120,7 @@ class DealerProfileSerializer(serializers.ModelSerializer):
         if user_serializer.is_valid():
             user_serializer.save()
 
+        # Here we just do what we did above with the User Serializer
         instance.phone = validated_data.get('phone', instance.phone)
         instance.role = validated_data.get('role', instance.role)
         instance.save()
@@ -113,19 +128,6 @@ class DealerProfileSerializer(serializers.ModelSerializer):
         instance.dealerships.set(dealerships_data)
         
         return instance
-    
-    def get_dealerships(self, instance):
-        user = instance.user
-        role = instance.role
-        
-        if role == 'S':  # Sales dealer
-            dealerships = instance.dealerships.values_list('id', flat=True)
-        elif role == 'M':  # Management dealer
-            dealerships = DealerProfile.objects.filter(user=user, role='M').values_list('dealerships__id', flat=True)
-        else:
-            dealerships = []
-        
-        return list(dealerships)
 
     def get_received_requests(self, instance):
         # Adjusted logic to get received requests for the dealer's dealerships
@@ -138,11 +140,6 @@ class DealerProfileSerializer(serializers.ModelSerializer):
             sent_requests = FriendRequest.objects.filter(sender=instance.user.wholesalerprofile)
             return FriendRequestSerializer(sent_requests, many=True).data
         return []
-
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['dealerships'] = self.get_dealerships(instance)
-        return representation
 
 
 class DealerProfileNestedSerializer(serializers.ModelSerializer):
@@ -168,7 +165,9 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')
-        user = User.objects.create_user(**user_data)
+        user_serializer = UserSerializer(data=user_data)
+        user_serializer.is_valid(raise_exception=True)
+        user = user_serializer.save()
         wholesaler_profile = WholesalerProfile.objects.create(user=user, **validated_data)
         return wholesaler_profile
     
@@ -176,6 +175,7 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
         user_data = validated_data.pop('user', None)
         if user_data:
             user_serializer = UserSerializer(instance.user, data=user_data, partial=True)
+            # Just use is_valid(raise_exception=True)
             if user_serializer.is_valid():
                 user_serializer.save()
             else:
@@ -188,10 +188,7 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
 class PhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
-        fields = ['id', 'appraisal', 'photo', 'description']
-
-    def create(self, validated_data):
-        return Photo.objects.create(**validated_data)
+        fields = ['id', 'image', 'appraisal'] 
     
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -209,6 +206,7 @@ class OfferSerializer(serializers.ModelSerializer):
 
     def get_user(self, obj):
         user = obj.user
+        # TODO: validate, but I think this can never be false
         if hasattr(user, 'user'):
             return {
                 'username': user.user.username,  # Assuming `user` is related to a `User` model with `username`
@@ -224,6 +222,7 @@ class OfferSerializer(serializers.ModelSerializer):
     def get_winner(self, obj):
         return obj.appraisal.winner == obj
 
+    # TODO: This can be done in the viewset
     def validate(self, attrs):
         user = self.context['request'].user
         if not hasattr(user, 'wholesalerprofile'):
@@ -245,17 +244,12 @@ class AdjustedAmountSerializer(serializers.ModelSerializer):
 class DamageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Damage
-        fields = ('id', 'location', 'appraisal', 'description', 'repair_cost_estimate')
+        fields = ('id', 'location', 'appraisal', 'description', 'repair_cost_estimate', 'image')
+        extra_kwargs = {
+            'appraisal': {'read_only': True}  # Ensure 'appraisal' is read-only during creation
+        }
 
-    def create(self, validated_data):
-        damage_photos_data = validated_data.pop('damage_photos', [])
-        damage = Damage.objects.create(**validated_data)
 
-        for photo_data in damage_photos_data:
-            Photo.objects.create(damage=damage, image=photo_data)
-
-        return damage
-    
 
 class AppraisalInviteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -271,9 +265,7 @@ class AppraisalSerializer(serializers.ModelSerializer):
     vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
     general_comments = CommentSerializer(many=True, read_only=True)
     private_comments = CommentSerializer(many=True, read_only=True)
-    # winner = serializers.PrimaryKeyRelatedField(read_only=True)
     winner = serializers.SerializerMethodField()
-    sent_to_management = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     offers = OfferSerializer(many=True, required=False)
     invites = AppraisalInviteSerializer(many=True, read_only=True)
 
@@ -284,8 +276,8 @@ class AppraisalSerializer(serializers.ModelSerializer):
             'initiating_dealer', 'last_updating_dealer', 'customer_first_name', 'customer_last_name', 
             'customer_email', 'customer_phone', 'vehicle_make', 'vehicle_model', 'vehicle_year', 
             'vehicle_vin', 'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 
-            'transmission', 'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos', 
-            'sent_to_management', 'private_comments', 'general_comments', 'winner', 'offers', 'invites',
+            'transmission', 'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos',
+            'private_comments', 'general_comments', 'winner', 'offers', 'invites',
         ]
 
     def get_winner(self, obj):
@@ -300,111 +292,55 @@ class AppraisalSerializer(serializers.ModelSerializer):
             }
         return None
 
-
-    def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
-        super().__init__(*args, **kwargs)
-        
-        if user and hasattr(user, 'dealerprofile'):
-            if user.dealerprofile.role == 'S':
-                # Remove fields not relevant for Sales Dealers
-                self.fields.pop('offers')
-                self.fields.pop('invites')
-            # Additional logic can be added here for other roles if needed
-
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         request = self.context.get('request')
         user = request.user
 
+        # What we do: in our permissions class, we have 3 arrays of strings, strings are the fields of the appraisal
+        # manager_permissions = ['rego', 'colour', 'customer', 'offers']
+        # sales_permissions = ['rego', 'colour', 'customer']
+        # wholesale_permissions = ['rego', 'colour']
+        # in this serializer we have a for loop of fields, pop if its not in the correct array
         if hasattr(user, 'dealerprofile') and user.dealerprofile.role == 'S':
             # Exclude fields for Sales Dealers
             representation.pop('offers', None)
             representation.pop('invites', None)
 
+        if hasattr(user, 'wholesalerprofile'):
+            representation.pop('offers', None)
+            representation.pop('invites', None)
+            representation.pop('private_comments', None)
+            representation.pop('reserve_price', None)
+            representation.pop('winner', None)
+
         return representation
+
 
     def create(self, validated_data):
         request = self.context.get('request')
         user = request.user
-        dealer_profile = DealerProfile.objects.get(user=user)
+        # dealer_profile = DealerProfile.objects.get(user=user)
+        dealer_profile = user.dealerprofile
+        #TODO: Just use user.dealerprofile
 
         if not dealer_profile.dealerships.exists():
             raise serializers.ValidationError("You are not associated with any dealership.")
 
+        # TODO: Pass dealership in, use the FK serializer to validate
+        # Validate and get the dealership using the FK serializer
         dealership = dealer_profile.dealerships.first()
         validated_data['initiating_dealer'] = dealer_profile
         validated_data['dealership'] = dealership
         validated_data['last_updating_dealer'] = dealer_profile
 
-        sent_to_management_ids = validated_data.pop('sent_to_management', [])
-        damage_data = validated_data.pop('damages', [])  # Get the list of damages
-
+        damages_data = validated_data.pop('damages', [])
         appraisal = Appraisal.objects.create(**validated_data)
 
-        for damage_item in damage_data:
-            damage_photos_data = damage_item.pop('damage_photos', [])  # Extract damage photos if needed
-            damage = Damage.objects.create(appraisal=appraisal, **damage_item)
-
-            for photo_data in damage_photos_data:
-                Photo.objects.create(damage=damage, image=photo_data)
-
-        appraisal.sent_to_management.set(sent_to_management_ids)
+        for damage_data in damages_data:
+            Damage.objects.create(appraisal=appraisal, **damage_data)
 
         return appraisal
-    
-
-class WholesalerAppraisalSerializer(serializers.ModelSerializer):
-    initiating_dealer = DealerProfileNestedSerializer(read_only=True)
-    last_updating_dealer = DealerProfileNestedSerializer(read_only=True)
-    dealership = DealershipNestedSerializer(read_only=True)
-    damages = DamageSerializer(many=True)
-    vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
-    general_comments = CommentSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Appraisal
-        fields = [
-            'id', 'start_date', 'last_updated', 'is_active', 'dealership', 'initiating_dealer',
-            'last_updating_dealer', 'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin',
-            'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 'transmission',
-            'body_type', 'fuel_type', 'damages', 'vehicle_photos',
-            'general_comments',
-        ]
-
-
-class SalesSerializer(serializers.ModelSerializer):
-    initiating_dealer = DealerProfileNestedSerializer(read_only=True)
-    last_updating_dealer = DealerProfileNestedSerializer(read_only=True)
-    dealership = DealershipNestedSerializer(read_only=True)
-    damages = DamageSerializer(many=True)
-    vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
-    general_comments = CommentSerializer(many=True, read_only=True)
-    private_comments = CommentSerializer(many=True, read_only=True)
-    winner = serializers.PrimaryKeyRelatedField(read_only=True)
-
-    class Meta:
-        model = Appraisal
-        fields = [
-            'id', 'start_date', 'last_updated', 'is_active', 'dealership', 'initiating_dealer',
-            'last_updating_dealer', 'vehicle_make', 'vehicle_model', 'vehicle_year', 'vehicle_vin',
-            'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 'transmission',
-            'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos',
-            'general_comments', 'private_comments', 'winner',
-        ]
-
-    
-# class SalesSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Appraisal
-#         fields = '__all__'  # Include all fields initially
-
-#     def to_representation(self, instance):
-#         data = super().to_representation(instance)
-#         # Remove 'offers' field if user is Sales Dealer
-#         if self.context['request'].user.groups.filter(name='SalesDealer').exists():
-#             del data['offers']
-#         return data
 
 
 class FriendRequestSerializer(serializers.ModelSerializer):
@@ -418,10 +354,6 @@ class FriendRequestSerializer(serializers.ModelSerializer):
         read_only_fields = ['sender', 'status', 'created_at']
 
     def validate(self, data):
-        user = self.context['request'].user
-        if not hasattr(user, 'wholesalerprofile'):
-            raise serializers.ValidationError("Only wholesalers can send requests.")
-        
         # Ensure either recipient wholesaler or dealership is specified
         if not data.get('recipient_wholesaler') and not data.get('dealership'):
             raise serializers.ValidationError("Either recipient wholesaler or dealership must be specified.")
