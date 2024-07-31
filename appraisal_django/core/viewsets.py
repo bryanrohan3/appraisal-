@@ -281,21 +281,6 @@ class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
         user_id = self.request.user.id
         return WholesalerProfile.objects.filter(user_id=user_id)
 
-    #TODO: Do we need this? Can just use list
-    @action(detail=False, methods=['GET'], permission_classes=[IsWholesaler])
-    def current_user_profile(self, request):
-        """
-        Retrieve the profile of the current authenticated user.
-        """
-        user_id = request.user.id
-        wholesaler_profile = self.get_queryset().first()
-        
-        if wholesaler_profile is None:
-            return Response({'error': 'Wholesaler Profile not found for the authenticated user'}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = self.get_serializer(wholesaler_profile)
-        return Response(serializer.data)
-
 
     @action(detail=True, methods=['put'], url_path='deactivate', permission_classes=[IsWholesaler])
     def deactivate_profile(self, request, pk=None):
@@ -303,12 +288,7 @@ class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
         Deactivate the wholesaler profile by setting is_active to False.
         """
         instance = self.get_object()
-        
-        # Ensure only the owner can deactivate their profile
-        # TODO: Don't need this, handle with get_queryset
-        if request.user != instance.user:
-            return Response({'error': 'You do not have permission to perform this action.'}, status=status.HTTP_403_FORBIDDEN)
-        
+    
         instance.is_active = False
         instance.save()
         
