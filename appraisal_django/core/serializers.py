@@ -272,6 +272,7 @@ class AppraisalSerializer(serializers.ModelSerializer):
     winner = serializers.SerializerMethodField()
     offers = OfferSerializer(many=True, required=False)
     invites = AppraisalInviteSerializer(many=True, read_only=True)
+    status = serializers.SerializerMethodField() 
 
     class Meta:
         model = Appraisal
@@ -281,7 +282,7 @@ class AppraisalSerializer(serializers.ModelSerializer):
             'customer_email', 'customer_phone', 'vehicle_make', 'vehicle_model', 'vehicle_year', 
             'vehicle_vin', 'vehicle_registration', 'color', 'odometer_reading', 'engine_type', 
             'transmission', 'body_type', 'fuel_type', 'reserve_price', 'damages', 'vehicle_photos',
-            'private_comments', 'general_comments', 'winner', 'offers', 'invites',
+            'private_comments', 'general_comments', 'winner', 'status', 'offers', 'invites',
         ]
 
     def get_winner(self, obj):
@@ -295,6 +296,17 @@ class AppraisalSerializer(serializers.ModelSerializer):
                 'id': winner_offer.user.id
             }
         return None
+    
+    def get_status(self, obj):
+        request = self.context.get('request')
+        user = request.user if request else None
+
+        if hasattr(user, 'dealerprofile'):
+            return obj.get_dealer_status()
+        elif hasattr(user, 'wholesalerprofile'):
+            return obj.get_wholesaler_status(user.wholesalerprofile)
+        return "Not authorized"
+
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)

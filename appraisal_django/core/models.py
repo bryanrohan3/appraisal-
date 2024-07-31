@@ -106,6 +106,33 @@ class Appraisal(models.Model):
     def __str__(self):
         return f"{self.vehicle_registration} - {self.vehicle_vin}"
     
+    def get_dealer_status(self):
+        if not self.is_active:
+            return 'Trashed'
+        if self.winner:
+            return 'Complete'
+        if self.invites.exists():
+            return 'Active'
+        if self.ready_for_management:
+            return 'Pending - Management'
+        return 'Pending - Sales'
+
+    def get_wholesaler_status(self, wholesaler_profile):
+        user_offer = self.offers.filter(user=wholesaler_profile).first()
+        if not user_offer:
+            if self.winner:
+                return 'Complete - Missed'
+            return 'Active'
+        if self.winner == user_offer:
+            return 'Complete - Won'
+        if user_offer.amount is not None:
+            if self.winner:
+                return 'Complete - Lost'
+            return 'Complete - Priced'
+        if self.winner:
+            return 'Complete - Lost'
+        return 'Complete - Priced'
+    
 
 class Comment(models.Model):
     appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='comments')

@@ -308,25 +308,31 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         # TODO: Change for the offer one2one thing
         if hasattr(user, 'wholesalerprofile'):
             invited_appraisal_ids = AppraisalInvite.objects.filter(wholesaler=user.wholesalerprofile).values_list('appraisal_id', flat=True)
-            return Appraisal.objects.filter(id__in=invited_appraisal_ids)
-            # return Appraisal.objects.all()
+            queryset = Appraisal.objects.filter(id__in=invited_appraisal_ids)
 
         elif hasattr(user, 'dealerprofile'):
             user_dealership_ids = user.dealerprofile.dealerships.values_list('id', flat=True)
             queryset = Appraisal.objects.filter(dealership_id__in=user_dealership_ids)
 
-            # TODO: Filter Queryset
-            dealership_id = self.request.query_params.get('dealership_id')
-            if dealership_id:
-                queryset = queryset.filter(dealership_id=dealership_id)
+        else:
+            queryset = Appraisal.object.none()
 
-            user_id = self.request.query_params.get('user_id')
-            if user_id:
-                queryset = queryset.filter(Q(initiating_dealer__user__id=user_id) | Q(last_updating_dealer__user__id=user_id))
+        return self.filter_queryset(queryset)
+    
+    
+    def filter_queryset(self, queryset):
+        """
+        Apply filtering to the queryset based on query parameters.
+        """
+        dealership_id = self.request.query_params.get('dealership_id')
+        if dealership_id:
+            queryset = queryset.filter(dealership_id=dealership_id)
+        
+        user_id = self.request.query_params.get('user_id')
+        if user_id:
+            queryset = queryset.filter(Q(initiating_dealer__user__id=user_id) | Q(last_updating_dealer__user__id=user_id))
 
-            return queryset
-
-        return Appraisal.objects.none()
+        return queryset
 
 
     def filter_queryset_by_keyword(self, queryset, keyword):
@@ -438,11 +444,6 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         appraisal = self.get_object()
         user = request.user
 
-        # Ensure only Wholesalers can make an offer
-        # TODO: Only a wholesaler can get into here anyway
-        if not hasattr(user, 'wholesalerprofile'):
-            return Response({"detail": "Only wholesalers can make an offer."}, status=status.HTTP_403_FORBIDDEN)
-
         wholesaler_profile = user.wholesalerprofile
         data = request.data
         amount = data.get('amount')
@@ -478,11 +479,6 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
     def pass_offer(self, request, pk=None):
         appraisal = self.get_object()
         user = request.user
-
-        # TODO: Only a wholesaler can get into here anyway
-        # Ensure only Wholesalers can pass on an offer
-        if not hasattr(user, 'wholesalerprofile'):
-            return Response({"detail": "Only wholesalers can pass on an offer."}, status=status.HTTP_403_FORBIDDEN)
 
         wholesaler_profile = user.wholesalerprofile
         # Check if an offer already exists
@@ -670,7 +666,6 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         serializer = AppraisalInviteSerializer(invites, many=True)
         return Response(serializer.data)
 
-    # TODO: Status should be on the serializer, you have it when you load the appraisal    
     @action(detail=True, methods=['get'])
     def status(self, request, pk=None):
         appraisal = self.get_object()
@@ -694,53 +689,6 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         print(f"Status: {status}")
 
         return Response({'status': status})
-    
-    # TODO: These helper functions should be on the model, so we can re-use them
-    def get_dealer_status(self, appraisal):
-        if not appraisal.is_active:
-            return 'Trashed'
-
-        if appraisal.winner:
-            return 'Complete'
-
-        # Check if there are any invites
-        if appraisal.invites.exists():
-            return 'Active'
-        
-        # Check ready_for_management
-        if appraisal.ready_for_management:
-            return 'Pending - Management'
-        else:
-            return 'Pending - Sales'
-
-        return 'Unknown'
-
-    def get_wholesaler_status(self, appraisal, wholesaler_profile):
-    # Retrieve the offer made by the current wholesaler
-        user_offer = appraisal.offers.filter(user=wholesaler_profile).first()
-
-        if not user_offer:
-            # Wholesaler has not placed any offers
-            if appraisal.winner:
-                return 'Complete - Missed'
-            return 'Active'
-
-        # The wholesaler has placed an offer
-        if appraisal.winner == user_offer:
-            return 'Complete - Won'
-
-        if user_offer.amount is not None:
-            if appraisal.winner:
-                return 'Complete - Lost'
-            return 'Complete - Priced'
-
-        # The wholesaler's offer is not winning
-        if appraisal.winner:
-            return 'Complete - Lost'
-
-        # If none of the above conditions met, consider the offer as priced
-        return 'Complete - Priced'
-    
 
     def _parse_date_range(self, request):
         date_from = request.query_params.get('from')
