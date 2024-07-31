@@ -165,7 +165,6 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         return Response({'status': 'Dealership deactivated'}, status=status.HTTP_200_OK)
 
     
-    # TODO: Remove all mixins
 class UserViewSet(viewsets.GenericViewSet):
     """
     ViewSet for managing users.
@@ -205,20 +204,6 @@ class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
 
     queryset = DealerProfile.objects.all()
     serializer_class = DealerProfileSerializer
-    
-    # TODO: Remove, we get all this for free through createmodelmixin
-    def create(self, request, *args, **kwargs):
-        """
-        Custom create method to handle creation of dealer profiles.
-        For 'M' (Management Dealer), authentication is bypassed.
-        """
-        # Validate and save the new dealer profile
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
 
     def get_queryset(self):
         """
@@ -248,9 +233,6 @@ class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
         try:
             dealer_profile = self.get_object()  # Get the dealer profile specified by the URL
 
-            # Deactivate the dealer profile and associated user\
-            # TODO: Test this?
-            # DealerProfile.objects.filter(id=dealer_profile.id).update(is_active=False, user__is_active=False)
             dealer_profile.is_active = False
             dealer_profile.save()
 
@@ -263,27 +245,22 @@ class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
             return Response({'error': 'Dealer profile not found or not in the same dealership'}, status=status.HTTP_404_NOT_FOUND)
         
     # TODO: use correct detail route
-    # TODO: Use permission class on the action
     # TODO: Use the get_queryset to validate access
-
-    @action(detail=True, methods=['POST'], url_path='(?P<user_id>[^/.]+)/promote')
-    def promote_dealer(self, request, user_id=None):
+    @action(detail=True, methods=['POST'], url_path='promote', permission_classes=[IsManagement])
+    def promote_dealer(self, request, pk=None):
         """
         Action to promote a Sales Dealer to Management Dealer by a Management Dealer.
         """
-        #TODO: DELETE START
+        queryset = self.get_queryset()
+
         try:
-            management_dealer = self.request.user.dealerprofile
-            
-            # Use filter_queryset to get the queryset of dealers that the management dealer can promote
-            queryset = self.filter_queryset(self.get_queryset())
-            dealer_to_promote = queryset.get(user_id=user_id, dealerships=management_dealer.dealerships.first(), role='S')
+            dealer_to_promote = queryset.get(pk=pk, role='S')
         except DealerProfile.DoesNotExist:
-            return Response({'error': 'Dealer not found or not promotable'}, status=status.HTTP_404_NOT_FOUND)
-        
-        if management_dealer.role != 'M':
-            return Response({'error': 'You are not authorized to perform this action'}, status=status.HTTP_403_FORBIDDEN)
-        #TODO: DELETE END
+            return Response({"error": "Dealer not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not dealer_to_promote:
+            return Response({"error": "Dealer not found"}, status=status.HTTP_404_NOT_FOUND)
+
         dealer_to_promote.role = 'M'
         dealer_to_promote.save()
         serializer = self.get_serializer(dealer_to_promote)
