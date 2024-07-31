@@ -23,7 +23,18 @@ from django.db.models import Count
 class CustomPagination(PageNumberPagination):
     page_size = 10  
     page_size_query_param = 'page_size'
-    max_page_size = 1000  
+    max_page_size = 1000
+
+class PaginationMixin:
+    pagination_class = CustomPagination
+
+    def paginate_queryset(self, queryset, request):
+        paginator = self.pagination_class()
+        return paginator.paginate_queryset(queryset, request)
+
+    def get_paginated_response(self, data):
+        paginator = self.pagination_class()
+        return paginator.get_paginated_response(data)
 
 
 class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
@@ -51,20 +62,20 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         
         if user.is_authenticated:
             try:
-                dealer_profile = DealerProfile.objects.get(user=user)
+                dealer_profile = user.dealerprofile
                 queryset = dealer_profile.dealerships.all()  # Only dealerships associated with the dealer
             except DealerProfile.DoesNotExist:
                 pass  # Return empty queryset if dealer profile doesn't exist
-
-        # Filter by dealership_id if present in query parameters
-        # TODO: get_queryset shouldn't read any query params
-        # TODO: get_queryset is used for our base queryset
-        # eg: All dealerships for current user
-        # Filtering (i.e, query_params), should be done in filter_queryset
+       
+        return queryset
+    
+    def filter_queryset(self, queryset):
+        """
+        Apply filtering to the queryset based on query parameters.
+        """
         dealership_id = self.request.query_params.get('dealership_id')
         if dealership_id:
             queryset = queryset.filter(id=dealership_id)
-       
         return queryset
     
 
@@ -86,36 +97,26 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         return Response(serializer.data)
     
 
-    # Pagination Applied
-    #TODO: Permission class should be for wholesalers, not dealers
-    @action(detail=False, methods=['get'], permission_classes=[IsDealer], pagination_class=CustomPagination)
+    @action(detail=False, methods=['get'], permission_classes=[IsWholesaler])
     def search(self, request):
         """
         Custom action to search for dealerships by name or other parameters.
         """
-        queryset = self.get_queryset()
-        
-        # TODO: Whenever we have this template
-        # x = request.data
-        # if x:
-        # then:
-        # Whenever we have this template, use a serializer
-        # For example: if we have a serializer that is 
-        # DealershipSearchSerializer
-        # fields = serializers.charfield()
-        # then we get this for free
 
-        dealership_name = request.query_params.get('dealership_name')
+        serializer = DealershipSearchSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+
+        queryset = Dealership.objects.all()
+
+        dealership_name = validated_data.get('dealership_name')
         if dealership_name:
             queryset = queryset.filter(dealership_name__icontains=dealership_name)
 
-        # Apply Pagination
-        # TODO: MAYBE: I think we can get this for free if we use pagination_class in the action declaration
-        # pagination_class = CustomPagination
-        # page = self.paginate_queryset(queryset)
-        # if page is not None:
-        #     serializer = self.get_serializer(page, many=True)
-        #     return self.get_paginated_response(serializer.data)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -132,10 +133,8 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         queryset = DealerProfile.objects.filter(dealerships=dealership)
         filtered_queryset = self.filter_queryset(queryset)
 
-        # Check if the requesting user is authorized to view this dealership's dealers
-        dealer_profile = DealerProfile.objects.filter(user=request.user).first()
-        # TODO: here we can just use request.user.dealerprofile
-        if not dealer_profile or dealership not in dealer_profile.dealerships.all():
+        dealer_profile = request.user.dealerprofile  # Directly access the dealer profile
+        if dealership not in dealer_profile.dealerships.all():
             return Response({'detail': 'Not authorized to view dealers of this dealership.'}, status=403)
         
         # Apply pagination to the filtered queryset
