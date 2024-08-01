@@ -562,17 +562,21 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
-    # TODO: Wrong URL path    
+    #TODO; Wrong Url?
     @action(detail=True, methods=['POST'], url_path='select_winner/(?P<offer_id>\d+)', permission_classes=[IsManagement])
     def select_winner(self, request, pk=None, offer_id=None):
-        # TODO: Use a serializer        
+        # Initialize the serializer with the request data
+        serializer = SelectWinnerSerializer(data={'offer_id': offer_id})
+        
+        # Check if the serializer is valid
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
         appraisal = self.get_object()
-
-        if not offer_id:
-            return Response({"error": "Offer ID is required"}, status=status.HTTP_400_BAD_REQUEST)
-
+        
+        # Validate the offer ID
         try:
-            selected_offer = appraisal.offers.get(id=offer_id)
+            selected_offer = appraisal.offers.get(id=serializer.validated_data['offer_id'])
         except Offer.DoesNotExist:
             return Response({"error": "Offer not found"}, status=status.HTTP_404_NOT_FOUND)
 

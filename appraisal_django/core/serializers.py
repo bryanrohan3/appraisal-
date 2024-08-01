@@ -417,6 +417,10 @@ class AppraisalSerializer(serializers.ModelSerializer):
                 Damage.objects.create(appraisal=appraisal, **damage_data)
 
         return appraisal
+    
+
+class SelectWinnerSerializer(serializers.Serializer):
+    offer_id = serializers.IntegerField()
 
 
 class FriendRequestSerializer(serializers.ModelSerializer):
