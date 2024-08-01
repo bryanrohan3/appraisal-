@@ -347,52 +347,41 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         appraisal = self.get_object()
         user = request.user
         data = request.data
-        # TODO: Use a serializer, get for free
-        if 'comment' not in data:
-            return Response({"error": "Comment data not provided"}, status=status.HTTP_400_BAD_REQUEST)
+        data['appraisal'] = appraisal.id  # This associates the comment with the correct appraisal
 
-        comment = Comment.objects.create(user=user, comment=data['comment'])
-        appraisal.private_comments.add(comment)
-
-        return Response({"message": "Private comment added successfully."}, status=status.HTTP_201_CREATED)
-    
+        serializer = CommentSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(user=user, is_private=True)  # Save the comment, setting user and is_private
+            return Response({"message": "Private comment added successfully."}, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['PATCH'], url_path='deactivate', permission_classes=[IsManagement])
     def deactivate(self, request, pk=None):
         """
         Action to deactivate an appraisal. Only Management Dealers can perform this action.
         """
-        try:
-            appraisal = self.get_object()
-            user = request.user
-            # Only a manager can get into this request anyway
-            if not hasattr(user, 'dealerprofile') or user.dealerprofile.role != 'M':
-                return Response({"message": "Only Management Dealers can deactivate appraisals"}, status=status.HTTP_403_FORBIDDEN)
+        appraisal = self.get_object()
+        user = request.user
+        appraisal.is_active = False
+        appraisal.save()
 
-            appraisal.is_active = False
-            appraisal.save()
+        return Response({'status': 'Appraisal deactivated'}, status=status.HTTP_200_OK)
 
-            return Response({'status': 'Appraisal deactivated'}, status=status.HTTP_200_OK)
-        except Appraisal.DoesNotExist:
-            # TODO: If we are using the get_queryset properly, this try never fails
-            return Response({'error': 'Appraisal not found'}, status=status.HTTP_404_NOT_FOUND)
-
-
-    @action(detail=True, methods=['POST'], permission_classes=[IsDealer, IsWholesaler])
+    @action(detail=True, methods=['POST'])
     def add_general_comment(self, request, pk=None):
         appraisal = self.get_object()
         user = request.user
         data = request.data
-        #TODO: Use a serializer
-        if 'comment' not in data:
-            return Response({"error": "Comment data not provided"}, status=status.HTTP_400_BAD_REQUEST)
+        data['appraisal'] = appraisal.id  # This associates the comment with the correct appraisal
 
-        comment = Comment.objects.create(user=user, comment=data['comment'])
-        # TODO: This is not a many 2 many
-        appraisal.general_comments.add(comment)
+        serializer = CommentSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(user=user)  # Save the comment, setting user and is_private
+            return Response({"message": "General comment added successfully."}, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"message": "General comment added successfully."}, status=status.HTTP_201_CREATED)
-    
 
     # TODO: Take a full queryset, and handle a whole csv
     @action(detail=True, methods=['post'], url_path='csv', permission_classes=[IsManagement])
@@ -531,61 +520,25 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
     def duplicate(self, request, pk=None):
         instance = self.get_object()
 
-        # Retrieve authenticated user's DealerProfile
-        dealer_profile = DealerProfile.objects.get(user=request.user)
+        dealer_profile = request.user.dealerprofile
 
+        # Duplicate the appraisal instance
+        instance.id = None  # Reset ID to create a new instance
+        instance.pk = None  # Ensure primary key is set to None
+        instance.start_date = timezone.now()  # Set a new start date
+        instance.last_updated = timezone.now()  # Set the current time for the last update
+        instance.is_active = True  # Ensure the new appraisal is active
+        instance.save()  # Save the new instance to create a new record
 
-        # TODO: Easier way to duplicate any object
-        # Take the form, set the ID to null
-        # Save the form
-        # Do the same with the m2m and FKs
+        # Clear offers related to the new appraisal
+        instance.offers.set([])  # Clear offers to reset them to an empty list
 
-        # How django works:
-        # It gets a dictionary, translates it to sql
-        # In this translation it asks: Is this an update or a create?
-        # The answer, is, does it have an ID? If it has an ID its an update, if not its a create.
-        # instance.id = None
-        # instance.save()        # Create a new Appraisal instance with copied fields
-        new_appraisal = Appraisal(
-            initiating_dealer=instance.initiating_dealer,
-            dealership=instance.dealership,
-            last_updating_dealer=dealer_profile,
-            customer_first_name=instance.customer_first_name,
-            customer_last_name=instance.customer_last_name,
-            customer_email=instance.customer_email,
-            customer_phone=instance.customer_phone,
-            vehicle_make=instance.vehicle_make,
-            vehicle_model=instance.vehicle_model,
-            vehicle_year=instance.vehicle_year,
-            vehicle_vin=instance.vehicle_vin,
-            vehicle_registration=instance.vehicle_registration,
-            color=instance.color,
-            odometer_reading=instance.odometer_reading,
-            engine_type=instance.engine_type,
-            transmission=instance.transmission,
-            body_type=instance.body_type,
-            fuel_type=instance.fuel_type,
-            reserve_price=instance.reserve_price,
-            start_date=timezone.now(),
-            last_updated=timezone.now(),
-            is_active=True,
-        )
+        # Update the last_updated field again
+        instance.last_updated = timezone.now()
+        instance.save()
 
-        # Save the new appraisal instance to assign it an ID
-        new_appraisal.save()
-
-        # Clear offers related to the new appraisal (assuming a related_name 'offers')
-        new_appraisal.offers.set([])  # Set an empty list to clear all related offers
-
-        # Update last_updated to current time
-        new_appraisal.last_updated = timezone.now()
-
-        # Save the new appraisal instance again to update last_updated
-        new_appraisal.save()
-
-        # Serialize the new instance to return in response
-        serializer = self.get_serializer(new_appraisal)
-    
+        # Serialize the new instance to return in the response
+        serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     # TODO: Wrong URL path    
@@ -613,12 +566,8 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         appraisal = self.get_object()
         user = request.user
 
-        #TODO: This is a permission duplicate
-        # Check if the user is a Management Dealer
-        #TODO: Serializer        
-        if not hasattr(user, 'dealerprofile') or user.dealerprofile.role != 'M':
-            return Response({"message": "Only Management Dealers can invite wholesalers"}, status=status.HTTP_403_FORBIDDEN)
 
+        #TODO: Serializer        
         wholesaler_ids = request.data.get('wholesalers', [])
         if not wholesaler_ids:
             return Response({"message": "No wholesalers provided"}, status=status.HTTP_400_BAD_REQUEST)
@@ -629,7 +578,6 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         # TODO: This can be handled in the serializer using the FK serializer. The one i wrote was for dealership, so write your own for wholesalers        # Get the list of wholesaler IDs associated with the dealership
         dealership_wholesaler_ids = dealership.wholesalers.values_list('id', flat=True)
         invited_wholesalers = []
-
         for wholesaler_id in wholesaler_ids:
             if wholesaler_id not in dealership_wholesaler_ids:
                 return Response({"message": f"Wholesaler {wholesaler_id} is not associated with the dealership"}, status=status.HTTP_400_BAD_REQUEST)
@@ -788,43 +736,56 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
 
 
-class RequestViewSet(viewsets.ModelViewSet):
+class RequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = FriendRequest.objects.all()
     serializer_class = FriendRequestSerializer
     permission_classes = [permissions.IsAuthenticated]
     permission_classes_by_action = {
-        'create': [IsWholesaler],
         'respond_to_friend_request': [IsManagement | IsWholesaler],
         'list_sent_requests': [IsWholesaler],
         'list_received_requests': [IsManagement],
     }
     pagination_class = CustomPagination
 
-    def get_permissions(self):
-        try:
-            return [permission() for permission in self.permission_classes_by_action[self.action]]
-        except KeyError:
-            return super().get_permissions()
+    def get_queryset(self):
+        user = self.request.user
+
+        if hasattr(user, 'wholesalerprofile'):
+            # User is a wholesaler
+            return FriendRequest.objects.filter(
+                Q(sender=user.wholesalerprofile) |
+                Q(recipient_wholesaler=user.wholesalerprofile)
+            )
+        elif hasattr(user, 'dealerprofile'):
+            # User is a dealer, filter based on their dealerships
+            dealerships = user.dealerprofile.dealerships.all()
+            return FriendRequest.objects.filter(
+                Q(dealership__in=dealerships)
+            )
+        else:
+            return FriendRequest.objects.none()
+
+
 
     # TODO: Chnage to a mixin and validate in serializer
-    def perform_create(self, serializer):
-        user = self.request.user
-        try:
-            wholesaler_profile = user.wholesalerprofile
-        except WholesalerProfile.DoesNotExist:
-            raise serializers.ValidationError({'error': 'Only wholesalers can send friend requests.'})
+    # def perform_create(self, serializer):
+    #     user = self.request.user
+    #     try:
+    #         wholesaler_profile = user.wholesalerprofile
+    #     except WholesalerProfile.DoesNotExist:
+    #         raise serializers.ValidationError({'error': 'Only wholesalers can send friend requests.'})
 
-        recipient_wholesaler = self.request.data.get('recipient_wholesaler')
-        dealership_id = self.request.data.get('dealership')
+    #     recipient_wholesaler = self.request.data.get('recipient_wholesaler')
+    #     dealership_id = self.request.data.get('dealership')
 
-        if recipient_wholesaler:
-            recipient_wholesaler = get_object_or_404(WholesalerProfile, id=recipient_wholesaler)
-            serializer.save(sender=wholesaler_profile, recipient_wholesaler=recipient_wholesaler)
-        elif dealership_id:
-            dealership = get_object_or_404(Dealership, id=dealership_id)
-            serializer.save(sender=wholesaler_profile, dealership=dealership)
-        else:
-            raise serializers.ValidationError({'error': 'Recipient wholesaler or dealership must be specified.'})
+    #     if recipient_wholesaler:
+    #         recipient_wholesaler = get_object_or_404(WholesalerProfile, id=recipient_wholesaler)
+    #         serializer.save(sender=wholesaler_profile, recipient_wholesaler=recipient_wholesaler)
+    #     elif dealership_id:
+    #         dealership = get_object_or_404(Dealership, id=dealership_id)
+    #         serializer.save(sender=wholesaler_profile, dealership=dealership)
+    #     else:
+    #         raise serializers.ValidationError({'error': 'Recipient wholesaler or dealership must be specified.'})
 
     @action(detail=True, methods=['put'], url_path='respond')
     def respond_to_friend_request(self, request, pk=None):
@@ -877,14 +838,14 @@ class RequestViewSet(viewsets.ModelViewSet):
 
 
     # TODO: Will get a lot for free with get_queryset - only stuff available to what you own
-    @action(detail=False, methods=['get'], url_path='sent')
+    @action(detail=False, methods=['get'], url_path='sent', permission_classes=[IsWholesaler])
     def list_sent_requests(self, request):
-        try:
-            wholesaler_profile = request.user.wholesalerprofile
-        except WholesalerProfile.DoesNotExist:
+        queryset = self.get_queryset()
+        
+        if hasattr(request.user, 'wholesalerprofile'):
+            sent_requests = queryset.filter(sender=request.user.wholesalerprofile)
+        else:
             return Response({'error': 'User does not have a wholesaler profile.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        sent_requests = FriendRequest.objects.filter(sender=wholesaler_profile)
 
         # Apply Pagination
         page = self.paginate_queryset(sent_requests)
@@ -895,28 +856,35 @@ class RequestViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(sent_requests, many=True)
         return Response(serializer.data)
 
-    # TODO: Will get a lot for free with get_queryset
-    @action(detail=False, methods=['get'], url_path='received')
+
+    @action(detail=False, methods=['get'], url_path='received', permission_classes=[IsWholesaler | IsManagement])
     def list_received_requests(self, request):
-        try:
-            dealer_profile = request.user.dealerprofile
-        except DealerProfile.DoesNotExist:
-            return Response({'error': 'User does not have a dealer profile.'}, status=status.HTTP_403_FORBIDDEN)
+        user = request.user
 
-        if dealer_profile.role != 'M':
-            return Response({'error': 'Only dealership managers can view received friend requests.'}, status=status.HTTP_403_FORBIDDEN)
+        queryset = self.get_queryset()  # Use the optimized queryset from get_queryset
 
-        dealership_id = request.query_params.get('dealership')
-        if not dealership_id:
-            return Response({'error': 'Dealership ID must be provided.'}, status=status.HTTP_400_BAD_REQUEST)
+        if hasattr(user, 'dealerprofile'):
+            # If the user is a dealer, handle dealership filtering
+            dealer_profile = user.dealerprofile
 
-        dealership = get_object_or_404(Dealership, id=dealership_id)
+            dealership_id = request.query_params.get('dealership')
+            if not dealership_id:
+                return Response({'error': 'Dealership ID must be provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if dealership not in dealer_profile.dealerships.all():
-            return Response({'error': 'Dealer does not belong to the specified dealership.'}, status=status.HTTP_403_FORBIDDEN)
+            dealership = get_object_or_404(Dealership, id=dealership_id)
+            if dealership not in dealer_profile.dealerships.all():
+                return Response({'error': 'Dealer does not belong to the specified dealership.'}, status=status.HTTP_403_FORBIDDEN)
 
-        received_requests = FriendRequest.objects.filter(dealership=dealership)
+            # Filter requests related to the specified dealership
+            received_requests = queryset.filter(dealership=dealership)
 
+        elif hasattr(user, 'wholesalerprofile'):
+            # If the user is a wholesaler, list all requests received by this wholesaler
+            received_requests = queryset.filter(recipient_wholesaler=user.wholesalerprofile)
+
+        else:
+            return Response({'error': 'User must be a dealer or wholesaler.'}, status=status.HTTP_403_FORBIDDEN)
+        
         # Apply Pagination
         page = self.paginate_queryset(received_requests)
         if page is not None:
@@ -925,3 +893,7 @@ class RequestViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(received_requests, many=True)
         return Response(serializer.data)
+
+
+
+

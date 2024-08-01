@@ -221,7 +221,12 @@ class PhotoSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
-        fields = ['id', 'user', 'comment', 'comment_date_time']
+        fields = ['id', 'user', 'appraisal', 'comment', 'comment_date_time', 'is_private']
+        extra_kwargs = {
+            'user': {'read_only': True},
+            'appraisal': {'write_only': True}  # Exclude appraisal from the output but include in input
+        }
+
 
 
 class OfferSerializer(serializers.ModelSerializer):
@@ -286,8 +291,10 @@ class AppraisalSerializer(serializers.ModelSerializer):
     dealership = DealershipCurrentUserFKSerializer()  
     damages = DamageSerializer(many=True)
     vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
-    general_comments = CommentSerializer(many=True, read_only=True)
-    private_comments = CommentSerializer(many=True, read_only=True)
+    # general_comments = CommentSerializer(many=True, read_only=True)
+    # private_comments = CommentSerializer(many=True, read_only=True)
+    general_comments = serializers.SerializerMethodField()
+    private_comments = serializers.SerializerMethodField()
     winner = serializers.SerializerMethodField()
     offers = OfferSerializer(many=True, required=False)
     invites = AppraisalInviteSerializer(many=True, read_only=True)
@@ -316,6 +323,14 @@ class AppraisalSerializer(serializers.ModelSerializer):
             }
         return None
     
+    def get_general_comments(self, obj):
+        comments = obj.comments.filter(is_private=False)
+        return CommentSerializer(comments, many=True).data
+
+    def get_private_comments(self, obj):
+        comments = obj.comments.filter(is_private=True)
+        return CommentSerializer(comments, many=True).data
+
     def get_status(self, obj):
         request = self.context.get('request')
         user = request.user if request else None
@@ -326,25 +341,6 @@ class AppraisalSerializer(serializers.ModelSerializer):
             return obj.get_wholesaler_status(user.wholesalerprofile)
         return "Not authorized"
 
-
-    # def to_representation(self, instance):
-    #     representation = super().to_representation(instance)
-    #     request = self.context.get('request')
-    #     user = request.user
-
-    #     if hasattr(user, 'dealerprofile') and user.dealerprofile.role == 'S':
-    #         # Exclude fields for Sales Dealers
-    #         representation.pop('offers', None)
-    #         representation.pop('invites', None)
-
-    #     if hasattr(user, 'wholesalerprofile'):
-    #         representation.pop('offers', None)
-    #         representation.pop('invites', None)
-    #         representation.pop('private_comments', None)
-    #         representation.pop('reserve_price', None)
-    #         representation.pop('winner', None)
-
-    #     return representation
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         request = self.context.get('request')
