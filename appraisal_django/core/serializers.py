@@ -4,6 +4,7 @@ from rest_framework.authtoken.models import Token
 from .models import *
 from datetime import timezone, datetime
 from django.db import transaction
+from django.db.models import Q
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -162,6 +163,7 @@ class DealershipNestedSerializer(serializers.ModelSerializer):
 
 class WholesalerProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()
+    friends = serializers.SerializerMethodField()
 
     class Meta:
         model = WholesalerProfile
@@ -188,6 +190,26 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
         # Update the wholesaler profile fields
         return super().update(instance, validated_data)
     
+    def get_friends(self, obj):
+        # Get accepted friend requests where the wholesaler is either the sender or the recipient
+        accepted_friend_requests = FriendRequest.objects.filter(
+            (Q(sender=obj) | Q(recipient_wholesaler=obj)) &
+            Q(status='accepted')
+        ).select_related('sender', 'recipient_wholesaler')
+
+        # Extract the IDs of the accepted friends
+        friend_ids = set()
+        for request in accepted_friend_requests:
+            if request.sender and request.sender != obj:
+                friend_ids.add(request.sender.id)
+            if request.recipient_wholesaler and request.recipient_wholesaler != obj:
+                friend_ids.add(request.recipient_wholesaler.id)
+
+        # Convert set to list
+        friend_ids = list(friend_ids)
+        
+        return friend_ids
+    
 
 class PhotoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -210,18 +232,12 @@ class OfferSerializer(serializers.ModelSerializer):
 
     def get_user(self, obj):
         user = obj.user
-        # TODO: validate, but I think this can never be false
-        if hasattr(user, 'user'):
-            return {
-                'username': user.user.username,  # Assuming `user` is related to a `User` model with `username`
-                'first_name': user.user.first_name,
-                'last_name': user.user.last_name
-            }
         return {
-            'username': 'Unknown',
-            'first_name': 'Unknown',
-            'last_name': 'Unknown'
+            'username': user.user.username,  # Assuming `user` is related to a `User` model with `username`
+            'first_name': user.user.first_name,
+            'last_name': user.user.last_name
         }
+
 
     def get_winner(self, obj):
         return obj.appraisal.winner == obj
@@ -373,5 +389,29 @@ class FriendRequestSerializer(serializers.ModelSerializer):
         # Ensure both fields are not specified simultaneously
         if data.get('recipient_wholesaler') and data.get('dealership'):
             raise serializers.ValidationError("Cannot specify both recipient wholesaler and dealership.")
+        
+        user = self.context.get('request').user
+        try:
+            wholesaler_profile = user.wholesalerprofile
+        except WholesalerProfile.DoesNotExist:
+            raise serializers.ValidationError("Only wholesalers can send friend requests.")
+        
+        # Check for existing pending friend requests
+        if FriendRequest.objects.filter(
+            sender=wholesaler_profile,
+            dealership=data.get('dealership'),
+            recipient_wholesaler=data.get('recipient_wholesaler'),
+            status='pending'
+        ).exists():
+            raise serializers.ValidationError("A pending friend request already exists.")
 
         return data
+    
+    def create(self, validated_data):
+        user = self.context.get('request').user
+        wholesaler_profile = user.wholesalerprofile
+
+        validated_data['sender'] = wholesaler_profile
+
+        return FriendRequest.objects.create(**validated_data)
+    
