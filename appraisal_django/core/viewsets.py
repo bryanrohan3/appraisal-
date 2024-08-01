@@ -154,7 +154,6 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         """
         dealership = self.get_object()
         
-        #TODO: Use filter_queryset to validate access
         queryset = self.filter_queryset(self.get_queryset())
         if not queryset.filter(id=dealership.id).exists():
             return Response({"message": "You do not have permission to deactivate this dealership"}, status=status.HTTP_403_FORBIDDEN)
@@ -244,8 +243,6 @@ class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
         except DealerProfile.DoesNotExist:
             return Response({'error': 'Dealer profile not found or not in the same dealership'}, status=status.HTTP_404_NOT_FOUND)
         
-    # TODO: use correct detail route
-    # TODO: Use the get_queryset to validate access
     @action(detail=True, methods=['POST'], url_path='promote', permission_classes=[IsManagement])
     def promote_dealer(self, request, pk=None):
         """
@@ -829,7 +826,7 @@ class RequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Up
         return Response(serializer.data)
 
 
-    # TODO: Will get a lot for free with get_queryset - only stuff available to what you own
+
     @action(detail=False, methods=['get'], url_path='sent', permission_classes=[IsWholesaler])
     def list_sent_requests(self, request):
         queryset = self.get_queryset()

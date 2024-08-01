@@ -61,14 +61,6 @@ class DealershipSearchSerializer(serializers.Serializer):
     dealership_name = serializers.CharField(required=False, allow_blank=True)
 
 
-# class DealershipCurrentUserFKSerializer(serializers.PrimaryKeyRelatedField):
-#     class Meta:
-#         model = Dealership
-
-#     def get_queryset(self):
-#         request = self.context.get('request', None)
-#         user = request.user
-#         return user.dealerprofile.dealerships.all()
 class DealershipCurrentUserFKSerializer(serializers.PrimaryKeyRelatedField):
     def get_queryset(self):
         request = self.context.get('request', None)
@@ -366,34 +358,6 @@ class AppraisalSerializer(serializers.ModelSerializer):
             representation.pop('winner', None)
 
         return representation
-
-
-
-    # def create(self, validated_data):
-    #     request = self.context.get('request')
-    #     user = request.user
-    #     dealer_profile = user.dealerprofile
-
-    #     if not dealer_profile.dealerships.exists():
-    #         raise serializers.ValidationError("You are not associated with any dealership.")
-
-    #     # TODO: Pass dealership in, use the FK serializer to validate
-    #     dealership = dealer_profile.dealerships.first()
-    #     validated_data['initiating_dealer'] = dealer_profile
-    #     validated_data['dealership'] = dealership
-    #     # TODO: Do this on to_internal_value instead of create -> get update for free
-    #     validated_data['last_updating_dealer'] = dealer_profile
-    #     damages_data = validated_data.pop('damages', [])
-
-    #     # Create the Appraisal
-    #     appraisal = Appraisal.objects.create(**validated_data)
-
-    #     if damages_data:
-    #         for damage_data in damages_data:
-    #             Damage.objects.create(appraisal=appraisal, **damage_data)
-
-    #     return appraisal
-
     
     def create(self, validated_data):
         request = self.context.get('request')
