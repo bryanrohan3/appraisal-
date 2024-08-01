@@ -157,8 +157,9 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         
         #TODO: Use filter_queryset to validate access
         queryset = self.filter_queryset(self.get_queryset())
-        if dealership not in queryset:
+        if not queryset.filter(id=dealership.id).exists():
             return Response({"message": "You do not have permission to deactivate this dealership"}, status=status.HTTP_403_FORBIDDEN)
+
         
         dealership.is_active = False
         dealership.save()
@@ -790,28 +791,6 @@ class RequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Up
         else:
             return FriendRequest.objects.none()
 
-
-
-    # TODO: Chnage to a mixin and validate in serializer
-    # def perform_create(self, serializer):
-    #     user = self.request.user
-    #     try:
-    #         wholesaler_profile = user.wholesalerprofile
-    #     except WholesalerProfile.DoesNotExist:
-    #         raise serializers.ValidationError({'error': 'Only wholesalers can send friend requests.'})
-
-    #     recipient_wholesaler = self.request.data.get('recipient_wholesaler')
-    #     dealership_id = self.request.data.get('dealership')
-
-    #     if recipient_wholesaler:
-    #         recipient_wholesaler = get_object_or_404(WholesalerProfile, id=recipient_wholesaler)
-    #         serializer.save(sender=wholesaler_profile, recipient_wholesaler=recipient_wholesaler)
-    #     elif dealership_id:
-    #         dealership = get_object_or_404(Dealership, id=dealership_id)
-    #         serializer.save(sender=wholesaler_profile, dealership=dealership)
-    #     else:
-    #         raise serializers.ValidationError({'error': 'Recipient wholesaler or dealership must be specified.'})
-
     @action(detail=True, methods=['put'], url_path='respond')
     def respond_to_friend_request(self, request, pk=None):
         friend_request = get_object_or_404(FriendRequest, id=pk)
@@ -885,7 +864,6 @@ class RequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Up
     @action(detail=False, methods=['get'], url_path='received', permission_classes=[IsWholesaler | IsManagement])
     def list_received_requests(self, request):
         user = request.user
-
         queryset = self.get_queryset()  # Use the optimized queryset from get_queryset
 
         if hasattr(user, 'dealerprofile'):
