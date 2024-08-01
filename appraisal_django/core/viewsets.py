@@ -317,7 +317,11 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         else:
             queryset = Appraisal.object.none()
 
-        return self.filter_queryset(queryset)
+        queryset = self.filter_queryset(queryset)
+
+        queryset = self.filter_queryset_by_keyword(queryset)
+
+        return queryset
     
     
     def filter_queryset(self, queryset):
@@ -335,10 +339,15 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         return queryset
 
 
-    def filter_queryset_by_keyword(self, queryset, keyword):
-        # Filter queryset to find exact match for dealership name
-        partial_match_query = Q(dealership__dealership_name__icontains=keyword) | Q(vehicle_vin__icontains=keyword) | Q(vehicle_registration__icontains=keyword) | Q(vehicle_make__icontains=keyword) | Q(vehicle_model__icontains=keyword)
-        queryset = queryset.filter(partial_match_query)
+    def filter_queryset_by_keyword(self, queryset):
+        keyword = self.request.query_params.get('filter', None)
+        if keyword:
+            queryset = queryset.filter(
+                Q(customer_email__icontains=keyword) |
+                Q(vehicle_make__icontains=keyword) |
+                Q(vehicle_model__icontains=keyword) |
+                Q(vehicle_year__icontains=keyword)
+            )
         return queryset
     
 
@@ -383,49 +392,61 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-    # TODO: Take a full queryset, and handle a whole csv
-    @action(detail=True, methods=['post'], url_path='csv', permission_classes=[IsManagement])
-    def download_csv(self, request, pk=None):
-        appraisal = self.get_object()
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="appraisal_{appraisal.id}.csv"'
+    @action(detail=False, methods=['get', 'post'], url_path='csv', permission_classes=[IsManagement])
+    def download_csv(self, request, *args, **kwargs):
+        if request.method == 'POST':
+            # Handle CSV generation here
+            filter_keyword = request.query_params.get('filter', None)
+            queryset = self.filter_queryset_by_keyword(self.get_queryset())
+            
+            # Create a response object for CSV
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="appraisals.csv"'
 
-        writer = csv.writer(response)
-        writer.writerow(['Field', 'Value'])
-        writer.writerow(['ID', appraisal.id])
-        writer.writerow(['Start Date', appraisal.start_date])
-        writer.writerow(['Last Updated', appraisal.last_updated])
-        writer.writerow(['Is Active', appraisal.is_active])
-        writer.writerow(['Dealership', appraisal.dealership.dealership_name])
-        writer.writerow(['Initiating Dealer', f"{appraisal.initiating_dealer.user.first_name} {appraisal.initiating_dealer.user.last_name}"])
-        writer.writerow(['Last Updating Dealer', f"{appraisal.last_updating_dealer.user.first_name} {appraisal.last_updating_dealer.user.last_name}"])
-        writer.writerow(['Customer First Name', appraisal.customer_first_name])
-        writer.writerow(['Customer Last Name', appraisal.customer_last_name])
-        writer.writerow(['Customer Email', appraisal.customer_email])
-        writer.writerow(['Customer Phone', appraisal.customer_phone])
-        writer.writerow(['Make', appraisal.vehicle_make])
-        writer.writerow(['Model', appraisal.vehicle_model])
-        writer.writerow(['Year', appraisal.vehicle_year])
-        writer.writerow(['VIN', appraisal.vehicle_vin])
-        writer.writerow(['Registration', appraisal.vehicle_registration])
-        writer.writerow(['Color', appraisal.color])
-        writer.writerow(['Odometer Reading', appraisal.odometer_reading])
-        writer.writerow(['Engine Type', appraisal.engine_type])
-        writer.writerow(['Transmission', appraisal.transmission])
-        writer.writerow(['Body Type', appraisal.body_type])
-        writer.writerow(['Fuel Type', appraisal.fuel_type])
-        writer.writerow(['Damage Description', appraisal.damage_description])
-        writer.writerow(['Damage Location', appraisal.damage_location])
-        writer.writerow(['Repair Cost Estimate', appraisal.repair_cost_estimate])
-        writer.writerow(['Reserve Price', appraisal.reserve_price])
+            # Use pipe character as delimiter
+            writer = csv.writer(response, delimiter='|')
+            # Write headers
+            writer.writerow(['ID', 'Start Date', 'Last Updated', 'Is Active', 'Dealership', 'Initiating Dealer',
+                             'Last Updating Dealer', 'Customer First Name', 'Customer Last Name', 'Customer Email',
+                             'Customer Phone', 'Make', 'Model', 'Year', 'VIN', 'Registration', 'Color',
+                             'Odometer Reading', 'Engine Type', 'Transmission', 'Body Type', 'Fuel Type', 
+                             'Reserve Price'])
 
-        # Write comments
-        writer.writerow([])
-        writer.writerow(['General Comments'])
-        for comment in appraisal.general_comments.all():
-            writer.writerow([comment.comment_date_time, comment.comment])
+            # Write data rows
+            for appraisal in queryset:
+                writer.writerow([
+                    appraisal.id,
+                    appraisal.start_date.isoformat() if appraisal.start_date else '',
+                    appraisal.last_updated.isoformat() if appraisal.last_updated else '',
+                    appraisal.is_active,
+                    appraisal.dealership.dealership_name,
+                    f"{appraisal.initiating_dealer.user.first_name} {appraisal.initiating_dealer.user.last_name}",
+                    f"{appraisal.last_updating_dealer.user.first_name} {appraisal.last_updating_dealer.user.last_name}",
+                    appraisal.customer_first_name,
+                    appraisal.customer_last_name,
+                    appraisal.customer_email,
+                    appraisal.customer_phone,
+                    appraisal.vehicle_make,
+                    appraisal.vehicle_model,
+                    appraisal.vehicle_year,
+                    appraisal.vehicle_vin,
+                    appraisal.vehicle_registration,
+                    appraisal.color,
+                    appraisal.odometer_reading,
+                    appraisal.engine_type,
+                    appraisal.transmission,
+                    appraisal.body_type,
+                    appraisal.fuel_type,
+                    appraisal.reserve_price
+                ])
+            
+            return response
 
-        return response
+        else:
+            # Handle GET request (filtering and returning JSON)
+            queryset = self.filter_queryset_by_keyword(self.get_queryset())
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
     
 
     @action(detail=True, methods=['POST'], url_path='make_offer', permission_classes=[IsWholesaler])
