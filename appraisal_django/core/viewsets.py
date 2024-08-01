@@ -129,7 +129,6 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         """
         dealership = self.get_object()  # Get the Dealership instance
 
-        # TODO: Use filter_queryset to apply any filtering logic (if any)
         queryset = DealerProfile.objects.filter(dealerships=dealership)
         filtered_queryset = self.filter_queryset(queryset)
 
@@ -791,47 +790,36 @@ class RequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Up
         else:
             return FriendRequest.objects.none()
 
+
     @action(detail=True, methods=['put'], url_path='respond')
     def respond_to_friend_request(self, request, pk=None):
-        friend_request = get_object_or_404(FriendRequest, id=pk)
-        
+        friend_request = get_object_or_404(self.get_queryset(), id=pk)
+
         response_status = request.data.get('status')
         if response_status not in ['accepted', 'rejected']:
             return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
-        # TODO: A lot of this would be handled for free if we use the get_queryset function
-        if friend_request.recipient_wholesaler:
-            try:
-                wholesaler_profile = request.user.wholesalerprofile
-                if friend_request.recipient_wholesaler != wholesaler_profile:
-                    return Response({'error': 'You can only respond to requests sent to you'}, status=status.HTTP_403_FORBIDDEN)
-            except WholesalerProfile.DoesNotExist:
-                return Response({'error': 'Only the recipient wholesaler can respond to this request'}, status=status.HTTP_403_FORBIDDEN)
-        elif friend_request.dealership:
-            try:
-                dealer_profile = request.user.dealerprofile
-                if dealer_profile.role != 'M':
-                    return Response({'error': 'Only dealership managers can respond to this request'}, status=status.HTTP_403_FORBIDDEN)
-                if friend_request.dealership not in dealer_profile.dealerships.all():
-                    return Response({'error': 'Dealer does not belong to the specified dealership.'}, status=status.HTTP_403_FORBIDDEN)
-            except DealerProfile.DoesNotExist:
-                return Response({'error': 'Only a dealership manager can respond to this request'}, status=status.HTTP_403_FORBIDDEN)
+
+        if hasattr(request.user, 'wholesalerprofile'):
+            # Check if the friend request is for this wholesaler
+            if friend_request.recipient_wholesaler != request.user.wholesalerprofile:
+                return Response({'error': 'You can only respond to requests sent to you'}, status=status.HTTP_403_FORBIDDEN)
+        elif hasattr(request.user, 'dealerprofile'):
+            # Check if the friend request is related to the dealer's dealership
+            if friend_request.dealership not in request.user.dealerprofile.dealerships.all():
+                return Response({'error': 'Dealer does not belong to the specified dealership.'}, status=status.HTTP_403_FORBIDDEN)
         else:
             return Response({'error': 'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        # Update friend request status
         friend_request.status = response_status
         friend_request.save()
 
+        # Handle acceptance logic
         if response_status == 'accepted':
-            if friend_request.recipient_wholesaler:
-                # Update wholesaler friends list
-                sender = friend_request.sender
-                recipient = friend_request.recipient_wholesaler
-                sender.friends.add(recipient)
-                recipient.friends.add(sender)
-                sender.save()
-                recipient.save()
-            elif friend_request.dealership:
-                # Update the dealership's wholesalers list
+            if hasattr(request.user, 'wholesalerprofile'):
+                pass
+            elif hasattr(request.user, 'dealerprofile'):
+                # For dealers, update the dealership's wholesalers list
                 dealership = friend_request.dealership
                 wholesaler_profile = friend_request.sender
                 dealership.wholesalers.add(wholesaler_profile.user)
