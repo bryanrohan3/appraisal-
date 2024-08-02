@@ -116,20 +116,27 @@ class Appraisal(models.Model):
 
     def get_wholesaler_status(self, wholesaler_profile):
         user_offer = self.offers.filter(user=wholesaler_profile).first()
-        if not user_offer:
+
+        if user_offer.amount is None and not user_offer.passed:
             if self.winner:
                 return 'Complete - Missed'
             return 'Active'
-        if self.winner == user_offer:
-            return 'Complete - Won'
-        if user_offer.amount is not None:
-            if self.winner:
+        
+        if user_offer.amount is None and not user_offer.passed:
+            return 'Active'
+        
+        if user_offer.passed or user_offer.amount is not None:
+            if self.winner == user_offer:
+                return 'Complete - Won'
+            elif self.winner:
                 return 'Complete - Lost'
             return 'Complete - Priced'
+        
         if self.winner:
             return 'Complete - Lost'
+        
         return 'Complete - Priced'
-    
+
 
 class Comment(models.Model):
     appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='comments')
@@ -191,15 +198,3 @@ class FriendRequest(models.Model):
         elif self.recipient_wholesaler:
             return f"Friend Request from {self.sender.user.username if self.sender else 'Unknown'} to Wholesaler {self.recipient_wholesaler.user.username}"
         return "Invalid Friend Request"
-
-#TODO: Handle offer as invite
-# class AppraisalInvite(models.Model):
-#     appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='invites')
-#     wholesaler = models.ForeignKey('WholesalerProfile', on_delete=models.CASCADE, related_name='appraisal_invites')
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     class Meta:
-#         unique_together = ('appraisal', 'wholesaler')
-
-#     def __str__(self):
-#         return f"Appraisal {self.appraisal.id} - Wholesaler {self.wholesaler.user.username}"
