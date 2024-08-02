@@ -450,7 +450,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
     
-    @action(detail=True, methods=['POST'], url_path='make_offer', permission_classes=[IsWholesaler])
+    @action(detail=True, methods=['POST'], url_path='make-offer', permission_classes=[IsWholesaler])
     def make_offer(self, request, pk=None):
         appraisal = self.get_object()
         user = request.user
@@ -558,29 +558,6 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         # Serialize the new instance to return in the response
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
-    #TODO; Wrong Url?
-    @action(detail=True, methods=['POST'], url_path='select_winner/(?P<offer_id>\d+)', permission_classes=[IsManagement])
-    def select_winner(self, request, pk=None, offer_id=None):
-        # Initialize the serializer with the request data
-        serializer = SelectWinnerSerializer(data={'offer_id': offer_id})
-        
-        # Check if the serializer is valid
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        appraisal = self.get_object()
-        
-        # Validate the offer ID
-        try:
-            selected_offer = appraisal.offers.get(id=serializer.validated_data['offer_id'])
-        except Offer.DoesNotExist:
-            return Response({"error": "Offer not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        appraisal.winner = selected_offer
-        appraisal.save()
-
-        return Response({"message": "Winning offer selected successfully"}, status=status.HTTP_200_OK)
     
 
     @action(detail=True, methods=['post'], permission_classes=[IsManagement])
