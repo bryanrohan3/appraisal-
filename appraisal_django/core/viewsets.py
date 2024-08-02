@@ -305,9 +305,12 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         user = self.request.user
 
         # TODO: Change for the offer one2one thing <<<<ASK ABOUT>>>>
+        # if hasattr(user, 'wholesalerprofile'):
+        #     invited_appraisal_ids = Offer.objects.filter(user=user.wholesalerprofile).values_list('appraisal_id', flat=True)
+        #     queryset = Appraisal.objects.filter(id__in=invited_appraisal_ids)
         if hasattr(user, 'wholesalerprofile'):
-            invited_appraisal_ids = Offer.objects.filter(user=user.wholesalerprofile).values_list('appraisal_id', flat=True)
-            queryset = Appraisal.objects.filter(id__in=invited_appraisal_ids)
+        # Fetch appraisals that the wholesaler has made offers on
+            queryset = Appraisal.objects.filter(offers__user=user.wholesalerprofile).distinct()
 
         elif hasattr(user, 'dealerprofile'):
             user_dealership_ids = user.dealerprofile.dealerships.values_list('id', flat=True)
@@ -513,12 +516,13 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 
-    # Has Pagination /api/{id}/offers/?page=?
     @action(detail=True, methods=['get'], url_path='offers', permission_classes=[IsManagement])
     def list_offers(self, request, pk=None):
         appraisal = self.get_object()
-        # offers = Offer.objects.filter(appraisal=appraisal)
-        offers = Offer.objects.filter(appraisal=appraisal, amount__isnull=False, passed=True)
+        offers = Offer.objects.filter(
+            Q(amount__isnull=False) | Q(passed=True),
+            appraisal=appraisal  # This should be before keyword arguments if any.
+        )
 
         # Apply Pagination
         page = self.paginate_queryset(offers)
@@ -859,5 +863,57 @@ class RequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Up
         return Response(serializer.data)
 
 
+class OfferViewSet(viewsets.GenericViewSet, viewsets.mixins.RetrieveModelMixin):
+    serializer_class = OfferSerializer
+    permission_classes = [IsWholesaler | IsManagement]
 
 
+    def get_queryset(self):
+        user = self.request.user
+
+        if hasattr(user, 'wholesalerprofile'):
+            wholesalerprofile = user.wholesalerprofile
+            # If the user has a wholesaler profile, filter offers by the user's instance
+            return Offer.objects.filter(user=wholesalerprofile.id)
+
+        if hasattr(user, 'dealerprofile'):
+            # If the user has a dealer profile, filter offers by dealerships related to appraisals created
+            dealerships = user.dealerprofile.dealerships.all()
+            return Offer.objects.filter(appraisal__dealership__in=dealerships)
+
+        # Default: return no offers if the user does not match any role
+        return Offer.objects.none()
+
+    def filter_queryset(self, queryset):
+        user = self.request.user
+
+        if hasattr(user, 'wholesalerprofile'):
+            # Filter offers by the wholesaler's user instance
+            wholesalerprofile = user.wholesalerprofile
+            return queryset.filter(user=wholesalerprofile)
+
+        if hasattr(user, 'dealerprofile'):
+            # Filter offers by appraisals created by the management dealer's dealerships
+            dealerships = user.dealerprofile.dealerships.all()
+            return queryset.filter(appraisal__dealership__in=dealerships)
+
+        # Default: return no offers if the user does not match any role
+        return queryset.none()
+    
+    @action(detail=True, methods=['POST'], url_path='make-winner', permission_classes=[IsManagement])
+    def make_winner(self, request, pk=None):
+        offer = self.get_object()
+        appraisal = offer.appraisal
+
+        user = request.user
+        if hasattr(user, 'dealerprofile'):
+            dealerships = user.dealerprofile.dealerships.all()
+            if appraisal.dealership not in dealerships:
+                return Response({"detail": "You do not have permission to select a winner for this appraisal."}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            return Response({"detail": "You do not have permission to select a winner for this appraisal."}, status=status.HTTP_403_FORBIDDEN)
+
+        appraisal.winner = offer
+        appraisal.save()
+
+        return Response({"message": "Winning offer selected successfully"}, status=status.HTTP_200_OK)

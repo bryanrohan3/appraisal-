@@ -11,6 +11,8 @@ api_router.register(r'dealer-profile', viewsets.DealerProfileViewSet)
 api_router.register(r'wholesaler-profile', viewsets.WholesalerProfileViewSet, basename='wholesaler-profile')  # Add this line for wholesaler profiles
 api_router.register(r'appraisals', viewsets.AppraisalViewSet)  # Add this line for appraisals
 api_router.register(r'friend-requests', viewsets.RequestViewSet, basename='friend-request')
+api_router.register(r'offer', viewsets.OfferViewSet, basename='offer')
+
 
 
 urlpatterns = [
