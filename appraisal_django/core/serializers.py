@@ -226,8 +226,8 @@ class OfferSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Offer
-        fields = ['id', 'user', 'amount', 'adjusted_amount', 'passed', 'created_at']
-        read_only_fields = ['user', 'adjusted_amount']
+        fields = ['id', 'user', 'amount', 'adjusted_amount', 'passed', 'created_at', 'offer_made_at']
+        read_only_fields = ['user', 'adjusted_amount', 'offer_created_at']
 
     def get_user(self, obj):
         user = obj.user
@@ -252,7 +252,17 @@ class OfferSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         validated_data['user'] = user
         return super().create(validated_data)
+    
 
+class InviteSerializer(serializers.ModelSerializer):
+    username = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Offer
+        fields = ['id', 'appraisal', 'username', 'created_at']
+        
+    def get_username(self, obj):
+        return obj.user.user.username  
 
 class AdjustedAmountSerializer(serializers.ModelSerializer):
     class Meta:
@@ -268,28 +278,19 @@ class DamageSerializer(serializers.ModelSerializer):
             'appraisal': {'read_only': True}  # Ensure 'appraisal' is read-only during creation
         }
 
-
-
-class AppraisalInviteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = AppraisalInvite
-        fields = ['id', 'appraisal', 'wholesaler', 'created_at']
     
 
 class AppraisalSerializer(serializers.ModelSerializer):
     initiating_dealer = DealerProfileNestedSerializer(read_only=True)
     last_updating_dealer = DealerProfileNestedSerializer(read_only=True)
-    # dealership = DealershipNestedSerializer(read_only=True)
     dealership = DealershipCurrentUserFKSerializer()  
     damages = DamageSerializer(many=True)
     vehicle_photos = PhotoSerializer(many=True, read_only=True, source='vehicle_photos_set')
-    # general_comments = CommentSerializer(many=True, read_only=True)
-    # private_comments = CommentSerializer(many=True, read_only=True)
     general_comments = serializers.SerializerMethodField()
     private_comments = serializers.SerializerMethodField()
     winner = serializers.SerializerMethodField()
-    offers = OfferSerializer(many=True, required=False)
-    invites = AppraisalInviteSerializer(many=True, read_only=True)
+    offers = serializers.SerializerMethodField()
+    invites = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField() 
 
     class Meta:
@@ -332,6 +333,16 @@ class AppraisalSerializer(serializers.ModelSerializer):
         elif hasattr(user, 'wholesalerprofile'):
             return obj.get_wholesaler_status(user.wholesalerprofile)
         return "Not authorized"
+    
+    def get_offers(self, obj):
+        offers = obj.offers.filter(
+            Q(amount__isnull=False) | Q(passed=True)
+        )
+        return OfferSerializer(offers, many=True).data
+    
+    def get_invites(self, obj):
+        invites = obj.offers.filter(amount__isnull=True, passed=False)
+        return InviteSerializer(invites, many=True).data
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)

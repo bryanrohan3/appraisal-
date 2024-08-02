@@ -136,4 +136,4 @@ class FriendRequestAdmin(admin.ModelAdmin):
     # Optional: Add list per page
     list_per_page = 20
 
-admin.site.register(AppraisalInvite)
+# admin.site.register(AppraisalInvite)

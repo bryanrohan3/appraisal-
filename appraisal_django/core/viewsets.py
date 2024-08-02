@@ -18,6 +18,8 @@ from django.db import transaction
 from rest_framework.pagination import PageNumberPagination
 from django.utils.dateparse import parse_datetime
 from django.db.models import Count
+from rest_framework.parsers import MultiPartParser, FormParser
+
 
 
 class CustomPagination(PageNumberPagination):
@@ -304,7 +306,8 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
 
         # TODO: Change for the offer one2one thing
         if hasattr(user, 'wholesalerprofile'):
-            invited_appraisal_ids = AppraisalInvite.objects.filter(wholesaler=user.wholesalerprofile).values_list('appraisal_id', flat=True)
+            # invited_appraisal_ids = Offer.objects.filter(wholesaler=user.wholesalerprofile).values_list('appraisal_id', flat=True)
+            invited_appraisal_ids = Offer.objects.filter(user=user.wholesalerprofile).values_list('appraisal_id', flat=True)
             queryset = Appraisal.objects.filter(id__in=invited_appraisal_ids)
 
         elif hasattr(user, 'dealerprofile'):
@@ -401,7 +404,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             response['Content-Disposition'] = 'attachment; filename="appraisals.csv"'
 
             # Use pipe character as delimiter
-            writer = csv.writer(response, delimiter='|')
+            writer = csv.writer(response, delimiter=',')
             # Write headers
             writer.writerow(['ID', 'Start Date', 'Last Updated', 'Is Active', 'Dealership', 'Initiating Dealer',
                              'Last Updating Dealer', 'Customer First Name', 'Customer Last Name', 'Customer Email',
@@ -522,7 +525,8 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
     @action(detail=True, methods=['get'], url_path='offers', permission_classes=[IsManagement])
     def list_offers(self, request, pk=None):
         appraisal = self.get_object()
-        offers = Offer.objects.filter(appraisal=appraisal)
+        # offers = Offer.objects.filter(appraisal=appraisal)
+        offers = Offer.objects.filter(appraisal=appraisal, amount__isnull=False, passed=True)
 
         # Apply Pagination
         page = self.paginate_queryset(offers)
@@ -609,9 +613,10 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
                 wholesaler = WholesalerProfile.objects.get(id=wholesaler_id)
                 
                 # Create or get the invite
-                invite, created = AppraisalInvite.objects.get_or_create(appraisal=appraisal, wholesaler=wholesaler)
-                if created:
-                    invited_wholesalers.append(wholesaler_id)
+                # offer, created = Offer.objects.get_or_create(appraisal=appraisal, wholesaler=wholesaler)
+                offer, created = Offer.objects.get_or_create(appraisal=appraisal, user=wholesaler, defaults={'passed': False, 'amount': None})
+                # if created:
+                invited_wholesalers.append(wholesaler_id)
             except WholesalerProfile.DoesNotExist:
                 return Response({"message": f"Wholesaler profile for ID {wholesaler_id} does not exist"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -624,16 +629,16 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         if not hasattr(request.user, 'wholesalerprofile'):
             return Response({"detail": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
 
-        invites = AppraisalInvite.objects.filter(wholesaler=request.user.wholesalerprofile)
+        invites = Offer.objects.filter(user=request.user.wholesalerprofile)
 
         # Apply pagination
         page = self.paginate_queryset(invites)
         if page is not None:
-            serializer = AppraisalInviteSerializer(page, many=True)
+            serializer = OfferSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
 
-        serializer = AppraisalInviteSerializer(invites, many=True)
+        serializer = OfferSerializer(invites, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'])

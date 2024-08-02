@@ -69,14 +69,13 @@ class Appraisal(models.Model):
     start_date = models.DateTimeField(auto_now_add=True, null=True)
     last_updated = models.DateTimeField(auto_now=True, null=True)
     is_active = models.BooleanField(default=True)  # Set to False if the appraisal is inactive/deleted
-    invited_wholesalers = models.ManyToManyField('WholesalerProfile', through='AppraisalInvite', related_name='invited_appraisals', blank=True)
+    invited_wholesalers = models.ManyToManyField('WholesalerProfile', through='Offer', related_name='invited_appraisals', blank=True)
     ready_for_management = models.BooleanField(default=False)
 
     # Dealership Information
     dealership = models.ForeignKey(Dealership, on_delete=models.CASCADE, related_name='appraisals')
     initiating_dealer = models.ForeignKey(DealerProfile, on_delete=models.CASCADE, related_name='initiated_appraisals')
     last_updating_dealer = models.ForeignKey(DealerProfile, on_delete=models.CASCADE, related_name='last_updated_appraisals', null=True)
-    # sent_to_management = models.ManyToManyField(User, related_name='appraisals_sent', blank=True)
 
     # Customer Inoformation
     customer_first_name = models.CharField(max_length=50)
@@ -109,7 +108,7 @@ class Appraisal(models.Model):
             return 'Trashed'
         if self.winner:
             return 'Complete'
-        if self.invites.exists():
+        if self.offers.exists():
             return 'Active'
         if self.ready_for_management:
             return 'Pending - Management'
@@ -166,6 +165,7 @@ class Offer(models.Model):
     adjusted_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True) 
     passed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    offer_made_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ('appraisal', 'user')  # Ensure each user can only make one offer per appraisal
@@ -193,13 +193,13 @@ class FriendRequest(models.Model):
         return "Invalid Friend Request"
 
 #TODO: Handle offer as invite
-class AppraisalInvite(models.Model):
-    appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='invites')
-    wholesaler = models.ForeignKey('WholesalerProfile', on_delete=models.CASCADE, related_name='appraisal_invites')
-    created_at = models.DateTimeField(auto_now_add=True)
+# class AppraisalInvite(models.Model):
+#     appraisal = models.ForeignKey(Appraisal, on_delete=models.CASCADE, related_name='invites')
+#     wholesaler = models.ForeignKey('WholesalerProfile', on_delete=models.CASCADE, related_name='appraisal_invites')
+#     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        unique_together = ('appraisal', 'wholesaler')
+#     class Meta:
+#         unique_together = ('appraisal', 'wholesaler')
 
-    def __str__(self):
-        return f"Appraisal {self.appraisal.id} - Wholesaler {self.wholesaler.user.username}"
+#     def __str__(self):
+#         return f"Appraisal {self.appraisal.id} - Wholesaler {self.wholesaler.user.username}"
