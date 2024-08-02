@@ -155,6 +155,50 @@ class DealershipNestedSerializer(serializers.ModelSerializer):
         fields = ['id', 'dealership_name']
 
 
+class WholesalerInviteSerializer(serializers.Serializer):
+    wholesalers = serializers.ListField(
+        child=serializers.IntegerField(), 
+        write_only=True
+    )
+
+    def validate_wholesalers(self, value):
+        if not value:
+            raise serializers.ValidationError("No wholesalers provided")
+        return value
+
+    def validate(self, data):
+        dealership = self.context['dealership']
+        wholesaler_ids = data['wholesalers']
+
+        # Check if all provided wholesaler IDs are associated with the dealership
+        dealership_wholesaler_ids = dealership.wholesalers.values_list('id', flat=True)
+        for wholesaler_id in wholesaler_ids:
+            if wholesaler_id not in dealership_wholesaler_ids:
+                raise serializers.ValidationError(f"Wholesaler {wholesaler_id} is not associated with the dealership")
+        return data
+
+    def create_invites(self):
+        data = self.validated_data
+        dealership = self.context['dealership']
+        wholesaler_ids = data['wholesalers']
+
+        invited_wholesalers = []
+        for wholesaler_id in wholesaler_ids:
+            try:
+                wholesaler = WholesalerProfile.objects.get(id=wholesaler_id)
+                # Create or get the invite
+                offer, created = Offer.objects.get_or_create(
+                    appraisal=self.context['appraisal'],
+                    user=wholesaler,
+                    defaults={'passed': False, 'amount': None}
+                )
+                invited_wholesalers.append(wholesaler_id)
+            except WholesalerProfile.DoesNotExist:
+                continue  # Skip wholesaler ID if it does not exist
+        
+        return invited_wholesalers
+
+
 class WholesalerProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     friends = serializers.SerializerMethodField()

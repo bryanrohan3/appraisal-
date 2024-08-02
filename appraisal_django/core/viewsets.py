@@ -304,9 +304,8 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
     def get_queryset(self):
         user = self.request.user
 
-        # TODO: Change for the offer one2one thing
+        # TODO: Change for the offer one2one thing <<<<ASK ABOUT>>>>
         if hasattr(user, 'wholesalerprofile'):
-            # invited_appraisal_ids = Offer.objects.filter(wholesaler=user.wholesalerprofile).values_list('appraisal_id', flat=True)
             invited_appraisal_ids = Offer.objects.filter(user=user.wholesalerprofile).values_list('appraisal_id', flat=True)
             queryset = Appraisal.objects.filter(id__in=invited_appraisal_ids)
 
@@ -448,42 +447,35 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
     
-
     @action(detail=True, methods=['POST'], url_path='make_offer', permission_classes=[IsWholesaler])
     def make_offer(self, request, pk=None):
         appraisal = self.get_object()
         user = request.user
-
         wholesaler_profile = user.wholesalerprofile
         data = request.data
         amount = data.get('amount')
 
-        # Check if there's an existing offer where the user has passed
-        # TODO: Can get rid of all of this with the single table offer invite
-        offer = Offer.objects.filter(appraisal=appraisal, user=wholesaler_profile).first()
+        # Use get_or_create to handle both existing and new offers
+        try:
+            offer, created = Offer.objects.get_or_create(
+                appraisal=appraisal,
+                user=wholesaler_profile,
+                defaults={'amount': amount}
+            )
 
-        if offer:
-            if offer.passed:
-                # If previously passed, reset passed to False and update amount
-                offer.passed = False
+            if not created:
+                # Update the offer if it already exists
                 offer.amount = amount
+                offer.passed = False  # Reset passed status for existing offers
                 offer.save()
-                serializer = OfferSerializer(offer)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            else:
-                # If offer exists and was not passed, update the amount
-                offer.amount = amount
-                offer.save()
-                serializer = OfferSerializer(offer)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            # Create a new offer if none exists
-            serializer = OfferSerializer(data=data, context={'request': request})
-            if serializer.is_valid():
-                serializer.save(appraisal=appraisal, user=wholesaler_profile)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            # Serialize and return the offer data
+            serializer = OfferSerializer(offer)
+            return Response(serializer.data, status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED)
+        
+        except IntegrityError:
+            # Handle potential integrity errors (e.g., duplicate entries)
+            return Response({'error': 'An error occurred while processing the offer.'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['POST'], url_path='pass', permission_classes=[IsWholesaler])
     def pass_offer(self, request, pk=None):
@@ -592,35 +584,14 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         appraisal = self.get_object()
         user = request.user
 
-
-        #TODO: Serializer        
-        wholesaler_ids = request.data.get('wholesalers', [])
-        if not wholesaler_ids:
-            return Response({"message": "No wholesalers provided"}, status=status.HTTP_400_BAD_REQUEST)
-
         # Fetch the dealership associated with the appraisal
         dealership = appraisal.dealership
 
-        # TODO: This can be handled in the serializer using the FK serializer. The one i wrote was for dealership, so write your own for wholesalers        # Get the list of wholesaler IDs associated with the dealership
-        dealership_wholesaler_ids = dealership.wholesalers.values_list('id', flat=True)
-        invited_wholesalers = []
-        for wholesaler_id in wholesaler_ids:
-            if wholesaler_id not in dealership_wholesaler_ids:
-                return Response({"message": f"Wholesaler {wholesaler_id} is not associated with the dealership"}, status=status.HTTP_400_BAD_REQUEST)
-
-            try:
-                # Fetch wholesaler profile directly
-                wholesaler = WholesalerProfile.objects.get(id=wholesaler_id)
-                
-                # Create or get the invite
-                # offer, created = Offer.objects.get_or_create(appraisal=appraisal, wholesaler=wholesaler)
-                offer, created = Offer.objects.get_or_create(appraisal=appraisal, user=wholesaler, defaults={'passed': False, 'amount': None})
-                # if created:
-                invited_wholesalers.append(wholesaler_id)
-            except WholesalerProfile.DoesNotExist:
-                return Response({"message": f"Wholesaler profile for ID {wholesaler_id} does not exist"}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response({"invited_wholesalers": invited_wholesalers}, status=status.HTTP_201_CREATED)
+        serializer = WholesalerInviteSerializer(data=request.data, context={'appraisal': appraisal, 'dealership': dealership})
+        if serializer.is_valid():
+            invited_wholesalers = serializer.create_invites()
+            return Response({"invited_wholesalers": invited_wholesalers}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
     # Pagination Applied => api/offers/list_invites/?page={}
