@@ -1,25 +1,59 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import { createRouter, createWebHistory } from "vue-router";
+import store from "@/store";
+import LoginPage from "../views/LoginPage/LoginPage.vue";
+import DealerDashboardPage from "../views/Dealer/DealerDashboardPage/DealerDashboardPage.vue";
+import WholesalerDashboardPage from "../views/Wholesaler/WholesalerDashboardPage/WholesalerDashboardPage.vue";
+import DealerLayout from "../components/Layouts/DealerLayout.vue";
+import WholesalerLayout from "../components/Layouts/WholesalerLayout.vue";
 
 const routes = [
   {
-    path: '/',
-    name: 'home',
-    component: HomeView
+    path: "/login",
+    name: "login",
+    component: LoginPage,
   },
   {
-    path: '/about',
-    name: 'about',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
-  }
-]
+    path: "/wholesaler",
+    component: WholesalerLayout,
+    meta: { requiresAuth: true, role: "wholesaler" },
+    children: [
+      {
+        path: "dashboard",
+        name: "WholesalerDashboardPage",
+        component: WholesalerDashboardPage,
+      },
+    ],
+  },
+  {
+    path: "/dealer",
+    component: DealerLayout,
+    meta: { requiresAuth: true, role: "dealer" },
+    children: [
+      {
+        path: "dashboard",
+        name: "DealerDashboardPage",
+        component: DealerDashboardPage,
+      },
+    ],
+  },
+];
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
-  routes
-})
+  routes,
+});
 
-export default router
+router.beforeEach((to, from, next) => {
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
+  const userRole = store.getters.getUserRole;
+
+  if (requiresAuth && !store.getters.getAuthToken) {
+    next("/login");
+  } else if (requiresAuth && userRole !== to.meta.role) {
+    next("/login"); // Redirect to login if role does not match
+  } else {
+    next();
+  }
+});
+
+export default router;

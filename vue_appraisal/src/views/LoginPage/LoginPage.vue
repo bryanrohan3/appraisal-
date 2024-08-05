@@ -2,8 +2,8 @@
 <template>
   <div class="split left">
     <div class="login">
-      <h2>Welcome back.</h2>
-      <p class="welcome-message">Please enter your details to sign in.</p>
+      <h2>Welcome to iAppraisal.</h2>
+      <p class="welcome-message">Please enter your details to log in.</p>
       <form @submit.prevent="handleLogin">
         <div class="form-group">
           <label for="username"><b>Username</b></label>
@@ -51,7 +51,7 @@
           <a href="#" class="forgot-password-link">Forgot Password?</a>
         </p>
 
-        <button type="submit">Sign in</button>
+        <button type="submit">Log in</button>
       </form>
       <p v-if="errorMessage">{{ errorMessage }}</p>
     </div>
@@ -66,9 +66,8 @@
 
 <!-- Script -->
 <script>
-import axios from "axios";
 import { mapMutations } from "vuex";
-// import { axiosInstance, endpoints } from "@/api/axiosHelper";
+import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
 
 export default {
   name: "LogInPage",
@@ -79,6 +78,49 @@ export default {
       errorMessage: "",
       showPassword: false,
     };
+  },
+  methods: {
+    ...mapMutations(["setAuthToken", "setUserProfile", "setUserRole"]), // Ensure this includes setUserRole
+    async handleLogin() {
+      console.log("Login attempt with username:", this.username);
+
+      try {
+        const response = await axiosInstance.post(endpoints.login, {
+          username: this.username,
+          password: this.password,
+        });
+        console.log("Response from API:", response.data);
+
+        const { token, user } = response.data;
+
+        // Store the token and user profile in Vuex
+        this.setAuthToken(token);
+        this.setUserProfile(user);
+        this.setUserRole(user.role); // Ensure this call is correct
+
+        console.log(
+          "Login successful. Redirecting based on user role:",
+          user.role
+        );
+
+        // Add a short delay before redirecting
+        setTimeout(() => {
+          // Redirect based on user type
+          if (user.role === "wholesaler") {
+            console.log("Redirecting to WholesalerDashboardPage");
+            this.$router.push({ name: "WholesalerDashboardPage" });
+          } else if (user.role === "dealer") {
+            console.log("Redirecting to DealerDashboardPage");
+            this.$router.push({ name: "DealerDashboardPage" });
+          } else {
+            this.errorMessage = "User role not recognized";
+          }
+        }, 500); // Delay added for debugging purposes
+      } catch (error) {
+        console.error("Login failed:", error);
+        this.errorMessage = "Invalid username or password.";
+      }
+    },
   },
 };
 </script>
