@@ -163,6 +163,20 @@ input[type="password"] {
   box-sizing: border-box;
   border: 1px solid #ececec;
   border-radius: 10px;
+  padding-right: 2.5rem; /* Ensure space for the eye icon */
+}
+
+.password-input-container {
+  position: relative; /* Ensure absolute positioning of the icon works */
+}
+
+.toggle-password {
+  position: absolute;
+  top: 45px;
+  right: 10px; /* Adjust right value to fit your layout */
+  transform: translateY(-50%);
+  cursor: pointer;
+  z-index: 1; /* Ensure it is above the input */
 }
 
 button {
@@ -198,19 +212,15 @@ h2 {
   }
 
   .password-input-container {
-    position: relative;
+    position: relative; /* Ensure absolute positioning of the icon works */
   }
 
-  .password-input-wrapper input[type="password"] {
-    padding-right: 40px;
+  input[type="password"] {
+    padding-right: 2.5rem; /* Ensure space for the eye icon */
   }
 
   .toggle-password {
-    position: absolute;
-    top: 50%;
-    right: 10px;
-    transform: translateY(-50%);
-    cursor: pointer;
+    right: 10px; /* Adjust right value to fit your layout */
   }
 }
 </style>
