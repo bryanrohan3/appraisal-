@@ -54,10 +54,6 @@
         <button type="submit">Sign in</button>
       </form>
       <p v-if="errorMessage">{{ errorMessage }}</p>
-      <p class="signup-link-p">
-        Don't have an account yet?
-        <a href="/signup" class="signup-link">Sign up</a>
-      </p>
     </div>
   </div>
 
@@ -184,16 +180,6 @@ h2 {
   font-family: Arial, sans-serif;
   font-size: 24px;
   margin-bottom: 1.5rem;
-}
-
-.signup-link {
-  text-decoration: none;
-  font-weight: bold;
-  color: #27282a;
-}
-
-.signup-link-p {
-  margin-top: 30px;
 }
 
 @media (max-width: 600px) {
