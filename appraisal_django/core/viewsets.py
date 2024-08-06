@@ -300,7 +300,18 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
     serializer_class = AppraisalSerializer
     pagination_class = CustomPagination
 
+    def get_serializer_class(self):
+        if self.action == 'simple_list':
+            return SimpleAppraisalSerializer
+        return AppraisalSerializer
 
+    @action(detail=False, methods=['get'], url_path='simple-list')
+    def simple_list(self, request, *args, **kwargs):
+        # Get the latest 8 appraisals
+        queryset = self.filter_queryset(self.get_queryset()).order_by('-start_date')[:8]
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
     def get_queryset(self):
         user = self.request.user
 
@@ -686,13 +697,56 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         else:
             return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
         
+    # @action(detail=False, methods=['get'], url_path='best_performing_wholesalers')
+    # def best_performing_wholesalers(self, request, *args, **kwargs):
+    #     date_range, error_response = self._parse_date_range(request)
+    #     if error_response:
+    #         return error_response
+
+    #     date_from, date_to = date_range
+    #     user = request.user
+
+    #     if hasattr(user, 'dealerprofile'):
+    #         dealer_id = user.dealerprofile.id
+    #         queryset = Appraisal.objects.filter(
+    #             initiating_dealer_id=dealer_id,
+    #             start_date__range=[date_from, date_to]
+    #         ).select_related('winner')  # Optimize query to fetch related 'winner'
+
+    #         # Count by winner's profile ID and get username
+    #         wholesaler_counts = (queryset
+    #                             .values('winner__user_id', 'winner__user__wholesaler_name')  # Access winner's profile ID and username
+    #                             .annotate(count=Count('winner__user_id'))  # Count how many times each ID appears
+    #                             .order_by('-count'))
+
+    #         return Response({
+    #             "wholesaler_counts": wholesaler_counts
+    #         }, status=status.HTTP_200_OK)
+    #     else:
+    #         return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
     @action(detail=False, methods=['get'], url_path='best_performing_wholesalers')
     def best_performing_wholesalers(self, request, *args, **kwargs):
-        date_range, error_response = self._parse_date_range(request)
-        if error_response:
-            return error_response
-
-        date_from, date_to = date_range
+        # Optional date parameters
+        date_from = request.query_params.get('from')
+        date_to = request.query_params.get('to')
+        
+        # Convert date parameters to datetime objects or use default values
+        if date_from:
+            try:
+                date_from = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+            except ValueError:
+                return Response({"error": "Invalid 'from' date format. Use ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            date_from = datetime.min  # Default to earliest possible date
+        
+        if date_to:
+            try:
+                date_to = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+            except ValueError:
+                return Response({"error": "Invalid 'to' date format. Use ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            date_to = datetime.max  # Default to latest possible date
+        
         user = request.user
 
         if hasattr(user, 'dealerprofile'):
@@ -713,6 +767,33 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             }, status=status.HTTP_200_OK)
         else:
             return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
+        
+    @action(detail=False, methods=['get'], url_path='top-wholesaler')
+    def top_wholesaler(self, request, *args, **kwargs):
+        user = request.user
+
+        if hasattr(user, 'dealerprofile'):
+            dealer_id = user.dealerprofile.id
+            queryset = Appraisal.objects.filter(
+                initiating_dealer_id=dealer_id
+            ).select_related('winner')  # Optimize query to fetch related 'winner'
+
+            # Count by winner's profile ID and get username
+            top_wholesaler = (queryset
+                            .values('winner__user_id', 'winner__user__wholesaler_name')  # Access winner's profile ID and username
+                            .annotate(count=Count('winner__user_id'))  # Count how many times each ID appears
+                            .order_by('-count')
+                            .first())  # Get only the top result
+
+            if top_wholesaler:
+                return Response({
+                    "top_wholesaler": top_wholesaler
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "No appraisals found for the specified dealer."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
+
 
 
 class RequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):

@@ -64,7 +64,7 @@
         <div class="stats other-stats">
           <img class="star" src="@/assets/star.svg" alt="star" />
           <p class="stats-title">Best Performing Wholesaler</p>
-          <p class="stats-name">Charlie Cameron</p>
+          <p class="stats-name">{{ topWholesalerName }}</p>
         </div>
         <div class="stats other-stats">
           <img class="money" src="@/assets/money.svg" alt="money" />
@@ -98,14 +98,22 @@ export default {
         ? `${userProfile.first_name} ${userProfile.last_name}`
         : "Guest";
     },
+    topWholesalerName() {
+      return this.topWholesaler &&
+        this.topWholesaler.winner__user__wholesaler_name
+        ? this.topWholesaler.winner__user__wholesaler_name
+        : "Not Available";
+    },
   },
   data() {
     return {
       appraisals: [], // Initialize as an empty array
+      topWholesaler: null, // Initialize as null
     };
   },
   mounted() {
     this.fetchAppraisals(); // Fetch appraisals data when the component is mounted
+    this.fetchTopWholesaler(); // Fetch top wholesaler data when the component is mounted
   },
   methods: {
     ...mapMutations(["logout"]),
@@ -137,6 +145,14 @@ export default {
         this.appraisals = response.data; // Update appraisals data with API response
       } catch (error) {
         console.error("Error fetching appraisals:", error);
+      }
+    },
+    async fetchTopWholesaler() {
+      try {
+        const response = await axiosInstance.get(endpoints.top_wholesaler);
+        this.topWholesaler = response.data.top_wholesaler; // Update top wholesaler data with API response
+      } catch (error) {
+        console.error("Error fetching top wholesaler:", error);
       }
     },
   },

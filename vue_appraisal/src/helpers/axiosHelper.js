@@ -33,6 +33,7 @@ axiosInstance.interceptors.request.use(
 const endpoints = {
   login: apiConstants.api_hostname + "users/login/",
   dashboard_appraisals: apiConstants.api_hostname + "appraisals/simple-list/",
+  top_wholesaler: apiConstants.api_hostname + "appraisals/top-wholesaler/",
 };
 
 export { axiosInstance, endpoints };

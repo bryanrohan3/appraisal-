@@ -444,7 +444,29 @@ class AppraisalSerializer(serializers.ModelSerializer):
                 Damage.objects.create(appraisal=appraisal, **damage_data)
 
         return appraisal
+
+class SimpleAppraisalSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
     
+    class Meta:
+        model = Appraisal
+        fields = [
+            'id', 'customer_first_name', 'customer_last_name', 'start_date',
+            'vehicle_make', 'vehicle_model', 'status', 
+            'vehicle_vin', 'vehicle_registration'
+        ]
+
+    def get_status(self, obj):
+        request = self.context.get('request')
+        user = request.user if request else None
+
+        if hasattr(user, 'dealerprofile'):
+            return obj.get_dealer_status()
+        elif hasattr(user, 'wholesalerprofile'):
+            return obj.get_wholesaler_status(user.wholesalerprofile)
+        return "Not authorized"
+
+
 
 class SelectWinnerSerializer(serializers.Serializer):
     offer_id = serializers.IntegerField()
