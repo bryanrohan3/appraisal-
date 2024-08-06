@@ -86,7 +86,7 @@
 
 <script>
 import { mapGetters, mapMutations } from "vuex";
-import { axiosInstance } from "@/helpers/axiosHelper";
+import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
 
 export default {
   name: "DealerDashboardPage",
@@ -131,7 +131,9 @@ export default {
     },
     async fetchAppraisals() {
       try {
-        const response = await axiosInstance.get("appraisals/simple-list/");
+        const response = await axiosInstance.get(
+          endpoints.dashboard_appraisals
+        );
         this.appraisals = response.data; // Update appraisals data with API response
       } catch (error) {
         console.error("Error fetching appraisals:", error);
