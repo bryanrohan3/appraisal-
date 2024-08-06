@@ -1,6 +1,11 @@
 <template>
   <div class="dashboard-container">
-    <h1 class="title">Dealer Dashboard Overview</h1>
+    <div class="title-container">
+      <h1 class="title">Dealer Dashboard Overview</h1>
+      <div class="notification-button">
+        <img src="@/assets/bell.svg" alt="Car Icon" class="car-icon" />
+      </div>
+    </div>
     <div class="columns-container">
       <div class="column column-60">
         <!-- Content for the 60% width column goes here -->
@@ -18,44 +23,56 @@
     </div>
 
     <div class="appraisals-container">
-      <div class="appraisals appraisals-listings">
-        <div>
-          <p class="recent-appraisals">Recent Appraisals</p>
-          <table class="appraisals-table">
-            <thead>
-              <tr class="appraisals-table-header">
-                <th>Client Name</th>
-                <th>Car Make</th>
-                <th>Car Model</th>
-                <th>VIN</th>
-                <th>Rego</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Example rows; replace with actual data -->
-              <tr v-for="appraisal in appraisals" :key="appraisal.id">
-                <td>{{ appraisal.clientName }}</td>
-                <td>{{ appraisal.carMake }}</td>
-                <td>{{ appraisal.carModel }}</td>
-                <td>{{ appraisal.vin }}</td>
-                <td>{{ appraisal.rego }}</td>
-                <td>
-                  <span
-                    :class="getStatusClass(appraisal.status)"
-                    class="status-word"
-                  >
-                    {{ appraisal.status }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="appraisals">
+        <p class="recent-appraisals">Recent Appraisals</p>
+        <table class="appraisals-table">
+          <thead>
+            <tr class="appraisals-table-header">
+              <th>Client Name</th>
+              <th>Car Make</th>
+              <th>Car Model</th>
+              <th>VIN</th>
+              <th>Rego</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Example rows; replace with actual data -->
+            <tr v-for="appraisal in appraisals" :key="appraisal.id">
+              <td>{{ appraisal.clientName }}</td>
+              <td>{{ appraisal.carMake }}</td>
+              <td>{{ appraisal.carModel }}</td>
+              <td>{{ appraisal.vin }}</td>
+              <td>{{ appraisal.rego }}</td>
+              <td>
+                <span
+                  :class="getStatusClass(appraisal.status)"
+                  class="status-word"
+                >
+                  {{ appraisal.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <div class="stats popular-wholesaler">
-        <!-- Display popular wholesaler -->
+      <div class="stats-container">
+        <div class="stats other-stats">
+          <img class="star" src="@/assets/star.svg" alt="star" />
+          <p class="stats-title">Best Performing Wholesaler</p>
+          <p class="stats-name">Charlie Cameron</p>
+        </div>
+        <div class="stats other-stats">
+          <img class="money" src="@/assets/money.svg" alt="money" />
+          <p class="stats-title">Profit/Loss Comparison</p>
+          <p class="stats-name">+$100,005</p>
+        </div>
+        <div class="stats other-stats">
+          <img class="car" src="@/assets/car.svg" alt="car" />
+          <p class="stats-title">Most Common Car</p>
+          <p class="stats-name">Volkswagen Jetta</p>
+        </div>
       </div>
     </div>
 
@@ -193,6 +210,28 @@ export default {
   box-sizing: border-box; /* Ensure padding and borders are included in the element's total width and height */
 }
 
+.title-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notification-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #e4e4e4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.car-icon {
+  width: 20px;
+  height: 20px;
+}
+
 button {
   padding: 8px 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -246,6 +285,9 @@ button {
   justify-content: center;
   text-align: center; /* Center the text */
   padding: 10px;
+  margin: 0;
+  font-size: 16px; /* Adjust the font size as needed */
+  font-weight: 400; /* Adjust the font weight as needed */
 }
 
 .profile-picture {
@@ -254,12 +296,6 @@ button {
   border-radius: 50%;
   background-color: #e7e7e7;
   margin-bottom: 10px; /* Space between the picture and the name */
-}
-
-.profile-container {
-  margin: 0;
-  font-size: 16px; /* Adjust the font size as needed */
-  font-weight: 400; /* Adjust the font weight as needed */
 }
 
 .name {
@@ -271,26 +307,6 @@ button {
 }
 
 /* Appraisal List */
-.appraisals-container {
-  display: flex;
-  margin: 20px 0;
-  gap: 20px;
-}
-
-.appraisals {
-  padding: 10px;
-  box-sizing: border-box;
-  height: 410px;
-  border-radius: 10px;
-}
-
-.stats {
-  padding: 10px;
-  box-sizing: border-box;
-  height: 150px;
-  border-radius: 10px;
-}
-
 .appraisals-listings {
   width: 75%;
   background-color: #ffffff;
@@ -321,7 +337,7 @@ button {
 .appraisals-table td {
   text-align: left;
   padding: 6px 10px;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .appraisals-table tr {
@@ -352,7 +368,7 @@ button {
 .status-word {
   padding: 6px 12px;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 12px;
   text-align: center;
   display: inline-block;
 }
@@ -386,5 +402,59 @@ button {
   background-color: #b2b2b2; /* Grey for Trashed */
   color: #fff;
   font-weight: 600;
+}
+
+/* new code */
+.appraisals-container {
+  display: flex;
+  margin: 20px 0;
+  gap: 20px;
+}
+
+.appraisals {
+  width: 75%;
+  background-color: #ffffff;
+  padding: 10px;
+  box-sizing: border-box;
+  height: 410px;
+  border-radius: 10px;
+}
+
+.stats-container {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stats {
+  background-color: #ffffff;
+  padding: 10px;
+  box-sizing: border-box;
+  border-radius: 10px;
+}
+
+.other-stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center horizontally */
+  justify-content: center; /* Center vertically */
+  text-align: center; /* Center text */
+  gap: 10px;
+}
+
+.stats-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: #7d7b7b; /* Lighter color for the title */
+  margin: 0;
+}
+
+.stats-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
 }
 </style>
