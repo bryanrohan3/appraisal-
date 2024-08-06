@@ -34,6 +34,7 @@ const endpoints = {
   login: apiConstants.api_hostname + "users/login/",
   dashboard_appraisals: apiConstants.api_hostname + "appraisals/simple-list/",
   top_wholesaler: apiConstants.api_hostname + "appraisals/top-wholesaler/",
+  top_car: apiConstants.api_hostname + "appraisals/top-car/",
 };
 
 export { axiosInstance, endpoints };

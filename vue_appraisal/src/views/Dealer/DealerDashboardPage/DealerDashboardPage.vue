@@ -74,7 +74,7 @@
         <div class="stats other-stats">
           <img class="car" src="@/assets/car.svg" alt="car" />
           <p class="stats-title">Most Common Car</p>
-          <p class="stats-name">Volkswagen Jetta</p>
+          <p class="stats-name">{{ mostCommonCarMakeModel }}</p>
         </div>
       </div>
     </div>
@@ -104,16 +104,23 @@ export default {
         ? this.topWholesaler.winner__user__wholesaler_name
         : "Not Available";
     },
+    mostCommonCarMakeModel() {
+      return this.topCar
+        ? `${this.topCar.vehicle_make} ${this.topCar.vehicle_model}`
+        : "Not Available";
+    },
   },
   data() {
     return {
       appraisals: [], // Initialize as an empty array
       topWholesaler: null, // Initialize as null
+      topCar: null,
     };
   },
   mounted() {
     this.fetchAppraisals(); // Fetch appraisals data when the component is mounted
     this.fetchTopWholesaler(); // Fetch top wholesaler data when the component is mounted
+    this.fetchTopCar();
   },
   methods: {
     ...mapMutations(["logout"]),
@@ -153,6 +160,15 @@ export default {
         this.topWholesaler = response.data.top_wholesaler; // Update top wholesaler data with API response
       } catch (error) {
         console.error("Error fetching top wholesaler:", error);
+      }
+    },
+    async fetchTopCar() {
+      try {
+        const response = await axiosInstance.get(endpoints.top_car);
+        console.log("Top Car Data:", response.data); // Log the data to verify
+        this.topCar = response.data; // Ensure this assignment is correct
+      } catch (error) {
+        console.error("Error fetching top car:", error);
       }
     },
   },

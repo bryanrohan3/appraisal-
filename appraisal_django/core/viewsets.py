@@ -697,33 +697,6 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         else:
             return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
         
-    # @action(detail=False, methods=['get'], url_path='best_performing_wholesalers')
-    # def best_performing_wholesalers(self, request, *args, **kwargs):
-    #     date_range, error_response = self._parse_date_range(request)
-    #     if error_response:
-    #         return error_response
-
-    #     date_from, date_to = date_range
-    #     user = request.user
-
-    #     if hasattr(user, 'dealerprofile'):
-    #         dealer_id = user.dealerprofile.id
-    #         queryset = Appraisal.objects.filter(
-    #             initiating_dealer_id=dealer_id,
-    #             start_date__range=[date_from, date_to]
-    #         ).select_related('winner')  # Optimize query to fetch related 'winner'
-
-    #         # Count by winner's profile ID and get username
-    #         wholesaler_counts = (queryset
-    #                             .values('winner__user_id', 'winner__user__wholesaler_name')  # Access winner's profile ID and username
-    #                             .annotate(count=Count('winner__user_id'))  # Count how many times each ID appears
-    #                             .order_by('-count'))
-
-    #         return Response({
-    #             "wholesaler_counts": wholesaler_counts
-    #         }, status=status.HTTP_200_OK)
-    #     else:
-    #         return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
     @action(detail=False, methods=['get'], url_path='best_performing_wholesalers')
     def best_performing_wholesalers(self, request, *args, **kwargs):
         # Optional date parameters
@@ -791,6 +764,32 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
                 }, status=status.HTTP_200_OK)
             else:
                 return Response({"message": "No appraisals found for the specified dealer."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
+        
+    @action(detail=False, methods=['get'], url_path='top-car')
+    def top_car(self, request, *args, **kwargs):
+        user = request.user
+
+        if hasattr(user, 'dealerprofile'):
+            dealer_id = user.dealerprofile.id
+            # Fetch the most common car across all appraisals
+            queryset = Appraisal.objects.filter(initiating_dealer_id=dealer_id)
+            
+            car_counts = (queryset
+                        .values('vehicle_make', 'vehicle_model')
+                        .annotate(count=Count('id'))
+                        .order_by('-count'))
+
+            if car_counts:
+                most_common_car = car_counts[0]  # Get the most common car
+                return Response({
+                    "vehicle_make": most_common_car['vehicle_make'],
+                    "vehicle_model": most_common_car['vehicle_model'],
+                    "count": most_common_car['count']
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "No car data available"}, status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
 
