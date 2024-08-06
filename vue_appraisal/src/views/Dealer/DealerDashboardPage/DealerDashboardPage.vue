@@ -39,11 +39,14 @@
           <tbody>
             <!-- Example rows; replace with actual data -->
             <tr v-for="appraisal in appraisals" :key="appraisal.id">
-              <td>{{ appraisal.clientName }}</td>
-              <td>{{ appraisal.carMake }}</td>
-              <td>{{ appraisal.carModel }}</td>
-              <td>{{ appraisal.vin }}</td>
-              <td>{{ appraisal.rego }}</td>
+              <td>
+                {{ appraisal.customer_first_name }}
+                {{ appraisal.customer_last_name }}
+              </td>
+              <td>{{ appraisal.vehicle_make }}</td>
+              <td>{{ appraisal.vehicle_model }}</td>
+              <td>{{ appraisal.vehicle_vin }}</td>
+              <td>{{ appraisal.vehicle_registration }}</td>
               <td>
                 <span
                   :class="getStatusClass(appraisal.status)"
@@ -83,6 +86,7 @@
 
 <script>
 import { mapGetters, mapMutations } from "vuex";
+import { axiosInstance } from "@/helpers/axiosHelper";
 
 export default {
   name: "DealerDashboardPage",
@@ -97,82 +101,11 @@ export default {
   },
   data() {
     return {
-      // Example data, replace with actual data source
-      appraisals: [
-        {
-          id: 1,
-          clientName: "John Doe",
-          carMake: "Toyota",
-          carModel: "Camry",
-          vin: "1HGBH41JXMN109186",
-          rego: "XYZ123",
-          status: "Active",
-        },
-        {
-          id: 2,
-          clientName: "Jane Smith",
-          carMake: "Honda",
-          carModel: "Civic",
-          vin: "2FZHA72A9P7200906",
-          rego: "ABC456",
-          status: "Pending - Sales",
-        },
-        {
-          id: 3,
-          clientName: "Bob Johnson",
-          carMake: "Ford",
-          carModel: "Mustang",
-          vin: "5UXZV8C5XDL000000",
-          rego: "DEF789",
-          status: "Pending - M",
-        },
-        {
-          id: 4,
-          clientName: "Mary Johnson",
-          carMake: "Toyota",
-          carModel: "Camry",
-          vin: "1HGBH41JXMN109186",
-          rego: "XYZ123",
-          status: "Complete",
-        },
-        {
-          id: 5,
-          clientName: "Sarah Johnson",
-          carMake: "Honda",
-          carModel: "Civic",
-          vin: "2FZHA72A9P7200906",
-          rego: "ABC456",
-          status: "Trashed",
-        },
-        {
-          id: 6,
-          clientName: "Michael Johnson",
-          carMake: "Ford",
-          carModel: "Mustang",
-          vin: "5UXZV8C5XDL000000",
-          rego: "DEF789",
-          status: "Pending - Sales",
-        },
-        {
-          id: 7,
-          clientName: "Sarah Johnson",
-          carMake: "Toyota",
-          carModel: "Camry",
-          vin: "1HGBH41JXMN109186",
-          rego: "XYZ123",
-          status: "Pending - M",
-        },
-        {
-          id: 8,
-          clientName: "Michael Johnson",
-          carMake: "Honda",
-          carModel: "Civic",
-          vin: "2FZHA72A9P7200906",
-          rego: "ABC456",
-          status: "Complete",
-        },
-      ],
+      appraisals: [], // Initialize as an empty array
     };
+  },
+  mounted() {
+    this.fetchAppraisals(); // Fetch appraisals data when the component is mounted
   },
   methods: {
     ...mapMutations(["logout"]),
@@ -184,7 +117,7 @@ export default {
       switch (status) {
         case "Pending - Sales":
           return "status-pending-sales";
-        case "Pending - M":
+        case "Pending - Management":
           return "status-pending-management";
         case "Active":
           return "status-active";
@@ -194,6 +127,14 @@ export default {
           return "status-trashed";
         default:
           return "";
+      }
+    },
+    async fetchAppraisals() {
+      try {
+        const response = await axiosInstance.get("appraisals/simple-list/");
+        this.appraisals = response.data; // Update appraisals data with API response
+      } catch (error) {
+        console.error("Error fetching appraisals:", error);
       }
     },
   },
