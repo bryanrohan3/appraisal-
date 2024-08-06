@@ -16,7 +16,7 @@
         <div class="profile-container">
           <div class="profile-picture"></div>
           <p class="name">{{ userName }}</p>
-          <p class="email">{{ getUserProfile.email }}</p>
+          <p class="email">{{ userEmail }}</p>
           <button class="edit-profile-button">Edit Profile</button>
         </div>
       </div>
@@ -108,6 +108,10 @@ export default {
       return this.topCar
         ? `${this.topCar.vehicle_make} ${this.topCar.vehicle_model}`
         : "Not Available";
+    },
+    userEmail() {
+      const userProfile = this.getUserProfile;
+      return userProfile ? userProfile.email : "";
     },
   },
   data() {
@@ -241,6 +245,9 @@ button {
   box-sizing: border-box;
   height: 210px;
   border-radius: 10px;
+  /* shadow */
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+  transition: 0.3s;
 }
 
 .column-60 {
@@ -329,9 +336,6 @@ button {
   background-color: #f9f9f9;
 }
 
-.appraisals-table tr {
-}
-
 .appraisals-table-header {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
@@ -393,6 +397,7 @@ button {
   box-sizing: border-box;
   height: 410px;
   border-radius: 10px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
 }
 
 .stats-container {
@@ -407,6 +412,7 @@ button {
   padding: 10px;
   box-sizing: border-box;
   border-radius: 10px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
 }
 
 .other-stats {
