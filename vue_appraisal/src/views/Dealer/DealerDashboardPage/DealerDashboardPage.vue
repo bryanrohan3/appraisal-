@@ -9,7 +9,50 @@
     <div class="columns-container">
       <div class="column column-60">
         <!-- Content for the 60% width column goes here -->
+        <div class="greetings-container">
+          <p class="hello-greetings">
+            Hello, {{ userName }} 👋
+            <span class="date-now">{{ currentDate }}</span>
+          </p>
+        </div>
+        <p class="time-now">{{ timeOfDay }}</p>
         <!-- Display dealership info -->
+        <div class="dashboard-metrics">
+          <div class="metric">
+            <div class="circle total-appraisals">
+              <img
+                src="@/assets/appraisal.svg"
+                alt="appraisal"
+                class="icon-dash"
+              />
+            </div>
+            <div class="metric-details">
+              <span class="metric-value">29</span>
+              <span class="metric-title">Total Appraisals</span>
+              <!-- <span class="metric-value">{{ totalAppraisals }}</span> -->
+            </div>
+          </div>
+          <div class="metric">
+            <div class="circle pending-completions">
+              <img src="@/assets/pending.svg" alt="pending" class="icon-dash" />
+            </div>
+            <div class="metric-details">
+              <span class="metric-value">0</span>
+              <span class="metric-title">Pending Completions</span>
+              <!-- <span class="metric-value">{{ pendingCompletions }}</span> -->
+            </div>
+          </div>
+          <div class="metric">
+            <div class="circle number-of-dealers">
+              <img src="@/assets/person.svg" alt="person" class="icon-dash" />
+            </div>
+            <div class="metric-details">
+              <span class="metric-value">1</span>
+              <span class="metric-title">Number of Dealers</span>
+              <!-- <span class="metric-value">{{ numberOfDealers }}</span> -->
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="column column-40">
@@ -113,6 +156,21 @@ export default {
       const userProfile = this.getUserProfile;
       return userProfile ? userProfile.email : "";
     },
+    timeOfDay() {
+      const date = new Date();
+      const hours = date.getHours();
+      if (hours < 12) {
+        return "Good Morning";
+      } else if (hours < 18) {
+        return "Good Afternoon";
+      } else {
+        return "Good Evening";
+      }
+    },
+    currentDate() {
+      const options = { year: "numeric", month: "long", day: "numeric" };
+      return new Date().toLocaleDateString(undefined, options);
+    },
   },
   data() {
     return {
@@ -204,6 +262,7 @@ export default {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  border: 2px solid white;
 }
 
 .car-icon {
@@ -437,5 +496,89 @@ button {
   font-weight: 600;
   color: #333;
   margin: 0;
+}
+
+/* welcome message styling */
+.hello-greetings {
+  padding-left: 10px;
+  font-size: 15px;
+  font-weight: 400;
+  margin-bottom: 5px;
+}
+
+.hello-greetings {
+  padding-left: 10px;
+  font-size: 15px;
+  font-weight: 400;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 10px;
+}
+
+.time-now {
+  padding-left: 10px;
+  margin: 0;
+  font-size: 34px;
+  font-weight: 500;
+  /* space between text letters */
+}
+
+/* dashboard styling */
+.dashboard-metrics {
+  display: flex; /* Use flexbox for horizontal alignment */
+  justify-content: space-between; /* Distribute space evenly */
+  gap: 20px; /* Add space between each metric */
+  margin-top: 30px;
+  padding-left: 10px;
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1; /* Ensure metrics take up equal space */
+}
+
+.circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  position: relative;
+  margin-right: 5px;
+}
+
+.total-appraisals {
+  background-color: #e7e7e7; /* Green */
+}
+
+.pending-completions {
+  background-color: #e7e7e7; /* Yellow */
+}
+
+.number-of-dealers {
+  background-color: #e7e7e7; /* Red */
+}
+
+.metric-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-title {
+  font-size: 14px;
+  margin-top: 5px;
+  color: #6c757d; /* Light gray */
+}
+
+.metric-value {
+  font-size: 18px;
+  font-weight: bold;
 }
 </style>
