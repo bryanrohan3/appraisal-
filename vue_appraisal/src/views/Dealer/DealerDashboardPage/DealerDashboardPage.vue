@@ -243,7 +243,7 @@ export default {
   margin-right: auto;
   max-width: 1200px; /* Adjust the max-width as needed */
   padding: 20px;
-  padding-left: 200px; /* Optional: Add padding inside the container */
+
   box-sizing: border-box; /* Ensure padding and borders are included in the element's total width and height */
 }
 
