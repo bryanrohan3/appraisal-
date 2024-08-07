@@ -5,6 +5,7 @@ import DealerDashboardPage from "../views/Dealer/DealerDashboardPage/DealerDashb
 import WholesalerDashboardPage from "../views/Wholesaler/WholesalerDashboardPage/WholesalerDashboardPage.vue";
 import DealerLayout from "../components/Layouts/DealerLayout.vue";
 import WholesalerLayout from "../components/Layouts/WholesalerLayout.vue";
+import CreateAppraisalPage from "@/views/Dealer/CreateAppraisalPage/CreateAppraisalPage.vue";
 
 const routes = [
   {
@@ -25,7 +26,7 @@ const routes = [
     ],
   },
   {
-    path: "/dealer",
+    path: "",
     component: DealerLayout,
     meta: { requiresAuth: true, role: "dealer" },
     children: [
@@ -33,6 +34,11 @@ const routes = [
         path: "dashboard",
         name: "DealerDashboardPage",
         component: DealerDashboardPage,
+      },
+      {
+        path: "create-appraisal",
+        name: "CreateAppraisalPage",
+        component: CreateAppraisalPage,
       },
     ],
   },

@@ -5,7 +5,7 @@
         <img src="@/assets/logo.svg" class="logo" />
         <p class="company">i@ppraisal</p>
       </div>
-      <router-link to="#">
+      <router-link to="dashboard">
         <div class="nav-item">
           <img src="@/assets/dashboard.svg" class="icon" />
           <a href="/">Dashboard</a>
@@ -26,7 +26,7 @@
         </div>
       </router-link>
 
-      <router-link to="/#">
+      <router-link to="create-appraisal">
         <div class="nav-item">
           <img src="@/assets/create-appraisal.svg" class="icon" />
           <a>Create</a>
