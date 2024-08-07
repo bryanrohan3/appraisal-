@@ -12,27 +12,38 @@
         </div>
       </router-link>
 
-      <a class="nav-item">
-        <img src="@/assets/search.svg" class="icon" />
-        <a>Search</a>
-      </a>
+      <router-link to="/#">
+        <a class="nav-item">
+          <img src="@/assets/search.svg" class="icon" />
+          <a>Search</a>
+        </a>
+      </router-link>
 
-      <div class="nav-item">
-        <img src="@/assets/appraisal-icon.svg" class="icon" />
-        <a>Appraisals</a>
-      </div>
+      <router-link to="/#">
+        <div class="nav-item">
+          <img src="@/assets/appraisal-icon.svg" class="icon" />
+          <a>Appraisals</a>
+        </div>
+      </router-link>
 
-      <router-link to="#">
+      <router-link to="/#">
         <div class="nav-item">
           <img src="@/assets/create-appraisal.svg" class="icon" />
           <a>Create</a>
         </div>
       </router-link>
 
-      <router-link to="#">
+      <router-link to="/#">
         <div class="nav-item">
           <img src="@/assets/analytics.svg" class="icon" />
           Analytics
+        </div>
+      </router-link>
+
+      <router-link to="/#">
+        <div class="nav-item">
+          <img src="@/assets/requests.svg" class="icon" />
+          Requests
         </div>
       </router-link>
 
