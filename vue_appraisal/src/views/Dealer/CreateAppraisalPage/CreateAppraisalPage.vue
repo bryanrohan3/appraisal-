@@ -2,10 +2,17 @@
   <div class="dashboard-container">
     <div class="title-container">
       <h1 class="title">Create Appraisal Form</h1>
-      <div class="notification-button">
-        <span class="button-text">Create Appraisal</span>
+      <div class="checkbox-and-button">
+        <label class="checkbox-container">
+          <input type="checkbox" id="ready-for-management" />
+          <span class="checkbox-label">Ready for Management</span>
+        </label>
+        <div class="notification-button">
+          <span class="button-text">Create Appraisal</span>
+        </div>
       </div>
     </div>
+
     <div class="columns-container">
       <div class="column column-60">
         <div class="greetings-container">
@@ -96,11 +103,76 @@
         </div>
       </div>
     </div>
+
+    <!-- Add more sections as needed -->
+    <div class="appraisals-container">
+      <div class="appraisals">
+        <div class="damages-header">
+          <p class="headers">Damages</p>
+          <button @click="addDamage" class="add-damage-button">
+            <img src="@/assets/add.svg" alt="Car Icon" class="car-icon" />
+          </button>
+        </div>
+        <p class="info-text">Add Vehicle Damage Details</p>
+        <div
+          v-for="(damage, index) in damages"
+          :key="index"
+          class="damage-instance"
+        >
+          <input
+            v-model="damage.description"
+            type="text"
+            placeholder="Damage Description"
+            class="input"
+          />
+          <input
+            v-model="damage.location"
+            type="text"
+            placeholder="Damage Location"
+            class="input"
+          />
+          <input
+            v-model="damage.repairCost"
+            type="text"
+            placeholder="Damage Repair Cost"
+            class="input"
+          />
+          <button @click="removeDamage(index)" class="remove-damage-button">
+            Remove
+          </button>
+        </div>
+      </div>
+
+      <!-- PUT UPLOAD PHOTOS HERE AND PHOTOS HOLDERS so like two photos and if there is 5 have like 3 + -->
+      <div class="appraisals-photos">
+        <p class="headers">Upload Photos</p>
+        <input
+          type="file"
+          id="photo-upload"
+          multiple
+          @change="handleFileUpload"
+          class="upload-button"
+        />
+        <div class="photos-preview">
+          <div
+            v-for="(photo, index) in displayedPhotos"
+            :key="index"
+            class="photo-container"
+          >
+            <img :src="photo.url" v-if="photo.url" class="photo-preview" />
+            <div v-else class="photo-placeholder">+</div>
+          </div>
+          <div v-if="totalPhotos > 2" class="more-photos">
+            {{ morePhotosCount }}+
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import { mapGetters, mapMutations } from "vuex";
+import { mapGetters } from "vuex";
 import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
 
 export default {
@@ -116,6 +188,12 @@ export default {
     userEmail() {
       const userProfile = this.getUserProfile;
       return userProfile ? userProfile.email : "";
+    },
+    displayedPhotos() {
+      return this.photos.slice(0, 4); // Show only up to 2 images
+    },
+    additionalPhotosCount() {
+      return this.photos.length > 2 ? this.photos.length - 2 : 0; // Number of additional photos
     },
   },
   data() {
@@ -145,6 +223,8 @@ export default {
         { value: "electric", label: "Electric" },
         { value: "hybrid", label: "Hybrid" },
       ],
+      photos: [], // Array to store the uploaded photos
+      damages: [], // Array to store damage instances
     };
   },
   methods: {
@@ -154,6 +234,22 @@ export default {
     selectDealership(dealership) {
       this.selectedDealership = dealership;
       this.showDropdown = false;
+    },
+    handleFileUpload(event) {
+      const files = event.target.files;
+      if (files.length > 0) {
+        const newPhotos = Array.from(files).map((file) => ({
+          url: URL.createObjectURL(file),
+          name: file.name,
+        }));
+        this.photos = [...this.photos, ...newPhotos];
+      }
+    },
+    addDamage() {
+      this.damages.push({ description: "", location: "", repairCost: "" });
+    },
+    removeDamage(index) {
+      this.damages.splice(index, 1);
     },
   },
 };
@@ -172,6 +268,26 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.checkbox-and-button {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  margin-right: 20px; /* Space between checkbox and button */
+}
+
+.checkbox-container input[type="checkbox"] {
+  margin-right: 10px; /* Space between checkbox and label */
+}
+
+.checkbox-label {
+  font-size: 14px; /* Adjust font size as needed */
+  font-weight: 400;
 }
 
 .notification-button {
@@ -418,6 +534,16 @@ select {
   height: 100%; /* Make sure the height adjusts with the content */
 }
 
+.appraisals-photos {
+  width: 50%;
+  background-color: #ffffff;
+  padding: 10px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+  height: 100%; /* Make sure the height adjusts with the content */
+}
+
 .stats-container {
   width: 50%;
   display: flex;
@@ -437,5 +563,115 @@ select {
 
 .other-stats {
   flex: 1;
+}
+
+.appraisals-photos {
+  background-color: #ffffff;
+  padding: 10px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+  height: 100%; /* Adjust height as necessary */
+  position: relative;
+}
+
+#photo-upload {
+  margin-bottom: 10px;
+}
+
+.photos-preview {
+  display: flex;
+  gap: 10px;
+}
+
+.photo-container {
+  position: relative;
+  width: 100px; /* Adjust size as needed */
+  height: 100px; /* Adjust size as needed */
+  overflow: hidden;
+  border-radius: 5px;
+}
+
+.photo-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e7e7e7;
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.more-photos {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  border-radius: 5px;
+  padding: 5px;
+  font-size: 14px;
+}
+
+.upload-button {
+  padding: 10px;
+  font-size: 14px;
+}
+
+.add-damage-button {
+  width: 30px; /* Size of the button */
+  height: 30px; /* Size of the button */
+  border-radius: 50%; /* Makes the button circular */
+  background-color: #f26764; /* Button background color */
+  border: none; /* Remove default border */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+.add-damage-button img {
+  width: 20px; /* Size of the icon */
+  height: 20px; /* Size of the icon */
+}
+
+.info-text {
+  margin: 10px 0;
+  font-size: 14px;
+  text-align: center;
+}
+
+.input {
+  width: calc(100% - 22px); /* Adjust based on your design */
+}
+
+.damages-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px; /* Adjust as needed */
+}
+
+.remove-damage-button {
+  background-color: #f26764; /* Button background color */
+  border: none; /* Remove default border */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 10px;
+  margin-right: 10px;
+  border-radius: 10px;
+  margin-left: 10px;
+  margin-bottom: 10px;
 }
 </style>
