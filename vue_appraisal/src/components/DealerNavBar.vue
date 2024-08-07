@@ -35,6 +35,14 @@
           Analytics
         </div>
       </router-link>
+
+      <!-- Add logout button here -->
+      <div class="logout-container">
+        <button @click="handleLogout" class="logout-button">
+          <img src="@/assets/logout.svg" class="logout-icon" />
+          Logout
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -42,12 +50,17 @@
 <script>
 export default {
   name: "DealerNavBar",
+  methods: {
+    handleLogout() {
+      // I've not implemented logout functionality yet on this, it's on dashboard for now
+    },
+  },
 };
 </script>
 
 <style scoped>
 @font-face {
-  font-family: "YourCustomFont"; /* Choose a name for your font */
+  font-family: "LogoFont"; /* Choose a name for your font */
   src: url("@/assets/fonts/AirbnbCereal_W_Blk.otf") format("opentype");
   font-weight: normal;
   font-style: normal;
@@ -83,7 +96,7 @@ body {
   font-size: 24px;
   color: #f26764;
   font-weight: 600;
-  font-family: "YourCustomFont";
+  font-family: "LogoFont";
 }
 
 .navbar-wrapper {
@@ -99,7 +112,7 @@ body {
   padding: 20px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* Align items to the start of the container */
+  justify-content: space-between; /* Space between nav items and logout button */
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
 }
 
@@ -134,5 +147,35 @@ body {
 
 .nav-item:hover .icon {
   transform: scale(1.1);
+}
+
+.logout-container {
+  margin-top: auto; /* Pushes the logout button to the bottom */
+  padding: 10px;
+}
+
+.logout-button {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 10px;
+  margin-top: auto; /* Ensure it stays at the bottom */
+  border-radius: 5px;
+  color: #f26764;
+  background: #ffffff;
+  border: 3px solid #ffffff;
+  border-radius: 10px;
+  margin-bottom: 50px;
+  width: 100%;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.logout-button:hover {
+  background-color: #f1f1f1;
+}
+
+.logout-icon {
+  margin-right: 10px;
 }
 </style>
