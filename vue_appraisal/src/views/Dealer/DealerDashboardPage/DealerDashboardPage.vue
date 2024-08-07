@@ -38,7 +38,7 @@
             </div>
             <div class="metric-details">
               <span class="metric-value">0</span>
-              <span class="metric-title">Pending Completions</span>
+              <span class="metric-title">Ongoing Appraisals</span>
               <!-- <span class="metric-value">{{ pendingCompletions }}</span> -->
             </div>
           </div>
@@ -47,8 +47,8 @@
               <img src="@/assets/person.svg" alt="person" class="icon-dash" />
             </div>
             <div class="metric-details">
-              <span class="metric-value">1</span>
-              <span class="metric-title">Number of Dealers</span>
+              <span class="metric-value">7</span>
+              <span class="metric-title">Dealership Dealers</span>
               <!-- <span class="metric-value">{{ numberOfDealers }}</span> -->
             </div>
           </div>
