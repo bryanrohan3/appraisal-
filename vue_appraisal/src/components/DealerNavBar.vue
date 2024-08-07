@@ -59,11 +59,15 @@
 </template>
 
 <script>
+import { mapMutations } from "vuex";
+
 export default {
   name: "DealerNavBar",
   methods: {
+    ...mapMutations(["logout"]),
     handleLogout() {
-      // I've not implemented logout functionality yet on this, it's on dashboard for now
+      this.logout(); // Clear Vuex state
+      this.$router.push({ name: "login" }); // Redirect to login page
     },
   },
 };
