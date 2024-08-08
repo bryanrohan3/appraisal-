@@ -272,15 +272,24 @@
         </div>
       </div>
     </div>
+    <ToastNotification
+      :message="toastMessage"
+      :visible="showToast"
+      @update:visible="showToast = $event"
+    />
   </div>
 </template>
 
 <script>
 import { mapGetters } from "vuex";
 import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
+import ToastNotification from "@/components/ToastNotification.vue";
 
 export default {
   name: "CreateAppraisalPage",
+  components: {
+    ToastNotification,
+  },
   computed: {
     ...mapGetters(["getUserProfile"]),
     userName() {
@@ -303,6 +312,8 @@ export default {
   data() {
     return {
       showDropdown: false,
+      showToast: false,
+      toastMessage: "",
       selectedDealership: "",
       dealershipOptions: [], // Initially empty
       phoneCodes: {
@@ -446,12 +457,10 @@ export default {
           transmission: this.formData.transmission,
           body_type: this.formData.bodyType,
           fuel_type: this.formData.fuelType,
-          // reserve_price: this.formData.reservePrice,
           reserve_price: parseInt(this.formData.reservePrice, 10), // Convert to integer
           damages: this.damages.map((damage) => ({
             damage_description: damage.description,
             damage_location: damage.location,
-            // repair_cost_estimate: damage.repairCost,
             repair_cost_estimate: parseInt(damage.repairCost, 10), // Convert to integer
           })),
           photos: this.photos.map((photo) => photo.url), // Ensure this matches backend expectations
@@ -465,9 +474,14 @@ export default {
           data
         );
         console.log("Appraisal created successfully", response.data);
+
+        this.toastMessage = "Appraisal created successfully";
+        this.showToast = true;
         // Handle successful submission, e.g., redirect or show a success message
       } catch (error) {
         console.error("Error creating appraisal:", error);
+        this.toastMessage = "Error creating appraisal";
+        this.showToast = true;
         // Handle error, e.g., show an error message
       }
     },
