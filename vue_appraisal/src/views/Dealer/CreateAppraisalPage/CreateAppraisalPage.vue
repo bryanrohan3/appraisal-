@@ -4,10 +4,14 @@
       <h1 class="title">Create Appraisal Form</h1>
       <div class="checkbox-and-button">
         <label class="checkbox-container">
-          <input type="checkbox" id="ready-for-management" />
+          <input
+            type="checkbox"
+            id="ready-for-management"
+            v-model="formData.readyForManagement"
+          />
           <span class="checkbox-label">Ready for Management</span>
         </label>
-        <div class="notification-button">
+        <div class="notification-button" @click="submitForm">
           <span class="button-text">Create Appraisal</span>
         </div>
       </div>
@@ -19,11 +23,23 @@
           <p class="headers">Customer Personal Details</p>
           <form class="customer-details-form">
             <div class="form-row">
-              <input type="text" placeholder="First Name" />
-              <input type="text" placeholder="Last Name" />
+              <input
+                type="text"
+                placeholder="First Name"
+                v-model="formData.firstName"
+              />
+              <input
+                type="text"
+                placeholder="Last Name"
+                v-model="formData.lastName"
+              />
             </div>
             <div class="form-row">
-              <input type="email" placeholder="Email" />
+              <input
+                type="email"
+                placeholder="Email"
+                v-model="formData.email"
+              />
               <div class="phone-input">
                 <select>
                   <option
@@ -34,7 +50,11 @@
                     {{ code }} ({{ country }})
                   </option>
                 </select>
-                <input type="text" placeholder="Phone" />
+                <input
+                  type="text"
+                  placeholder="Phone"
+                  v-model="formData.appraisal_phone"
+                />
               </div>
             </div>
           </form>
@@ -48,12 +68,13 @@
           <p class="email">{{ userEmail }}</p>
           <div class="dealership-dropdown">
             <select class="input-dealership" v-model="selectedDealership">
+              <option disabled value="">Select Dealership</option>
               <option
                 v-for="option in dealershipOptions"
-                :key="option.value"
-                :value="option.value"
+                :key="option.id"
+                :value="option.id"
               >
-                {{ option.label }}
+                {{ option.name }}
               </option>
             </select>
           </div>
@@ -64,18 +85,46 @@
     <div class="appraisals-container">
       <div class="appraisals">
         <p class="headers">Basic Vehicle Details</p>
-        <p class="small-header">Vehcile Make</p>
-        <input type="text" placeholder="Vehicle Make" class="input" />
+        <p class="small-header">Vehicle Make</p>
+        <input
+          type="text"
+          placeholder="Vehicle Make"
+          v-model="formData.vehicleMake"
+          class="input"
+        />
         <p class="small-header">Vehicle Model</p>
-        <input type="text" placeholder="Vehicle Model" class="input" />
+        <input
+          type="text"
+          placeholder="Vehicle Model"
+          v-model="formData.vehicleModel"
+          class="input"
+        />
         <p class="small-header">Vehicle Year</p>
-        <input type="text" placeholder="Vehicle Year" class="input" />
+        <input
+          type="text"
+          placeholder="Vehicle Year"
+          v-model="formData.vehicleYear"
+          class="input"
+        />
         <p class="small-header">Vehicle Colour</p>
-        <input type="text" placeholder="Vehicle Colour" class="input" />
+        <input
+          type="text"
+          placeholder="Vehicle Colour"
+          v-model="formData.vehicleColour"
+          class="input"
+        />
         <p class="small-header">Vehicle Registration</p>
         <input
           type="text"
           placeholder="Vehicle Registration Number"
+          v-model="formData.vehicleRegistration"
+          class="input"
+        />
+        <p class="small-header">VIN</p>
+        <input
+          type="text"
+          placeholder="VIN"
+          v-model="formData.vehicleVin"
           class="input"
         />
       </div>
@@ -84,11 +133,21 @@
         <div class="stats other-stats">
           <p class="headers">Advanced Vehicle Details</p>
           <p class="small-header">Odometer Reading</p>
-          <input type="text" placeholder="Odometer Reading" class="input" />
+          <input
+            type="text"
+            placeholder="Odometer Reading"
+            v-model="formData.odometerReading"
+            class="input"
+          />
           <p class="small-header">Engine Type</p>
-          <input type="text" placeholder="Engine Type" class="input" />
+          <input
+            type="text"
+            placeholder="Engine Type"
+            v-model="formData.engineType"
+            class="input"
+          />
           <p class="small-header">Transmission</p>
-          <select class="input">
+          <select class="input" v-model="formData.transmission">
             <option
               v-for="option in transmissionOptions"
               :key="option.value"
@@ -98,7 +157,7 @@
             </option>
           </select>
           <p class="small-header">Fuel Type</p>
-          <select class="input">
+          <select class="input" v-model="formData.fuelType">
             <option
               v-for="option in fuelOptions"
               :key="option.value"
@@ -108,7 +167,12 @@
             </option>
           </select>
           <p class="small-header">Body Type</p>
-          <input type="text" placeholder="Body Type" class="input" />
+          <input
+            type="text"
+            placeholder="Body Type"
+            v-model="formData.bodyType"
+            class="input"
+          />
           <p class="small-header">Reserve Price</p>
           <div class="reserve-price-container">
             <div class="reserve-input-wrapper">
@@ -116,6 +180,7 @@
               <input
                 type="text"
                 placeholder="Reserve Price"
+                v-model="formData.reservePrice"
                 class="reserve-input"
               />
             </div>
@@ -201,8 +266,8 @@
             <img :src="photo.url" v-if="photo.url" class="photo-preview" />
             <div v-else class="photo-placeholder">+</div>
           </div>
-          <div v-if="totalPhotos > 2" class="more-photos">
-            {{ morePhotosCount }}+
+          <div v-if="additionalPhotosCount > 0" class="more-photos">
+            {{ additionalPhotosCount }}+
           </div>
         </div>
       </div>
@@ -229,22 +294,17 @@ export default {
       return userProfile ? userProfile.email : "";
     },
     displayedPhotos() {
-      return this.photos.slice(0, 4); // Show only up to 2 images
+      return this.photos.slice(0, 4); // Show only up to 4 images
     },
     additionalPhotosCount() {
-      return this.photos.length > 2 ? this.photos.length - 2 : 0; // Number of additional photos
+      return this.photos.length > 4 ? this.photos.length - 4 : 0; // Number of additional photos
     },
   },
   data() {
     return {
       showDropdown: false,
       selectedDealership: "",
-      dealershipOptions: [
-        { value: "", label: "Select Dealership" },
-        { value: "0", label: "Pablo's Car Dealership" },
-        { value: "1", label: "Riverdale Car Dealership" },
-        { value: "2", label: "Bob's Car Dealership" },
-      ], // Mock data
+      dealershipOptions: [], // Initially empty
       phoneCodes: {
         "+61": "AU",
         "+1": "US",
@@ -264,7 +324,31 @@ export default {
       ],
       photos: [], // Array to store the uploaded photos
       damages: [], // Array to store damage instances
+      formData: {
+        readyForManagement: false,
+        firstName: "",
+        lastName: "",
+        email: "",
+        appraisal_phone: "",
+        dealership: "",
+        vehicleMake: "",
+        vehicleModel: "",
+        vehicleYear: "",
+        vehicleColour: "",
+        vehicleRegistration: "",
+        odometerReading: "",
+        engineType: "",
+        transmission: "",
+        fuelType: "",
+        bodyType: "",
+        reservePrice: "",
+        damages: [],
+        photos: [],
+      },
     };
+  },
+  mounted() {
+    this.fetchDealerProfileInfo();
   },
   methods: {
     toggleDropdown() {
@@ -272,6 +356,7 @@ export default {
     },
     selectDealership(dealership) {
       this.selectedDealership = dealership;
+      this.formData.dealership = dealership.id; // Set the ID of the selected dealership in formData
       this.showDropdown = false;
     },
     handleFileUpload(event) {
@@ -308,6 +393,83 @@ export default {
     },
     damageLabel(index) {
       return `Damage ${index + 1}`;
+    },
+    async fetchDealerProfileInfo() {
+      try {
+        // Fetch dealer profile info
+        const response = await axiosInstance.get(endpoints.dealerProfile);
+        this.formData = response.data;
+
+        // Extract dealership IDs and names from the response
+        const dealershipIds = response.data.dealerships || []; // Ensure it's an array
+        const dealershipNames = response.data.dealership_names || []; // Ensure it's an array
+
+        // Create a map of dealership IDs to names for easy lookup
+        const dealershipMap = new Map(
+          dealershipNames.map(({ id, dealership_name }) => [
+            id,
+            dealership_name,
+          ])
+        );
+
+        // Populate dealershipOptions with dealership names based on the IDs
+        this.dealershipOptions = dealershipIds.map((id) => ({
+          id: id,
+          name: dealershipMap.get(id) || `Dealership ${id}`, // Fallback to `Dealership ${id}` if name is not found
+        }));
+
+        // Set the selectedDealership based on the first dealership option, if applicable
+        this.selectedDealership =
+          this.dealershipOptions.length > 0 ? this.dealershipOptions[0].id : "";
+      } catch (error) {
+        console.error("Error fetching dealer profile information:", error);
+      }
+    },
+    async submitForm() {
+      try {
+        // Prepare form data for submission
+        const data = {
+          dealership: this.selectedDealership, // Use the selected dealership ID
+          ready_for_management: this.formData.readyForManagement,
+          customer_first_name: this.formData.firstName,
+          customer_last_name: this.formData.lastName,
+          customer_email: this.formData.email,
+          customer_phone: this.formData.phone,
+          vehicle_make: this.formData.vehicleMake,
+          vehicle_model: this.formData.vehicleModel,
+          vehicle_year: parseInt(this.formData.vehicleYear, 10), // Convert to integer
+          vehicle_vin: this.formData.vehicleVin || "", // Provide a default if this field is optional
+          vehicle_registration: this.formData.vehicleRegistration,
+          color: this.formData.vehicleColour,
+          odometer_reading: parseInt(this.formData.odometerReading, 10), // Convert to integer
+          engine_type: this.formData.engineType,
+          transmission: this.formData.transmission,
+          body_type: this.formData.bodyType,
+          fuel_type: this.formData.fuelType,
+          // reserve_price: this.formData.reservePrice,
+          reserve_price: parseInt(this.formData.reservePrice, 10), // Convert to integer
+          damages: this.damages.map((damage) => ({
+            damage_description: damage.description,
+            damage_location: damage.location,
+            // repair_cost_estimate: damage.repairCost,
+            repair_cost_estimate: parseInt(damage.repairCost, 10), // Convert to integer
+          })),
+          photos: this.photos.map((photo) => photo.url), // Ensure this matches backend expectations
+        };
+
+        console.log("Submitting data:", data); // Debug output
+
+        // Make POST request to create appraisal
+        const response = await axiosInstance.post(
+          endpoints.createAppraisal,
+          data
+        );
+        console.log("Appraisal created successfully", response.data);
+        // Handle successful submission, e.g., redirect or show a success message
+      } catch (error) {
+        console.error("Error creating appraisal:", error);
+        // Handle error, e.g., show an error message
+      }
     },
   },
 };
@@ -794,5 +956,10 @@ input.reserve-input {
   padding-left: 10px;
   font-weight: 600;
   color: #7d7b7b;
+}
+
+.error-message {
+  color: red;
+  font-size: 12px;
 }
 </style>

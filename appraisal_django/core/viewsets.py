@@ -19,7 +19,7 @@ from rest_framework.pagination import PageNumberPagination
 from django.utils.dateparse import parse_datetime
 from django.db.models import Count
 from rest_framework.parsers import MultiPartParser, FormParser
-
+from rest_framework.exceptions import NotFound
 
 
 class CustomPagination(PageNumberPagination):
@@ -222,6 +222,17 @@ class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
             queryset = queryset.filter(dealerships__in=dealer_profile.dealerships.all())
         
         return queryset
+    
+    @action(detail=False, methods=['get'], url_path='current', permission_classes=[permissions.IsAuthenticated])
+    def current(self, request):
+        """
+        Retrieve the dealer profile of the currently authenticated user.
+        """
+        user = request.user
+        if hasattr(user, 'dealerprofile'):
+            serializer = self.get_serializer(user.dealerprofile)
+            return Response(serializer.data)
+        return Response({'detail': 'Dealer profile not found'}, status=status.HTTP_404_NOT_FOUND)
     
 
     @action(detail=True, methods=['PATCH'], permission_classes=[IsManagement], url_path='deactivate')

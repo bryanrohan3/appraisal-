@@ -32,6 +32,12 @@ class UserSerializer(serializers.ModelSerializer):
         token, created = Token.objects.get_or_create(user=obj)
         return token.key
     
+    def get_dealer_profile(self, user):
+        try:
+            return DealerProfileSerializer(user.dealerprofile).data
+        except DealerProfile.DoesNotExist:
+            return None
+    
 class UserLoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
@@ -68,6 +74,11 @@ class DealershipBasicSerializer(serializers.ModelSerializer):
 class DealershipSearchSerializer(serializers.Serializer):
     dealership_name = serializers.CharField(required=False, allow_blank=True)
 
+class DealershipNestedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Dealership
+        fields = ['id', 'dealership_name']
+
 
 class DealershipCurrentUserFKSerializer(serializers.PrimaryKeyRelatedField):
     def get_queryset(self):
@@ -81,18 +92,24 @@ class DealershipCurrentUserFKSerializer(serializers.PrimaryKeyRelatedField):
             raise serializers.ValidationError("You are not associated with this dealership.")
         return super().to_internal_value(data)
 
+
 class DealerProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for DealerProfile model.
     """
     user = UserSerializer()
     dealerships = DealershipCurrentUserFKSerializer(many=True, required=False)
+    dealership_names = serializers.SerializerMethodField()  # Use SerializerMethodField here
     received_requests = serializers.SerializerMethodField()
     sent_requests = serializers.SerializerMethodField()
 
     class Meta:
         model = DealerProfile
-        fields = ['user', 'phone', 'role', 'dealerships', 'received_requests', 'sent_requests']
+        fields = ['user', 'phone', 'role', 'dealerships', 'dealership_names', 'received_requests', 'sent_requests']
+
+    def get_dealership_names(self, instance):
+        # Retrieve the dealerships associated with the profile
+        return DealershipNestedSerializer(instance.dealerships.all(), many=True).data
 
     def create(self, validated_data):
         request = self.context.get('request')
@@ -156,11 +173,6 @@ class DealerProfileNestedSerializer(serializers.ModelSerializer):
     class Meta:
         model = DealerProfile
         fields = ['id', 'first_name', 'last_name']
-
-class DealershipNestedSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Dealership
-        fields = ['id', 'dealership_name']
 
 
 class WholesalerInviteSerializer(serializers.Serializer):
