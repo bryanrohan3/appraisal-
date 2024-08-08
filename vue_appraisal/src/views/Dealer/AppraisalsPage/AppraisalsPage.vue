@@ -83,15 +83,15 @@
             <div class="action-buttons">
               <button @click="exportData" class="export-button">
                 <img
-                  src="@/assets/filter.svg"
+                  src="@/assets/download.svg"
                   alt="Car Icon"
                   class="button-icon"
                 />
-                Export
+                Export CSV
               </button>
               <button @click="openFilter" class="filter-button">
                 <img
-                  src="@/assets/download.svg"
+                  src="@/assets/filter.svg"
                   alt="Car Icon"
                   class="button-icon"
                 />
@@ -580,7 +580,7 @@ export default {
 
 .tooltip {
   visibility: hidden;
-  width: 300px; /* Adjust width as needed */
+  width: 00px; /* Adjust width as needed */
   background-color: #333; /* Tooltip background color */
   color: #fff;
   text-align: center;
