@@ -64,10 +64,15 @@
     <div class="appraisals-container">
       <div class="appraisals">
         <p class="headers">Basic Vehicle Details</p>
+        <p class="small-header">Vehcile Make</p>
         <input type="text" placeholder="Vehicle Make" class="input" />
+        <p class="small-header">Vehicle Model</p>
         <input type="text" placeholder="Vehicle Model" class="input" />
+        <p class="small-header">Vehicle Year</p>
         <input type="text" placeholder="Vehicle Year" class="input" />
+        <p class="small-header">Vehicle Colour</p>
         <input type="text" placeholder="Vehicle Colour" class="input" />
+        <p class="small-header">Vehicle Registration</p>
         <input
           type="text"
           placeholder="Vehicle Registration Number"
@@ -78,8 +83,11 @@
       <div class="stats-container">
         <div class="stats other-stats">
           <p class="headers">Advanced Vehicle Details</p>
+          <p class="small-header">Odometer Reading</p>
           <input type="text" placeholder="Odometer Reading" class="input" />
+          <p class="small-header">Engine Type</p>
           <input type="text" placeholder="Engine Type" class="input" />
+          <p class="small-header">Transmission</p>
           <select class="input">
             <option
               v-for="option in transmissionOptions"
@@ -89,6 +97,7 @@
               {{ option.label }}
             </option>
           </select>
+          <p class="small-header">Fuel Type</p>
           <select class="input">
             <option
               v-for="option in fuelOptions"
@@ -98,8 +107,19 @@
               {{ option.label }}
             </option>
           </select>
+          <p class="small-header">Body Type</p>
           <input type="text" placeholder="Body Type" class="input" />
-          <input type="text" placeholder="Reserve Price" class="input" />
+          <p class="small-header">Reserve Price</p>
+          <div class="reserve-price-container">
+            <div class="reserve-input-wrapper">
+              <span class="reserve-icon">$</span>
+              <input
+                type="text"
+                placeholder="Reserve Price"
+                class="reserve-input"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -108,17 +128,17 @@
     <div class="appraisals-container">
       <div class="appraisals">
         <div class="damages-header">
-          <p class="headers">Damages</p>
+          <p class="headers">Vehicle Damages</p>
           <button @click="addDamage" class="add-damage-button">
             <img src="@/assets/add.svg" alt="Car Icon" class="car-icon" />
           </button>
         </div>
-        <p class="info-text">Add Vehicle Damage Details</p>
         <div
           v-for="(damage, index) in damages"
           :key="index"
           class="damage-instance"
         >
+          <p class="damage-label">{{ damageLabel(index) }}</p>
           <input
             v-model="damage.description"
             type="text"
@@ -137,15 +157,34 @@
             placeholder="Damage Repair Cost"
             class="input"
           />
+          <input
+            type="file"
+            :id="'damage-photo-upload-' + index"
+            multiple
+            @change="handleDamageFileUpload($event, index)"
+            class="upload-button"
+          />
+          <div class="photos-preview">
+            <div
+              v-for="(photo, photoIndex) in damage.damagePhotos.slice(0, 4)"
+              :key="photoIndex"
+              class="photo-container"
+            >
+              <img :src="photo.url" v-if="photo.url" class="photo-preview" />
+              <div v-else class="photo-placeholder">+</div>
+            </div>
+            <div v-if="damage.damagePhotos.length > 4" class="more-photos">
+              {{ damage.damagePhotos.length - 4 }}+
+            </div>
+          </div>
           <button @click="removeDamage(index)" class="remove-damage-button">
             Remove
           </button>
         </div>
       </div>
 
-      <!-- PUT UPLOAD PHOTOS HERE AND PHOTOS HOLDERS so like two photos and if there is 5 have like 3 + -->
       <div class="appraisals-photos">
-        <p class="headers">Upload Photos</p>
+        <p class="headers">Car Pictures</p>
         <input
           type="file"
           id="photo-upload"
@@ -245,11 +284,30 @@ export default {
         this.photos = [...this.photos, ...newPhotos];
       }
     },
+    handleDamageFileUpload(event, index) {
+      const files = event.target.files;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.damages[index].damagePhotos.push({ url: e.target.result });
+        };
+        reader.readAsDataURL(file);
+      }
+    },
     addDamage() {
-      this.damages.push({ description: "", location: "", repairCost: "" });
+      this.damages.push({
+        description: "",
+        location: "",
+        repairCost: "",
+        damagePhotos: [],
+      });
     },
     removeDamage(index) {
       this.damages.splice(index, 1);
+    },
+    damageLabel(index) {
+      return `Damage ${index + 1}`;
     },
   },
 };
@@ -467,7 +525,6 @@ export default {
 
 .input {
   margin-bottom: 20px;
-  width: 95%;
   margin-left: 10px;
 }
 
@@ -581,7 +638,9 @@ select {
 
 .photos-preview {
   display: flex;
-  gap: 10px;
+  gap: 20px;
+  margin-bottom: 10px;
+  padding-left: 10px;
 }
 
 .photo-container {
@@ -596,6 +655,7 @@ select {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  margin-bottom: 10px;
 }
 
 .photo-placeholder {
@@ -672,6 +732,67 @@ select {
   margin-right: 10px;
   border-radius: 10px;
   margin-left: 10px;
+  color: #ffffff;
   margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.small-header {
+  font-size: 12px;
+  color: #7d7b7b;
+  padding-left: 10px;
+  margin-top: 0;
+  font-weight: 600;
+}
+
+.reserve-price-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  width: 100%; /* Ensure the container takes full width */
+}
+
+.reserve-input-wrapper {
+  position: relative;
+  width: 100%; /* Ensure the wrapper takes full width */
+}
+
+.reserve-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none; /* Prevents the icon from blocking input interaction */
+  color: #000; /* Adjust the color as needed */
+  font-size: 14px; /* Adjust the size as needed */
+}
+
+.reserve-input {
+  width: 100%;
+  padding-left: 30px; /* Add padding to make space for the icon */
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+  box-sizing: border-box;
+  height: 39px;
+  margin-left: 30px;
+  margin-right: 10px;
+}
+
+/* Specific styling for reserve input to override generic input styles */
+input.reserve-input {
+  width: calc(95% - 20px); /* Adjust width to account for padding */
+  padding-right: 10px;
+  height: 39px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.damage-label {
+  padding-left: 10px;
+  font-weight: 600;
+  color: #7d7b7b;
 }
 </style>
