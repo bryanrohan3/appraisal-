@@ -11,54 +11,11 @@
         </div>
       </div>
     </div>
-    <div class="columns-container">
+    <!-- <div class="columns-container">
       <div class="column column-60">
-        <div class="tabs">
-          <button
-            class="tab-button"
-            :class="{ active: currentTab === 'all' }"
-            @click="currentTab = 'all'"
-          >
-            All Appraisals
-          </button>
-          <button
-            class="tab-button"
-            :class="{ active: currentTab === 'pending - sales' }"
-            @click="currentTab = 'pending - sales'"
-          >
-            Pending - Sales
-          </button>
-          <button
-            class="tab-button"
-            :class="{ active: currentTab === 'pending - management' }"
-            @click="currentTab = 'pending - management'"
-          >
-            Pending - Management
-          </button>
-          <button
-            class="tab-button"
-            :class="{ active: currentTab === 'active' }"
-            @click="currentTab = 'active'"
-          >
-            Active
-          </button>
-          <button
-            class="tab-button"
-            :class="{ active: currentTab === 'complete' }"
-            @click="currentTab = 'complete'"
-          >
-            Complete
-          </button>
-          <button
-            class="tab-button"
-            :class="{ active: currentTab === 'trashed' }"
-            @click="currentTab = 'trashed'"
-          >
-            Trashed
-          </button>
-        </div>
+        <p class="">hey</p>
       </div>
-    </div>
+    </div> -->
 
     <transition
       name="fade"
@@ -68,14 +25,79 @@
     >
       <div class="appraisals-container">
         <div class="appraisals">
+          <div class="tabs">
+            <button
+              class="tab-button"
+              :class="{ active: currentTab === 'all' }"
+              @click="currentTab = 'all'"
+            >
+              All Appraisals
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: currentTab === 'pending - sales' }"
+              @click="currentTab = 'pending - sales'"
+            >
+              Pending - Sales
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: currentTab === 'pending - management' }"
+              @click="currentTab = 'pending - management'"
+            >
+              Pending - Management
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: currentTab === 'active' }"
+              @click="currentTab = 'active'"
+            >
+              Active
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: currentTab === 'complete' }"
+              @click="currentTab = 'complete'"
+            >
+              Complete
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: currentTab === 'trashed' }"
+              @click="currentTab = 'trashed'"
+            >
+              Trashed
+            </button>
+          </div>
           <!-- Search Bar -->
-          <div class="search-bar">
-            <input
-              type="text"
-              v-model="searchQuery"
-              placeholder="Search for appraisals ID, car make, car model, VIN, etc..."
-              @input="debouncedSearch"
-            />
+          <!-- Search Bar and Action Buttons -->
+          <div class="search-bar-container">
+            <div class="search-bar">
+              <input
+                type="text"
+                v-model="searchQuery"
+                placeholder="Search for appraisals ID, car make, car model, VIN, etc..."
+                @input="debouncedSearch"
+              />
+            </div>
+            <div class="action-buttons">
+              <button @click="exportData" class="export-button">
+                <img
+                  src="@/assets/filter.svg"
+                  alt="Car Icon"
+                  class="button-icon"
+                />
+                Export
+              </button>
+              <button @click="openFilter" class="filter-button">
+                <img
+                  src="@/assets/download.svg"
+                  alt="Car Icon"
+                  class="button-icon"
+                />
+                Filter
+              </button>
+            </div>
           </div>
           <!-- Table -->
           <table class="appraisals-table">
@@ -118,8 +140,6 @@
               </tr>
             </tbody>
           </table>
-
-          <!-- Pagination Controls -->
         </div>
         <div class="pagination-controls">
           <button
@@ -128,13 +148,24 @@
           >
             Previous
           </button>
+          <button v-if="showFirstPageButton" @click="fetchAppraisals(1)">
+            1
+          </button>
+          <button v-if="showEllipsisLeft" disabled>...</button>
           <button
-            v-for="page in pageNumbers"
+            v-for="page in visiblePageNumbers"
             :key="page"
             :class="{ active: page === currentPage }"
             @click="fetchAppraisals(page)"
           >
             {{ page }}
+          </button>
+          <button v-if="showEllipsisRight" disabled>...</button>
+          <button
+            v-if="showLastPageButton"
+            @click="fetchAppraisals(totalPages)"
+          >
+            {{ totalPages }}
           </button>
           <button
             :disabled="currentPage === totalPages"
@@ -143,6 +174,9 @@
             Next
           </button>
         </div>
+        <span class="total-records"
+          >Total Appraisals: {{ totalAppraisals }}</span
+        >
       </div>
     </transition>
   </div>
@@ -164,6 +198,7 @@ export default {
       totalPages: 1,
       pageSize: 10,
       totalAppraisals: 0,
+      pageRange: 2, // Number of pages to show around the current page
     };
   },
   computed: {
@@ -205,6 +240,38 @@ export default {
         pages.push(i);
       }
       return pages;
+    },
+    visiblePageNumbers() {
+      // Ensure proper range of page numbers around the current page
+      const start = Math.max(1, this.currentPage - this.pageRange);
+      const end = Math.min(this.totalPages, this.currentPage + this.pageRange);
+
+      // Adjust the start if it's too close to the end
+      const adjustedStart = Math.max(1, end - this.pageRange * 2);
+
+      return this.pageNumbers.filter(
+        (page) => page >= adjustedStart && page <= end
+      );
+    },
+    showFirstPageButton() {
+      return this.totalPages > 1 && this.visiblePageNumbers[0] > 1;
+    },
+    showLastPageButton() {
+      return (
+        this.totalPages > 1 &&
+        this.visiblePageNumbers[this.visiblePageNumbers.length - 1] <
+          this.totalPages
+      );
+    },
+    showEllipsisLeft() {
+      return this.showFirstPageButton && this.visiblePageNumbers[0] > 2;
+    },
+    showEllipsisRight() {
+      return (
+        this.showLastPageButton &&
+        this.visiblePageNumbers[this.visiblePageNumbers.length - 1] <
+          this.totalPages - 1
+      );
     },
   },
   mounted() {
@@ -301,6 +368,7 @@ export default {
     Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   font-weight: 200;
   font-weight: 600;
+  color: #333333;
 }
 
 .columns-container {
@@ -416,7 +484,7 @@ export default {
 
 /* new code */
 .appraisals-container {
-  margin: 20px 0;
+  /*margin: 20px 0;*/
   gap: 20px;
 }
 
@@ -425,7 +493,7 @@ export default {
   background-color: #ffffff;
   padding: 20px;
   box-sizing: border-box;
-  height: 490px;
+  height: 560px;
   border-radius: 10px;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
 }
@@ -439,10 +507,54 @@ export default {
   width: 100%;
   padding: 8px;
   font-size: 12px;
-  border: 1px solid #ccc;
+  border: 1px solid #ddd;
   border-radius: 4px;
   box-sizing: border-box;
   outline: none;
+}
+
+/* Search Bar and Action Buttons */
+.search-bar-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.search-bar {
+  flex: 1;
+}
+
+.action-buttons {
+  display: flex;
+}
+
+.export-button,
+.filter-button {
+  display: flex;
+  padding: 8px 16px;
+  margin-left: 10px;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fff;
+  cursor: pointer;
+  height: 32.5px;
+}
+
+.export-button:hover,
+.filter-button:hover {
+  background-color: #e0e0e0;
+}
+
+.button-icon {
+  width: 16px; /* Adjust size as needed */
+  height: 16px; /* Adjust size as needed */
+  margin-right: 8px; /* Space between icon and text */
+  vertical-align: middle;
+}
+
+.export-button:hover,
+.filter-button:hover {
+  background-color: #e0e0e0;
 }
 
 /* Tooltip */
@@ -468,7 +580,7 @@ export default {
 
 .tooltip {
   visibility: hidden;
-  width: 200px; /* Adjust width as needed */
+  width: 300px; /* Adjust width as needed */
   background-color: #333; /* Tooltip background color */
   color: #fff;
   text-align: center;
@@ -480,7 +592,7 @@ export default {
   left: 50%;
   margin-left: -100px; /* Center the tooltip */
   opacity: 0;
-  font-size: 10px;
+  font-size: 11px;
   transition: opacity 0.3s;
 }
 
@@ -516,65 +628,45 @@ export default {
 .tabs {
   display: flex;
   margin-bottom: 20px;
-  position: relative; /* Positioning context for the slider */
-  padding-left: 0; /* Remove or reduce padding if necessary */
-  padding-right: 0; /* Remove or reduce padding if necessary */
+  position: relative;
+  padding-left: 0;
+  padding-right: 0;
+  justify-content: flex-start; /* Align tabs to the left */
 }
 
 .tab-button {
-  background-color: transparent; /* Transparent background */
-  border: none; /* Remove default border */
-  padding: 10px 0 10px 0;
-  margin-right: 2px; /* Reduce space between buttons */
+  background-color: transparent;
+  border: none;
+  padding: 10px 20px; /* Adjust padding as needed */
+  margin-right: 10px; /* Add space between buttons */
   cursor: pointer;
   font-size: 12px;
-  flex: 1;
   text-align: center;
-  position: relative; /* Positioning context for the bottom border */
-  color: #b0b0b0; /* Light gray color for inactive tabs */
-  cursor: pointer;
+  color: #b0b0b0;
+  position: relative;
 }
 
 .tab-button.active {
-  color: #333; /* Dark color for the active tab */
+  color: #333;
   font-weight: 600;
 }
 
-/* Slider/Indicator under active tab */
 .tab-button::after {
   content: "";
   display: block;
-  height: 2px; /* Slider height */
-  background-color: #eb5a58; /* Slider color */
+  height: 2px;
+  background-color: #eb5a58;
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  transform: scaleX(0); /* Start with zero width */
+  transform: scaleX(0);
   transform-origin: bottom left;
-  transition: transform 0.3s ease; /* Smooth transition */
+  transition: transform 0.3s ease;
 }
 
 .tab-button.active::after {
-  transform: scaleX(1); /* Expand to full width */
-}
-
-.tab-button {
-  background-color: transparent; /* Transparent background */
-  border: none; /* Remove default border */
-  padding: 10px 0;
-  margin-right: 5px; /* Reduced space between buttons */
-  cursor: pointer;
-  font-size: 12px;
-  flex: 1;
-  text-align: center;
-  position: relative; /* Positioning context for the bottom border */
-  color: #b0b0b0; /* Light gray color for inactive tabs */
-}
-
-.tab-button.active {
-  color: #333; /* Dark color for the active tab */
-  font-weight: 600;
+  transform: scaleX(1);
 }
 
 /* Pagination Controls */
@@ -601,5 +693,12 @@ export default {
 .pagination-controls button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.total-records {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: #999;
 }
 </style>

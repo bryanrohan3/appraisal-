@@ -323,15 +323,15 @@ export default {
       },
       transmissionOptions: [
         { value: "", label: "Transmission" },
-        { value: "automatic", label: "Automatic" },
-        { value: "manual", label: "Manual" },
+        { value: "Automatic", label: "Automatic" },
+        { value: "Manual", label: "Manual" },
       ],
       fuelOptions: [
         { value: "", label: "Fuel Type" },
-        { value: "diesel", label: "Diesel" },
-        { value: "petrol", label: "Petrol" },
-        { value: "electric", label: "Electric" },
-        { value: "hybrid", label: "Hybrid" },
+        { value: "Diesel", label: "Diesel" },
+        { value: "Petrol", label: "Petrol" },
+        { value: "Electric", label: "Electric" },
+        { value: "Hybrid", label: "Hybrid" },
       ],
       photos: [], // Array to store the uploaded photos
       damages: [], // Array to store damage instances
