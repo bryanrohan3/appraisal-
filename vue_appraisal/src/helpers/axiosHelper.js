@@ -37,6 +37,7 @@ const endpoints = {
   top_car: apiConstants.api_hostname + "appraisals/top-car/",
   createAppraisal: apiConstants.api_hostname + "appraisals/",
   dealerProfile: apiConstants.api_hostname + "dealer-profile/current/",
+  all_appraisals: apiConstants.api_hostname + "appraisals/",
 };
 
 export { axiosInstance, endpoints };

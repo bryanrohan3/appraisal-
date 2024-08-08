@@ -19,7 +19,7 @@
         </a>
       </router-link>
 
-      <router-link to="/#">
+      <router-link to="appraisals">
         <div class="nav-item">
           <img src="@/assets/appraisal-icon.svg" class="icon" />
           <a>Appraisals</a>
