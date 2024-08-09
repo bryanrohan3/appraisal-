@@ -7,6 +7,7 @@ import DealerLayout from "../components/Layouts/DealerLayout.vue";
 import WholesalerLayout from "../components/Layouts/WholesalerLayout.vue";
 import CreateAppraisalPage from "@/views/Dealer/CreateAppraisalPage/CreateAppraisalPage.vue";
 import AppraisalsPage from "@/views/Dealer/AppraisalsPage/AppraisalsPage.vue";
+import AppraisalViewPage from "@/views/Dealer/AppraisalViewPage/AppraisalViewPage.vue";
 
 const routes = [
   {
@@ -45,6 +46,11 @@ const routes = [
         path: "appraisals",
         name: "AppraisalsPage",
         component: AppraisalsPage,
+      },
+      {
+        path: "appraisals/:id",
+        name: "AppraisalViewPage",
+        component: AppraisalViewPage,
       },
     ],
   },

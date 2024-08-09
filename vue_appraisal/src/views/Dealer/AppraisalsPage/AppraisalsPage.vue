@@ -11,11 +11,6 @@
         </div>
       </div>
     </div>
-    <!-- <div class="columns-container">
-      <div class="column column-60">
-        <p class="">hey</p>
-      </div>
-    </div> -->
 
     <transition
       name="fade"
@@ -38,9 +33,9 @@
             </button>
             <button
               class="tab-button"
-              :class="{ active: currentTab === 'pending - sales' }"
+              :class="{ active: currentTab === 'Pending - Sales' }"
               @click="
-                currentTab = 'pending - sales';
+                currentTab = 'Pending - Sales';
                 fetchAppraisals();
               "
             >
@@ -48,9 +43,9 @@
             </button>
             <button
               class="tab-button"
-              :class="{ active: currentTab === 'pending - management' }"
+              :class="{ active: currentTab === 'Pending - Management' }"
               @click="
-                currentTab = 'pending - management';
+                currentTab = 'Pending - Management';
                 fetchAppraisals();
               "
             >
@@ -58,9 +53,9 @@
             </button>
             <button
               class="tab-button"
-              :class="{ active: currentTab === 'active' }"
+              :class="{ active: currentTab === 'Active' }"
               @click="
-                currentTab = 'active';
+                currentTab = 'Active';
                 fetchAppraisals();
               "
             >
@@ -68,9 +63,9 @@
             </button>
             <button
               class="tab-button"
-              :class="{ active: currentTab === 'complete' }"
+              :class="{ active: currentTab === 'Complete' }"
               @click="
-                currentTab = 'complete';
+                currentTab = 'Complete';
                 fetchAppraisals();
               "
             >
@@ -78,17 +73,17 @@
             </button>
             <button
               class="tab-button"
-              :class="{ active: currentTab === 'trashed' }"
+              :class="{ active: currentTab === 'Trashed' }"
               @click="
-                currentTab = 'trashed';
+                currentTab = 'Trashed';
                 fetchAppraisals();
               "
             >
               Trashed
             </button>
           </div>
+
           <!-- Search Bar -->
-          <!-- Search Bar and Action Buttons -->
           <div class="search-bar-container">
             <div class="search-bar">
               <input
@@ -109,7 +104,7 @@
               </button>
               <button @click="openFilter" class="filter-button">
                 <img
-                  src="@/assets/filter.svg"
+                  src="@/assets/filter-list.svg"
                   alt="Car Icon"
                   class="button-icon"
                 />
@@ -132,7 +127,11 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="appraisal in appraisals" :key="appraisal.id">
+              <tr
+                v-for="appraisal in appraisals"
+                :key="appraisal.id"
+                @click="viewAppraisal(appraisal.id)"
+              >
                 <td>{{ appraisal.id }}</td>
                 <td>
                   {{ appraisal.customer_first_name }}
@@ -307,7 +306,7 @@ export default {
     fetchAppraisals(page = 1) {
       const filter = this.searchQuery ? `&filter=${this.searchQuery}` : "";
       const status =
-        this.currentTab !== "all" ? `&status=${this.currentTab}` : "";
+        this.currentTab !== "all" ? `&filter=${this.currentTab}` : "";
 
       console.log(
         `Fetching appraisals with page=${page}, filter=${filter}, status=${status}`
@@ -326,32 +325,33 @@ export default {
           console.error("Error fetching appraisals:", error);
         });
     },
+    search() {
+      this.fetchAppraisals();
+    },
     exportData() {
-      const filter = this.searchQuery ? `?filter=${this.searchQuery}` : "";
+      const filter =
+        this.currentTab !== "all" ? `status=${this.currentTab}` : "";
       axiosInstance
-        .post(`${endpoints.appraisals}/${filter}`, null, {
-          responseType: "blob", // Set the response type to 'blob' to handle the CSV file
+        .get(`${endpoints.appraisals}?export=true&${filter}`, {
+          params: { search: this.searchQuery },
         })
         .then((response) => {
-          // Create a URL for the blob object
-          const url = window.URL.createObjectURL(new Blob([response.data]));
-          // Create an anchor element and set its href to the URL
+          const blob = new Blob([response.data], { type: "text/csv" });
           const link = document.createElement("a");
-          link.href = url;
-          link.setAttribute("download", "appraisals.csv"); // Set the file name for download
-          document.body.appendChild(link);
-          link.click(); // Programmatically click the link to trigger the download
+          link.href = URL.createObjectURL(blob);
+          link.download = "appraisals.csv";
+          link.click();
         })
         .catch((error) => {
           console.error("Error exporting data:", error);
         });
     },
-    search() {
-      this.fetchAppraisals(1);
+    openFilter() {
+      // Logic to open filter dialog or menu
     },
-  },
-  watch: {
-    searchQuery: "debouncedSearch",
+    viewAppraisal(id) {
+      this.$router.push({ name: "AppraisalViewPage", params: { id } });
+    },
   },
 };
 </script>
@@ -454,6 +454,11 @@ export default {
 
 .appraisals-table tr:nth-child(even) {
   background-color: #f9f9f9;
+}
+
+.appraisals-table tr:hover {
+  background-color: #f1f1f1;
+  cursor: pointer;
 }
 
 .appraisals-table-header {

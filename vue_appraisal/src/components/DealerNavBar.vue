@@ -5,49 +5,71 @@
         <img src="@/assets/logo.svg" class="logo" />
         <p class="company">i@ppraisal</p>
       </div>
-      <router-link to="dashboard">
+      <router-link
+        to="/dashboard"
+        :class="{ 'active-link': isActive('/dashboard') }"
+      >
         <div class="nav-item">
-          <img src="@/assets/dashboard.svg" class="icon" />
-          <a href="/">Dashboard</a>
+          <img
+            :src="
+              isActive('/dashboard')
+                ? require('@/assets/dashboard-active.svg')
+                : require('@/assets/dashboard.svg')
+            "
+            class="icon"
+          />
+          <a>Dashboard</a>
         </div>
       </router-link>
 
-      <router-link to="/#">
-        <a class="nav-item">
-          <img src="@/assets/search.svg" class="icon" />
-          <a>Search</a>
-        </a>
-      </router-link>
-
-      <router-link to="appraisals">
+      <router-link
+        to="/appraisals"
+        :class="{ 'active-link': isActive('/appraisals') }"
+      >
         <div class="nav-item">
-          <img src="@/assets/appraisal-icon.svg" class="icon" />
+          <img
+            :src="
+              isActive('/appraisals')
+                ? require('@/assets/appraisal-icon-active.svg')
+                : require('@/assets/appraisal-icon.svg')
+            "
+            class="icon"
+          />
           <a>Appraisals</a>
         </div>
       </router-link>
 
-      <router-link to="create-appraisal">
+      <router-link
+        to="/create-appraisal"
+        :class="{ 'active-link': isActive('/create-appraisal') }"
+      >
         <div class="nav-item">
-          <img src="@/assets/create-appraisal.svg" class="icon" />
+          <img
+            :src="
+              isActive('/create-appraisal')
+                ? require('@/assets/create-appraisal-active.svg')
+                : require('@/assets/create-appraisal.svg')
+            "
+            class="icon"
+          />
           <a>Create</a>
         </div>
       </router-link>
 
-      <router-link to="/#">
+      <router-link to="/#" :class="{ 'active-link': isActive('/analytics') }">
         <div class="nav-item">
           <img src="@/assets/analytics.svg" class="icon" />
           Analytics
         </div>
       </router-link>
 
-      <router-link to="/#">
+      <router-link to="/#" :class="{ 'active-link': isActive('/requests') }">
         <div class="nav-item">
           <img src="@/assets/requests.svg" class="icon" />
           Requests
         </div>
       </router-link>
 
-      <!-- Add logout button here -->
       <div class="logout-container">
         <button @click="handleLogout" class="logout-button">
           <img src="@/assets/logout.svg" class="logout-icon" />
@@ -68,6 +90,9 @@ export default {
     handleLogout() {
       this.logout(); // Clear Vuex state
       this.$router.push({ name: "login" }); // Redirect to login page
+    },
+    isActive(route) {
+      return this.$route.path === route;
     },
   },
 };
@@ -151,7 +176,7 @@ body {
 
 .navbar a {
   text-decoration: none;
-  color: #333;
+  color: #aaa;
   font-weight: 500;
   font-size: 14px;
 }
@@ -192,5 +217,16 @@ body {
 
 .logout-icon {
   margin-right: 10px;
+}
+
+.active-link .nav-item a {
+  color: #f26764; /* Red color for the active link */
+  font-weight: 600;
+}
+
+/* Ensure this is applied to active nav items */
+.navbar .router-link-exact-active .nav-item a {
+  color: #f26764;
+  font-weight: 600;
 }
 </style>

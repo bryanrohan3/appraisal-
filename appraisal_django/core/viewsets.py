@@ -408,7 +408,8 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
                     Q(customer_last_name__icontains=keyword) |
                     Q(vehicle_vin__icontains=keyword) |
                     Q(customer_first_name__icontains=keyword) |
-                    Q(vehicle_registration__icontains=keyword)
+                    Q(vehicle_registration__icontains=keyword) |
+                    Q(id__icontains=keyword)
                 )
         return queryset
 
