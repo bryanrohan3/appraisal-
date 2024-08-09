@@ -29,42 +29,60 @@
             <button
               class="tab-button"
               :class="{ active: currentTab === 'all' }"
-              @click="currentTab = 'all'"
+              @click="
+                currentTab = 'all';
+                fetchAppraisals();
+              "
             >
               All Appraisals
             </button>
             <button
               class="tab-button"
               :class="{ active: currentTab === 'pending - sales' }"
-              @click="currentTab = 'pending - sales'"
+              @click="
+                currentTab = 'pending - sales';
+                fetchAppraisals();
+              "
             >
               Pending - Sales
             </button>
             <button
               class="tab-button"
               :class="{ active: currentTab === 'pending - management' }"
-              @click="currentTab = 'pending - management'"
+              @click="
+                currentTab = 'pending - management';
+                fetchAppraisals();
+              "
             >
               Pending - Management
             </button>
             <button
               class="tab-button"
               :class="{ active: currentTab === 'active' }"
-              @click="currentTab = 'active'"
+              @click="
+                currentTab = 'active';
+                fetchAppraisals();
+              "
             >
               Active
             </button>
             <button
               class="tab-button"
               :class="{ active: currentTab === 'complete' }"
-              @click="currentTab = 'complete'"
+              @click="
+                currentTab = 'complete';
+                fetchAppraisals();
+              "
             >
               Complete
             </button>
             <button
               class="tab-button"
               :class="{ active: currentTab === 'trashed' }"
-              @click="currentTab = 'trashed'"
+              @click="
+                currentTab = 'trashed';
+                fetchAppraisals();
+              "
             >
               Trashed
             </button>
@@ -84,7 +102,7 @@
               <button @click="exportData" class="export-button">
                 <img
                   src="@/assets/download.svg"
-                  alt="Car Icon"
+                  alt="Download Icon"
                   class="button-icon"
                 />
                 Export CSV
@@ -114,8 +132,7 @@
               </tr>
             </thead>
             <tbody>
-              <!-- Filtered rows based on searchQuery -->
-              <tr v-for="appraisal in filteredAppraisals" :key="appraisal.id">
+              <tr v-for="appraisal in appraisals" :key="appraisal.id">
                 <td>{{ appraisal.id }}</td>
                 <td>
                   {{ appraisal.customer_first_name }}
@@ -191,14 +208,14 @@ export default {
   name: "DealerDashboardPage",
   data() {
     return {
-      appraisals: [], // Initialize as an empty array
-      searchQuery: "", // Data property for search input
+      appraisals: [],
+      searchQuery: "",
       currentTab: "all",
       currentPage: 1,
       totalPages: 1,
       pageSize: 10,
       totalAppraisals: 0,
-      pageRange: 2, // Number of pages to show around the current page
+      pageRange: 2,
     };
   },
   computed: {
@@ -209,31 +226,6 @@ export default {
         ? `${userProfile.first_name} ${userProfile.last_name}`
         : "Guest";
     },
-    filteredAppraisals() {
-      const search = this.searchQuery.toLowerCase();
-      const currentTabStatus = this.currentTab.toLowerCase().trim();
-
-      return this.appraisals.filter((appraisal) => {
-        const fullName =
-          `${appraisal.customer_first_name} ${appraisal.customer_last_name}`.toLowerCase();
-        const appraisalStatus = appraisal.status
-          ? appraisal.status.toLowerCase().trim()
-          : "";
-
-        const statusMatch =
-          this.currentTab === "all" || appraisalStatus === currentTabStatus;
-
-        return (
-          statusMatch &&
-          (fullName.includes(search) ||
-            appraisal.vehicle_make.toLowerCase().includes(search) ||
-            appraisal.vehicle_model.toLowerCase().includes(search) ||
-            appraisal.vehicle_vin.toLowerCase().includes(search) ||
-            appraisal.vehicle_registration.toLowerCase().includes(search) ||
-            appraisalStatus.includes(search))
-        );
-      });
-    },
     pageNumbers() {
       const pages = [];
       for (let i = 1; i <= this.totalPages; i++) {
@@ -242,11 +234,9 @@ export default {
       return pages;
     },
     visiblePageNumbers() {
-      // Ensure proper range of page numbers around the current page
       const start = Math.max(1, this.currentPage - this.pageRange);
       const end = Math.min(this.totalPages, this.currentPage + this.pageRange);
 
-      // Adjust the start if it's too close to the end
       const adjustedStart = Math.max(1, end - this.pageRange * 2);
 
       return this.pageNumbers.filter(
@@ -275,14 +265,14 @@ export default {
     },
   },
   mounted() {
-    this.fetchAppraisals(); // Fetch appraisals data when the component is mounted
-    this.debouncedSearch = debounce(this.search, 300);
+    this.fetchAppraisals();
+    this.debouncedSearch = debounce(this.search, 1000);
   },
   methods: {
     ...mapMutations(["logout"]),
     handleLogout() {
-      this.logout(); // Clear Vuex state
-      this.$router.push({ name: "login" }); // Redirect to login page
+      this.logout();
+      this.$router.push({ name: "login" });
     },
     getStatusClass(status) {
       switch (status) {
@@ -304,7 +294,7 @@ export default {
       el.style.opacity = 0;
     },
     enter(el, done) {
-      el.offsetHeight; // Trigger reflow
+      el.offsetHeight;
       el.style.transition = "opacity 0.3s ease";
       el.style.opacity = 1;
       done();
@@ -314,23 +304,54 @@ export default {
       el.style.opacity = 0;
       done();
     },
-    async fetchAppraisals(page = 1) {
-      try {
-        const response = await axiosInstance.get(
-          `${endpoints.all_appraisals}?page=${page}`
-        );
-        this.appraisals = response.data.results; // Update appraisals data with API response
-        this.totalAppraisals = response.data.count;
-        this.pageSize = response.data.results.length; // Adjust if page size changes dynamically
-        this.totalPages = Math.ceil(this.totalAppraisals / this.pageSize);
-        this.currentPage = page;
-      } catch (error) {
-        console.error("Error fetching appraisals:", error);
-      }
+    fetchAppraisals(page = 1) {
+      const filter = this.searchQuery ? `&filter=${this.searchQuery}` : "";
+      const status =
+        this.currentTab !== "all" ? `&status=${this.currentTab}` : "";
+
+      console.log(
+        `Fetching appraisals with page=${page}, filter=${filter}, status=${status}`
+      );
+
+      axiosInstance
+        .get(`${endpoints.appraisals}/?page=${page}${filter}${status}`)
+        .then((response) => {
+          console.log("Response data:", response.data); // Log API response
+          this.appraisals = response.data.results;
+          this.totalAppraisals = response.data.count;
+          this.totalPages = Math.ceil(this.totalAppraisals / this.pageSize);
+          this.currentPage = page;
+        })
+        .catch((error) => {
+          console.error("Error fetching appraisals:", error);
+        });
+    },
+    exportData() {
+      const filter = this.searchQuery ? `?filter=${this.searchQuery}` : "";
+      axiosInstance
+        .post(`${endpoints.appraisals}/${filter}`, null, {
+          responseType: "blob", // Set the response type to 'blob' to handle the CSV file
+        })
+        .then((response) => {
+          // Create a URL for the blob object
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          // Create an anchor element and set its href to the URL
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", "appraisals.csv"); // Set the file name for download
+          document.body.appendChild(link);
+          link.click(); // Programmatically click the link to trigger the download
+        })
+        .catch((error) => {
+          console.error("Error exporting data:", error);
+        });
     },
     search() {
-      this.filteredAppraisals; // Trigger computed property update
+      this.fetchAppraisals(1);
     },
+  },
+  watch: {
+    searchQuery: "debouncedSearch",
   },
 };
 </script>
@@ -686,7 +707,7 @@ export default {
 }
 
 .pagination-controls button.active {
-  background-color: #007bff;
+  background-color: #f26764;
   color: #fff;
 }
 

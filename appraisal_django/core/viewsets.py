@@ -370,7 +370,11 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
                 Q(customer_email__icontains=keyword) |
                 Q(vehicle_make__icontains=keyword) |
                 Q(vehicle_model__icontains=keyword) |
-                Q(vehicle_year__icontains=keyword)
+                Q(vehicle_year__icontains=keyword) |
+                Q(customer_last_name__icontains=keyword) |
+                Q(vehicle_vin__icontains=keyword) |
+                Q(customer_first_name__icontains=keyword) |
+                Q(vehicle_registration__icontains=keyword)
             )
         return queryset
     
@@ -414,7 +418,6 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             return Response({"message": "General comment added successfully."}, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
     @action(detail=False, methods=['get', 'post'], url_path='csv', permission_classes=[IsManagement])
     def download_csv(self, request, *args, **kwargs):
@@ -467,8 +470,17 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             return response
 
         else:
+
             # Handle GET request (filtering and returning JSON)
             queryset = self.filter_queryset_by_keyword(self.get_queryset())
+
+            #Paginate the queryset
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
+
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
     
