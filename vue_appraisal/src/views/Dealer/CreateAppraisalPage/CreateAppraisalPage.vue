@@ -574,8 +574,8 @@ export default {
 }
 
 .profile-picture {
-  height: 70px;
-  width: 70px;
+  height: 65px;
+  width: 65px;
   border-radius: 50%;
   background-color: #e7e7e7;
   margin-bottom: 10px;

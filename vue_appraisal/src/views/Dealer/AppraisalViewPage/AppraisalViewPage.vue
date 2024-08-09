@@ -4,7 +4,11 @@
       <h1 class="title">View Appraisal Form</h1>
       <div class="checkbox-and-button">
         <label class="checkbox-container">
-          <input type="checkbox" id="ready-for-management" />
+          <input
+            type="checkbox"
+            id="ready-for-management"
+            v-model="appraisal.ready_for_management"
+          />
           <span class="checkbox-label">Ready for Management</span>
         </label>
         <div class="notification-button" @click="submitForm">
@@ -59,12 +63,17 @@
 
         <!-- Initiating Dealer Pro -->
         <template #profile>
-          <div class="profile-picture"></div>
+          <p class="initiating-dealer">Initiating Dealer Pro</p>
           <p class="name">
-            {{ appraisal.initiating_dealer.first_name }}
-            {{ appraisal.initiating_dealer.last_name }}
+            {{ appraisal.initiating_dealer?.first_name }}
+
+            {{ appraisal.initiating_dealer?.last_name }}
           </p>
-          <p class="email">{{ appraisal.initiating_dealer.email }}</p>
+          <p class="last-updated-dealer">Last Updated Dealer</p>
+          <p class="updated-name">
+            {{ appraisal.last_updating_dealer?.first_name }}
+            {{ appraisal.last_updating_dealer?.last_name }}
+          </p>
           <div class="dealership-dropdown">
             <select class="input-dealership" v-model="selectedDealership">
               <option disabled value="">Select Dealership</option>
@@ -241,7 +250,9 @@ export default {
         { value: "Hybrid", label: "Hybrid" },
       ],
       showDropdown: false,
-      appraisal: null,
+      appraisal: {
+        ready_for_management: false,
+      },
       phoneCodes: {
         "+61": "AU",
         "+1": "US",
@@ -261,7 +272,6 @@ export default {
       axiosInstance
         .get(`${endpoints.all_appraisals}${id}/`)
         .then((response) => {
-          console.log(response.data); // Check the structure of the response
           this.appraisal = response.data;
         })
         .catch((error) => {
@@ -794,5 +804,21 @@ input.reserve-input {
 .error-message {
   color: red;
   font-size: 11px;
+}
+
+.initiating-dealer {
+  font-size: 10px;
+  color: #7d7b7b;
+  margin-top: 0;
+}
+
+.updated-name {
+  margin-top: 0;
+}
+
+.last-updated-dealer {
+  font-size: 10px;
+  color: #7d7b7b;
+  margin-top: 30px;
 }
 </style>
