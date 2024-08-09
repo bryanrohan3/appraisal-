@@ -198,10 +198,45 @@
             </div>
           </div>
         </template>
+
+        <template #vehicle-damages>
+          <div class="damages-header">
+            <p class="headers">Vehicle Damages</p>
+            <button @click="addDamage" class="add-damage-button">
+              <img src="@/assets/add.svg" alt="Car Icon" class="car-icon" />
+            </button>
+          </div>
+          <!-- if there are damages in appraisal.damages then display them in the inputs -->
+          <div
+            v-for="(damage, index) in damages"
+            :key="index"
+            class="damage-instance"
+          >
+            <p class="damage-label">{{ damageLabel(index) }}</p>
+            <input
+              type="text"
+              v-model="damage.description"
+              placeholder="Description"
+              class="input"
+            />
+            <input
+              type="text"
+              v-model="damage.location"
+              placeholder="Location"
+              class="input"
+            />
+            <input
+              type="text"
+              v-model="damage.repair_cost_estimate"
+              placeholder="Cost"
+              class="input"
+            />
+            <button @click="removeDamage(index)" class="remove-damage-button">
+              Remove
+            </button>
+          </div>
+        </template>
       </Appraisal>
-      <div class="update-button" @click="updateAppraisal">
-        <span class="button-text">Update Appraisal</span>
-      </div>
     </div>
     <div v-else>
       <p>There is no appraisal with this ID.</p>
@@ -237,6 +272,7 @@ export default {
     return {
       selectedDealership: "",
       dealershipOptions: [],
+      damages: [],
       transmissionOptions: [
         { value: "", label: "Transmission" },
         { value: "Automatic", label: "Automatic" },
@@ -252,6 +288,7 @@ export default {
       showDropdown: false,
       appraisal: {
         ready_for_management: false,
+        damages: [],
       },
       phoneCodes: {
         "+61": "AU",
@@ -273,15 +310,26 @@ export default {
         .get(`${endpoints.all_appraisals}${id}/`)
         .then((response) => {
           this.appraisal = response.data;
+          // Ensure damages is an array and update the local damages property
+          this.damages = Array.isArray(this.appraisal.damages)
+            ? this.appraisal.damages
+            : [];
         })
         .catch((error) => {
           console.error("Error fetching appraisal details:", error);
         });
     },
+
     selectDealership(dealership) {
       this.selectedDealership = dealership;
       this.formData.dealership = dealership.id; // Set the ID of the selected dealership in formData
       this.showDropdown = false;
+    },
+    damageLabel(index) {
+      return `Damage ${index + 1}`;
+    },
+    removeDamage(index) {
+      this.damages.splice(index, 1);
     },
     async fetchDealerProfileInfo() {
       try {
