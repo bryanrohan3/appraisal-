@@ -17,73 +17,64 @@
       </div>
     </div>
 
-    <div class="columns-container">
-      <div class="column column-60">
-        <div class="greetings-container">
-          <p class="headers">Customer Personal Details</p>
-          <form class="customer-details-form">
-            <div class="form-row">
-              <input
-                type="text"
-                placeholder="First Name"
-                v-model="formData.firstName"
-              />
-              <input
-                type="text"
-                placeholder="Last Name"
-                v-model="formData.lastName"
-              />
-            </div>
-            <div class="form-row">
-              <input
-                type="email"
-                placeholder="Email"
-                v-model="formData.email"
-              />
-              <div class="phone-input">
-                <select>
-                  <option
-                    v-for="(code, country) in phoneCodes"
-                    :key="code"
-                    :value="code"
-                  >
-                    {{ code }} ({{ country }})
-                  </option>
-                </select>
-                <input
-                  type="text"
-                  placeholder="Phone"
-                  v-model="formData.appraisal_phone"
-                />
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
+    <Appraisal>
+      <template #header>
+        <p class="headers">Customer Personal Details</p>
+      </template>
 
-      <div class="column column-40">
-        <div class="profile-container">
-          <div class="profile-picture"></div>
-          <p class="name">{{ userName }}</p>
-          <p class="email">{{ userEmail }}</p>
-          <div class="dealership-dropdown">
-            <select class="input-dealership" v-model="selectedDealership">
-              <option disabled value="">Select Dealership</option>
+      <template #customer-details>
+        <div class="form-row">
+          <input
+            type="text"
+            placeholder="First Name"
+            v-model="formData.firstName"
+          />
+          <input
+            type="text"
+            placeholder="Last Name"
+            v-model="formData.lastName"
+          />
+        </div>
+        <div class="form-row">
+          <input type="email" placeholder="Email" v-model="formData.email" />
+          <div class="phone-input">
+            <select>
               <option
-                v-for="option in dealershipOptions"
-                :key="option.id"
-                :value="option.id"
+                v-for="(code, country) in phoneCodes"
+                :key="code"
+                :value="code"
               >
-                {{ option.name }}
+                {{ code }} ({{ country }})
               </option>
             </select>
+            <input
+              type="text"
+              placeholder="Phone"
+              v-model="formData.appraisal_phone"
+            />
           </div>
         </div>
-      </div>
-    </div>
+      </template>
 
-    <div class="appraisals-container">
-      <div class="appraisals">
+      <template #profile>
+        <div class="profile-picture"></div>
+        <p class="name">{{ userName }}</p>
+        <p class="email">{{ userEmail }}</p>
+        <div class="dealership-dropdown">
+          <select class="input-dealership" v-model="selectedDealership">
+            <option disabled value="">Select Dealership</option>
+            <option
+              v-for="option in dealershipOptions"
+              :key="option.id"
+              :value="option.id"
+            >
+              {{ option.name }}
+            </option>
+          </select>
+        </div>
+      </template>
+
+      <template #basic-vehicle-details>
         <p class="headers">Basic Vehicle Details</p>
         <p class="small-header">Vehicle Make</p>
         <input
@@ -127,71 +118,66 @@
           v-model="formData.vehicleVin"
           class="input"
         />
-      </div>
+      </template>
 
-      <div class="stats-container">
-        <div class="stats other-stats">
-          <p class="headers">Advanced Vehicle Details</p>
-          <p class="small-header">Odometer Reading</p>
-          <input
-            type="text"
-            placeholder="Odometer Reading"
-            v-model="formData.odometerReading"
-            class="input"
-          />
-          <p class="small-header">Engine Type</p>
-          <input
-            type="text"
-            placeholder="Engine Type"
-            v-model="formData.engineType"
-            class="input"
-          />
-          <p class="small-header">Transmission</p>
-          <select class="input" v-model="formData.transmission">
-            <option
-              v-for="option in transmissionOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-          <p class="small-header">Fuel Type</p>
-          <select class="input" v-model="formData.fuelType">
-            <option
-              v-for="option in fuelOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-          <p class="small-header">Body Type</p>
-          <input
-            type="text"
-            placeholder="Body Type"
-            v-model="formData.bodyType"
-            class="input"
-          />
-          <p class="small-header">Reserve Price</p>
-          <div class="reserve-price-container">
-            <div class="reserve-input-wrapper">
-              <span class="reserve-icon">$</span>
-              <input
-                type="text"
-                placeholder="Reserve Price"
-                v-model="formData.reservePrice"
-                class="reserve-input"
-              />
-            </div>
+      <template #advanced-vehicle-details>
+        <p class="headers">Advanced Vehicle Details</p>
+        <p class="small-header">Odometer Reading</p>
+        <input
+          type="text"
+          placeholder="Odometer Reading"
+          v-model="formData.odometerReading"
+          class="input"
+        />
+        <p class="small-header">Engine Type</p>
+        <input
+          type="text"
+          placeholder="Engine Type"
+          v-model="formData.engineType"
+          class="input"
+        />
+        <p class="small-header">Transmission</p>
+        <select class="input" v-model="formData.transmission">
+          <option
+            v-for="option in transmissionOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
+        </select>
+        <p class="small-header">Fuel Type</p>
+        <select class="input" v-model="formData.fuelType">
+          <option
+            v-for="option in fuelOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
+        </select>
+        <p class="small-header">Body Type</p>
+        <input
+          type="text"
+          placeholder="Body Type"
+          v-model="formData.bodyType"
+          class="input"
+        />
+        <p class="small-header">Reserve Price</p>
+        <div class="reserve-price-container">
+          <div class="reserve-input-wrapper">
+            <span class="reserve-icon">$</span>
+            <input
+              type="text"
+              placeholder="Reserve Price"
+              v-model="formData.reservePrice"
+              class="reserve-input"
+            />
           </div>
         </div>
-      </div>
-    </div>
+      </template>
 
-    <!-- Add more sections as needed -->
-    <div class="appraisals-container">
-      <div class="appraisals">
+      <template #vehicle-damages>
         <div class="damages-header">
           <p class="headers">Vehicle Damages</p>
           <button @click="addDamage" class="add-damage-button">
@@ -246,9 +232,9 @@
             Remove
           </button>
         </div>
-      </div>
+      </template>
 
-      <div class="appraisals-photos">
+      <template #car-pictures>
         <p class="headers">Car Pictures</p>
         <input
           type="file"
@@ -266,17 +252,12 @@
             <img :src="photo.url" v-if="photo.url" class="photo-preview" />
             <div v-else class="photo-placeholder">+</div>
           </div>
-          <div v-if="additionalPhotosCount > 0" class="more-photos">
-            {{ additionalPhotosCount }}+
+          <div v-if="photos.length > 4" class="more-photos">
+            {{ photos.length - 4 }}+
           </div>
         </div>
-      </div>
-    </div>
-    <ToastNotification
-      :message="toastMessage"
-      :visible="showToast"
-      @update:visible="showToast = $event"
-    />
+      </template>
+    </Appraisal>
   </div>
 </template>
 
@@ -284,11 +265,13 @@
 import { mapGetters } from "vuex";
 import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
 import ToastNotification from "@/components/ToastNotification.vue";
+import Appraisal from "@/components/Appraisal.vue";
 
 export default {
   name: "CreateAppraisalPage",
   components: {
     ToastNotification,
+    Appraisal,
   },
   computed: {
     ...mapGetters(["getUserProfile"]),

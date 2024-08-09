@@ -1,310 +1,49 @@
 <template>
-  <div class="dashboard-container">
-    <div class="title-container">
-      <h1 class="title">View Appraisal Form</h1>
-      <div class="checkbox-and-button">
-        <label class="checkbox-container">
-          <input type="checkbox" id="ready-for-management" />
-          <span class="checkbox-label">Ready for Management</span>
-        </label>
-        <div class="notification-button" @click="submitForm">
-          <span class="button-text">Save Appraisal</span>
+  <div class="appraisal-container">
+    <div class="columns-container">
+      <div class="column column-60">
+        <div class="greetings-container">
+          <slot name="header"></slot>
+          <form class="customer-details-form">
+            <slot name="customer-details"></slot>
+          </form>
+        </div>
+      </div>
+
+      <div class="column column-40">
+        <div class="profile-container">
+          <slot name="profile"></slot>
         </div>
       </div>
     </div>
 
-    <div v-if="appraisal">
-      <Appraisal>
-        <template #header>
-          <p class="headers">Customer Personal Details</p>
-        </template>
-        <!-- Client Details -->
-        <template #customer-details>
-          <div class="form-row">
-            <input
-              type="text"
-              v-model="appraisal.customer_first_name"
-              placeholder="First Name"
-            />
-            <input
-              type="text"
-              v-model="appraisal.customer_last_name"
-              placeholder="Last Name"
-            />
-          </div>
-          <div class="form-row">
-            <input
-              type="email"
-              v-model="appraisal.customer_email"
-              placeholder="Email"
-            />
-            <div class="phone-input">
-              <select>
-                <option
-                  v-for="(code, country) in phoneCodes"
-                  :key="code"
-                  :value="code"
-                >
-                  {{ code }} ({{ country }})
-                </option>
-              </select>
-              <input
-                type="text"
-                v-model="appraisal.customer_phone"
-                placeholder="Phone"
-              />
-            </div>
-          </div>
-        </template>
+    <div class="appraisals-container">
+      <div class="appraisals">
+        <slot name="basic-vehicle-details"></slot>
+      </div>
 
-        <!-- Initiating Dealer Pro -->
-        <template #profile>
-          <div class="profile-picture"></div>
-          <p class="name">
-            {{ appraisal.initiating_dealer.first_name }}
-            {{ appraisal.initiating_dealer.last_name }}
-          </p>
-          <p class="email">{{ appraisal.initiating_dealer.email }}</p>
-          <div class="dealership-dropdown">
-            <select class="input-dealership" v-model="selectedDealership">
-              <option disabled value="">Select Dealership</option>
-              <option
-                v-for="option in dealershipOptions"
-                :key="option.id"
-                :value="option.id"
-              >
-                {{ option.name }}
-              </option>
-            </select>
-          </div>
-        </template>
-
-        <!-- Vehicle Details -->
-        <template #basic-vehicle-details>
-          <p class="headers">Basic Vehicle Details</p>
-          <p class="small-header">Vehicle Make</p>
-          <input
-            type="text"
-            v-model="appraisal.vehicle_make"
-            placeholder="Car Make"
-            class="input"
-          />
-          <p class="small-header">Vehicle Model</p>
-          <input
-            type="text"
-            v-model="appraisal.vehicle_model"
-            placeholder="Car Model"
-            class="input"
-          />
-          <p class="small-header">Vehicle Year</p>
-          <input
-            type="text"
-            v-model="appraisal.vehicle_year"
-            placeholder="Car Year"
-            class="input"
-          />
-          <p class="small-header">Vehicle Colour</p>
-          <input
-            type="text"
-            v-model="appraisal.color"
-            placeholder="Car Colour"
-            class="input"
-          />
-          <p class="small-header">Vehicle Registration</p>
-          <input
-            type="text"
-            v-model="appraisal.vehicle_registration"
-            placeholder="Rego"
-            class="input"
-          />
-          <p class="small-header">Vehicle VIN</p>
-          <input
-            type="text"
-            v-model="appraisal.vehicle_vin"
-            placeholder="VIN"
-            class="input"
-          />
-        </template>
-
-        <!-- Additional Details -->
-        <template #advanced-vehicle-details>
-          <p class="headers">Advanced Vehicle Details</p>
-
-          <p class="small-header">Odometer Reading</p>
-          <input
-            type="text"
-            placeholder="Odometer Reading"
-            v-model="appraisal.odometer_reading"
-            class="input"
-          />
-
-          <p class="small-header">Engine Type</p>
-          <input
-            type="text"
-            placeholder="Engine Type"
-            v-model="appraisal.engine_type"
-            class="input"
-          />
-
-          <p class="small-header">Transmission</p>
-          <select class="input" v-model="appraisal.transmission">
-            <option
-              v-for="option in transmissionOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-
-          <p class="small-header">Fuel Type</p>
-          <select class="input" v-model="appraisal.fuel_type">
-            <option
-              v-for="option in fuelOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-
-          <p class="small-header">Body Type</p>
-          <input
-            type="text"
-            placeholder="Body Type"
-            v-model="appraisal.body_type"
-            class="input"
-          />
-
-          <p class="small-header">Reserve Price</p>
-          <div class="reserve-price-container">
-            <div class="reserve-input-wrapper">
-              <span class="reserve-icon">$</span>
-              <input
-                type="text"
-                placeholder="Reserve Price"
-                v-model="appraisal.reserve_price"
-                class="reserve-input"
-              />
-            </div>
-          </div>
-        </template>
-      </Appraisal>
-      <div class="update-button" @click="updateAppraisal">
-        <span class="button-text">Update Appraisal</span>
+      <div class="stats-container">
+        <div class="stats other-stats">
+          <slot name="advanced-vehicle-details"></slot>
+        </div>
       </div>
     </div>
-    <div v-else>
-      <p>There is no appraisal with this ID.</p>
+
+    <div class="appraisals-container">
+      <div class="appraisals">
+        <slot name="vehicle-damages"></slot>
+      </div>
+
+      <div class="appraisals-photos">
+        <slot name="car-pictures"></slot>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import Appraisal from "@/components/Appraisal.vue";
-import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
-import { mapGetters } from "vuex";
-
 export default {
-  name: "AppraisalViewPage",
-  components: {
-    Appraisal,
-  },
-  computed: {
-    ...mapGetters(["getUserProfile"]),
-    userName() {
-      const userProfile = this.getUserProfile;
-      return userProfile
-        ? `${userProfile.first_name} ${userProfile.last_name}`
-        : "";
-    },
-    userEmail() {
-      const userProfile = this.getUserProfile;
-      return userProfile ? userProfile.email : "";
-    },
-  },
-
-  data() {
-    return {
-      selectedDealership: "",
-      dealershipOptions: [],
-      transmissionOptions: [
-        { value: "", label: "Transmission" },
-        { value: "Automatic", label: "Automatic" },
-        { value: "Manual", label: "Manual" },
-      ],
-      fuelOptions: [
-        { value: "", label: "Fuel Type" },
-        { value: "Diesel", label: "Diesel" },
-        { value: "Petrol", label: "Petrol" },
-        { value: "Electric", label: "Electric" },
-        { value: "Hybrid", label: "Hybrid" },
-      ],
-      showDropdown: false,
-      appraisal: null,
-      phoneCodes: {
-        "+61": "AU",
-        "+1": "US",
-        "+44": "UK",
-      },
-    };
-  },
-  mounted() {
-    this.fetchDealerProfileInfo();
-  },
-  created() {
-    this.fetchAppraisal();
-  },
-  methods: {
-    fetchAppraisal() {
-      const id = this.$route.params.id;
-      axiosInstance
-        .get(`${endpoints.all_appraisals}${id}/`)
-        .then((response) => {
-          console.log(response.data); // Check the structure of the response
-          this.appraisal = response.data;
-        })
-        .catch((error) => {
-          console.error("Error fetching appraisal details:", error);
-        });
-    },
-    selectDealership(dealership) {
-      this.selectedDealership = dealership;
-      this.formData.dealership = dealership.id; // Set the ID of the selected dealership in formData
-      this.showDropdown = false;
-    },
-    async fetchDealerProfileInfo() {
-      try {
-        // Fetch dealer profile info
-        const response = await axiosInstance.get(endpoints.dealerProfile);
-        this.formData = response.data;
-
-        // Extract dealership IDs and names from the response
-        const dealershipIds = response.data.dealerships || []; // Ensure it's an array
-        const dealershipNames = response.data.dealership_names || []; // Ensure it's an array
-
-        // Create a map of dealership IDs to names for easy lookup
-        const dealershipMap = new Map(
-          dealershipNames.map(({ id, dealership_name }) => [
-            id,
-            dealership_name,
-          ])
-        );
-
-        // Populate dealershipOptions with dealership names based on the IDs
-        this.dealershipOptions = dealershipIds.map((id) => ({
-          id: id,
-          name: dealershipMap.get(id) || `Dealership ${id}`, // Fallback to `Dealership ${id}` if name is not found
-        }));
-
-        // Set the selectedDealership based on the first dealership option, if applicable
-        this.selectedDealership =
-          this.dealershipOptions.length > 0 ? this.dealershipOptions[0].id : "";
-      } catch (error) {
-        console.error("Error fetching dealer profile information:", error);
-      }
-    },
-  },
+  name: "Appraisal",
 };
 </script>
 
