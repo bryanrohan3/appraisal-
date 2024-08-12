@@ -293,6 +293,9 @@ export default {
     displayedPhotos() {
       return this.photos.slice(0, 4); // Show only up to 4 images
     },
+    currentModel() {
+      return this.isViewingAppraisal ? this.appraisal : this.formData;
+    },
     additionalPhotosCount() {
       return this.photos.length > 4 ? this.photos.length - 4 : 0; // Number of additional photos
     },

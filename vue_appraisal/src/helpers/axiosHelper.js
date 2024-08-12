@@ -43,6 +43,7 @@ const endpoints = {
     `${apiConstants.api_hostname}offer/${offerId}/make-winner/`,
   updateOffer: (appraisalId, offerId) =>
     `${apiConstants.api_hostname}appraisals/${appraisalId}/update_offer/${offerId}/`,
+  getAppraisal: (id) => `${apiConstants.api_hostname}appraisals/${id}/`,
 };
 
 export { axiosInstance, endpoints };

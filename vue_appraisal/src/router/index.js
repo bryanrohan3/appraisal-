@@ -40,7 +40,7 @@ const routes = [
       {
         path: "create-appraisal",
         name: "CreateAppraisalPage",
-        component: CreateAppraisalPage,
+        component: AppraisalViewPage,
       },
       {
         path: "appraisals",

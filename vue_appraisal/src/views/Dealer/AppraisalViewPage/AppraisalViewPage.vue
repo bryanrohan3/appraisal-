@@ -1,6 +1,12 @@
 <template>
   <div class="dashboard-container">
+    <!-- <ToastNotification
+      v-if="showToast"
+      :message="toastMessage"
+      @close="showToast = false"
+    /> -->
     <div class="tabs">
+      <!-- Appraisal tab (always shown) -->
       <button
         class="tab-button"
         :class="{ active: currentTab === 'appraisal' }"
@@ -8,35 +14,59 @@
       >
         Appraisal
       </button>
-      <button
-        class="tab-button"
-        :class="{ active: currentTab === 'offers' }"
-        @click="currentTab = 'offers'"
-      >
-        Offers
-      </button>
-      <button
-        class="tab-button"
-        :class="{ active: currentTab === 'comments' }"
-        @click="currentTab = 'comments'"
-      >
-        Comments
-      </button>
+
+      <!-- Offers and Comments tabs (only shown if viewing an appraisal) -->
+      <template v-if="isViewingAppraisal">
+        <button
+          class="tab-button"
+          :class="{ active: currentTab === 'offers' }"
+          @click="currentTab = 'offers'"
+        >
+          Offers
+        </button>
+        <button
+          class="tab-button"
+          :class="{ active: currentTab === 'comments' }"
+          @click="currentTab = 'comments'"
+        >
+          Comments
+        </button>
+      </template>
     </div>
+
     <div v-if="currentTab === 'appraisal'">
-      <div class="title-container">
-        <h1 class="title">View Appraisal Form</h1>
-        <div class="checkbox-and-button">
-          <label class="checkbox-container">
-            <input
-              type="checkbox"
-              id="ready-for-management"
-              v-model="appraisal.ready_for_management"
-            />
-            <span class="checkbox-label">Ready for Management</span>
-          </label>
-          <div class="notification-button" @click="submitForm">
-            <span class="button-text">Save Appraisal</span>
+      <div>
+        <div v-if="isCreatingAppraisal" class="title-container">
+          <h1 class="title">Create Appraisal Form</h1>
+          <div class="checkbox-and-button">
+            <label class="checkbox-container">
+              <input
+                type="checkbox"
+                id="ready-for-management"
+                v-model="formData.readyForManagement"
+              />
+              <span class="checkbox-label">Ready for Management</span>
+            </label>
+            <div class="notification-button" @click="submitForm">
+              <span class="button-text">Create Appraisal</span>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="isViewingAppraisal" class="title-container">
+          <h1 class="title">View Appraisal Form</h1>
+          <div class="checkbox-and-button">
+            <label class="checkbox-container">
+              <input
+                type="checkbox"
+                id="ready-for-management"
+                v-model="appraisal.ready_for_management"
+              />
+              <span class="checkbox-label">Ready for Management</span>
+            </label>
+            <div class="notification-button" @click="submitForm">
+              <span class="button-text">Save Appraisal</span>
+            </div>
           </div>
         </div>
       </div>
@@ -46,25 +76,26 @@
           <template #header>
             <p class="headers">Customer Personal Details</p>
           </template>
+
           <!-- Client Details -->
           <template #customer-details>
             <div class="form-row">
               <input
                 type="text"
-                v-model="appraisal.customer_first_name"
-                placeholder="First Name"
+                :placeholder="'First Name'"
+                v-model="currentModel.customer_first_name"
               />
               <input
                 type="text"
-                v-model="appraisal.customer_last_name"
-                placeholder="Last Name"
+                :placeholder="'Last Name'"
+                v-model="currentModel.customer_last_name"
               />
             </div>
             <div class="form-row">
               <input
                 type="email"
-                v-model="appraisal.customer_email"
-                placeholder="Email"
+                :placeholder="'Email'"
+                v-model="currentModel.customer_email"
               />
               <div class="phone-input">
                 <select>
@@ -78,8 +109,8 @@
                 </select>
                 <input
                   type="text"
-                  v-model="appraisal.customer_phone"
-                  placeholder="Phone"
+                  :placeholder="'Phone'"
+                  v-model="currentModel.customer_phone"
                 />
               </div>
             </div>
@@ -87,28 +118,50 @@
 
           <!-- Initiating Dealer Pro -->
           <template #profile>
-            <p class="initiating-dealer">Initiating Dealer Pro</p>
-            <p class="name">
-              {{ appraisal.initiating_dealer?.first_name }}
-              {{ appraisal.initiating_dealer?.last_name }}
-            </p>
-            <p class="last-updated-dealer">Last Updated Dealer</p>
-            <p class="updated-name">
-              {{ appraisal.last_updating_dealer?.first_name }}
-              {{ appraisal.last_updating_dealer?.last_name }}
-            </p>
-            <div class="dealership-dropdown">
-              <select class="input-dealership" v-model="selectedDealership">
-                <option disabled value="">Select Dealership</option>
-                <option
-                  v-for="option in dealershipOptions"
-                  :key="option.id"
-                  :value="option.id"
-                >
-                  {{ option.name }}
-                </option>
-              </select>
-            </div>
+            <template v-if="isViewingAppraisal">
+              <!-- Content for viewing an appraisal -->
+              <p class="initiating-dealer">Initiating Dealer Pro</p>
+              <p class="name">
+                {{ appraisal.initiating_dealer?.first_name }}
+                {{ appraisal.initiating_dealer?.last_name }}
+              </p>
+              <p class="last-updated-dealer">Last Updated Dealer</p>
+              <p class="updated-name">
+                {{ appraisal.last_updating_dealer?.first_name }}
+                {{ appraisal.last_updating_dealer?.last_name }}
+              </p>
+              <div class="dealership-dropdown">
+                <select class="input-dealership" v-model="selectedDealership">
+                  <option disabled value="">Select Dealership</option>
+                  <option
+                    v-for="option in dealershipOptions"
+                    :key="option.id"
+                    :value="option.id"
+                  >
+                    {{ option.name }}
+                  </option>
+                </select>
+              </div>
+            </template>
+
+            <template v-else-if="isCreatingAppraisal">
+              <!-- Content for creating an appraisal -->
+              <div class="profile-picture"></div>
+              <p class="name">{{ userName }}</p>
+              <p class="email">{{ userEmail }}</p>
+              <div class="dealership-dropdown">
+                <select class="input-dealership" v-model="selectedDealership">
+                  <option disabled value="">Select Dealership</option>
+                  <option
+                    v-for="option in dealershipOptions"
+                    :key="option.id"
+                    :value="option.id"
+                  >
+                    {{ option.name }}
+                  </option>
+                </select>
+              </div>
+            </template>
           </template>
 
           <!-- Vehicle Details -->
@@ -117,42 +170,42 @@
             <p class="small-header">Vehicle Make</p>
             <input
               type="text"
-              v-model="appraisal.vehicle_make"
+              v-model="currentModel.vehicle_make"
               placeholder="Car Make"
               class="input"
             />
             <p class="small-header">Vehicle Model</p>
             <input
               type="text"
-              v-model="appraisal.vehicle_model"
+              v-model="currentModel.vehicle_model"
               placeholder="Car Model"
               class="input"
             />
             <p class="small-header">Vehicle Year</p>
             <input
               type="text"
-              v-model="appraisal.vehicle_year"
+              v-model="currentModel.vehicle_year"
               placeholder="Car Year"
               class="input"
             />
             <p class="small-header">Vehicle Colour</p>
             <input
               type="text"
-              v-model="appraisal.color"
+              v-model="currentModel.color"
               placeholder="Car Colour"
               class="input"
             />
             <p class="small-header">Vehicle Registration</p>
             <input
               type="text"
-              v-model="appraisal.vehicle_registration"
+              v-model="currentModel.vehicle_registration"
               placeholder="Rego"
               class="input"
             />
             <p class="small-header">Vehicle VIN</p>
             <input
               type="text"
-              v-model="appraisal.vehicle_vin"
+              v-model="currentModel.vehicle_vin"
               placeholder="VIN"
               class="input"
             />
@@ -166,7 +219,7 @@
             <input
               type="text"
               placeholder="Odometer Reading"
-              v-model="appraisal.odometer_reading"
+              v-model="currentModel.odometer_reading"
               class="input"
             />
 
@@ -174,12 +227,12 @@
             <input
               type="text"
               placeholder="Engine Type"
-              v-model="appraisal.engine_type"
+              v-model="currentModel.engine_type"
               class="input"
             />
 
             <p class="small-header">Transmission</p>
-            <select class="input" v-model="appraisal.transmission">
+            <select class="input" v-model="currentModel.transmission">
               <option
                 v-for="option in transmissionOptions"
                 :key="option.value"
@@ -190,7 +243,7 @@
             </select>
 
             <p class="small-header">Fuel Type</p>
-            <select class="input" v-model="appraisal.fuel_type">
+            <select class="input" v-model="currentModel.fuel_type">
               <option
                 v-for="option in fuelOptions"
                 :key="option.value"
@@ -204,7 +257,7 @@
             <input
               type="text"
               placeholder="Body Type"
-              v-model="appraisal.body_type"
+              v-model="currentModel.body_type"
               class="input"
             />
 
@@ -215,7 +268,7 @@
                 <input
                   type="text"
                   placeholder="Reserve Price"
-                  v-model="appraisal.reserve_price"
+                  v-model="currentModel.reserve_price"
                   class="reserve-input"
                 />
               </div>
@@ -411,12 +464,31 @@ export default {
       const userProfile = this.getUserProfile;
       return userProfile ? userProfile.email : "";
     },
+    isCreatingAppraisal() {
+      // Check if we are on the create appraisal page based on the route
+      return this.$route.name === "CreateAppraisalPage";
+    },
+    currentModel() {
+      return this.isViewingAppraisal
+        ? this.appraisal || {}
+        : this.formData || {};
+    },
+    isViewingAppraisal() {
+      // Check if we are on the view appraisal page
+      return this.$route.name === "AppraisalViewPage";
+    },
+    displayedPhotos() {
+      return this.photos.slice(0, 4); // Show only up to 4 images
+    },
+    additionalPhotosCount() {
+      return this.photos.length > 4 ? this.photos.length - 4 : 0; // Number of additional photos
+    },
   },
 
   data() {
     return {
       selectedDealership: "",
-      currentTab: "offers",
+      currentTab: "appraisal",
       dealershipOptions: [],
       damages: [],
       transmissionOptions: [
@@ -446,13 +518,39 @@ export default {
         "+1": "US",
         "+44": "UK",
       },
+      showToast: false,
+      toastMessage: "",
+      photos: [],
+      formData: {
+        readyForManagement: false,
+        customer_first_name: "",
+        customer_last_name: "",
+        customer_email: "",
+        customer_phone: "",
+        dealership: "",
+        vehicle_make: "",
+        vehicle_model: "",
+        vehicle_year: "",
+        color: "",
+        vehicle_registration: "",
+        odometer_reading: "",
+        engine_type: "",
+        transmission: "",
+        fuel_type: "",
+        body_type: "",
+        reserve_price: "",
+        damages: [],
+        photos: [],
+      },
     };
   },
   mounted() {
     this.fetchDealerProfileInfo();
   },
   created() {
-    this.fetchAppraisal();
+    if (this.isViewingAppraisal) {
+      this.fetchAppraisal();
+    }
   },
   methods: {
     fetchAppraisal() {
@@ -584,6 +682,91 @@ export default {
 
     cancelAdjustInput() {
       this.showAdjustInputPopup = false;
+    },
+    // Create Appraisal Methods
+    handleFileUpload(event) {
+      const files = event.target.files;
+      if (files.length > 0) {
+        const newPhotos = Array.from(files).map((file) => ({
+          url: URL.createObjectURL(file),
+          name: file.name,
+        }));
+        this.photos = [...this.photos, ...newPhotos];
+      }
+    },
+    handleDamageFileUpload(event, index) {
+      const files = event.target.files;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.damages[index].damagePhotos.push({ url: e.target.result });
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+    addDamage() {
+      this.damages.push({
+        description: "",
+        location: "",
+        repairCost: "",
+        damagePhotos: [],
+      });
+    },
+    removeDamage(index) {
+      this.damages.splice(index, 1);
+    },
+    damageLabel(index) {
+      return `Damage ${index + 1}`;
+    },
+    async submitForm() {
+      try {
+        // Prepare form data for submission
+        const data = {
+          dealership: this.selectedDealership,
+          ready_for_management: this.formData.readyForManagement,
+          customer_first_name: this.formData.customer_first_name,
+          customer_last_name: this.formData.customer_last_name,
+          customer_email: this.formData.customer_email,
+          customer_phone: this.formData.customer_phone,
+          vehicle_make: this.formData.vehicle_make,
+          vehicle_model: this.formData.vehicle_model,
+          vehicle_year: parseInt(this.formData.vehicle_year, 10),
+          vehicle_vin: this.formData.vehicle_vin || "",
+          vehicle_registration: this.formData.vehicle_registration,
+          color: this.formData.color,
+          odometer_reading: parseInt(this.formData.odometer_reading, 10),
+          engine_type: this.formData.engine_type,
+          transmission: this.formData.transmission,
+          body_type: this.formData.body_type,
+          fuel_type: this.formData.fuel_type,
+          reserve_price: parseInt(this.formData.reserve_price, 10),
+          damages: this.damages.map((damage) => ({
+            description: damage.description,
+            location: damage.location,
+            repair_cost_estimate: parseInt(damage.repair_cost_estimate, 10),
+          })),
+          photos: this.photos.map((photo) => photo.url),
+        };
+
+        console.log("Submitting data:", data); // Debug output
+
+        // Make POST request to create appraisal
+        const response = await axiosInstance.post(
+          endpoints.createAppraisal,
+          data
+        );
+        console.log("Appraisal created successfully", response.data);
+
+        this.toastMessage = "Appraisal created successfully";
+        this.showToast = true;
+        // Handle successful submission, e.g., redirect or show a success message
+      } catch (error) {
+        console.error("Error creating appraisal:", error);
+        this.toastMessage = "Error creating appraisal";
+        this.showToast = true;
+        // Handle error, e.g., show an error message
+      }
     },
   },
 };
@@ -1233,5 +1416,14 @@ input.reserve-input {
 
 .adjust-offer-popup .cancel-offer-button:hover {
   background-color: #888888;
+}
+
+/* new code */
+.profile-picture {
+  height: 65px;
+  width: 65px;
+  border-radius: 50%;
+  background-color: #e7e7e7;
+  margin-bottom: 10px;
 }
 </style>
