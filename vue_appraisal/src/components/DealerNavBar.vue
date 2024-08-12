@@ -12,7 +12,7 @@
         <div class="nav-item">
           <img
             :src="
-              isActive('/dashboard')
+              isActive('/')
                 ? require('@/assets/dashboard-active.svg')
                 : require('@/assets/dashboard.svg')
             "
@@ -92,7 +92,7 @@ export default {
       this.$router.push({ name: "login" }); // Redirect to login page
     },
     isActive(route) {
-      return this.$route.path === route;
+      return this.$route.path.startsWith(route);
     },
   },
 };

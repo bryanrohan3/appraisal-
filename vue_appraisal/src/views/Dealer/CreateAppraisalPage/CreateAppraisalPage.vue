@@ -1,5 +1,10 @@
 <template>
   <div class="dashboard-container">
+    <ToastNotification
+      v-if="showToast"
+      :message="toastMessage"
+      @close="showToast = false"
+    />
     <div class="title-container">
       <h1 class="title">Create Appraisal Form</h1>
       <div class="checkbox-and-button">
@@ -428,7 +433,7 @@ export default {
           customer_first_name: this.formData.firstName,
           customer_last_name: this.formData.lastName,
           customer_email: this.formData.email,
-          customer_phone: this.formData.phone,
+          customer_phone: this.formData.appraisal_phone,
           vehicle_make: this.formData.vehicleMake,
           vehicle_model: this.formData.vehicleModel,
           vehicle_year: parseInt(this.formData.vehicleYear, 10), // Convert to integer
@@ -442,8 +447,8 @@ export default {
           fuel_type: this.formData.fuelType,
           reserve_price: parseInt(this.formData.reservePrice, 10), // Convert to integer
           damages: this.damages.map((damage) => ({
-            damage_description: damage.description,
-            damage_location: damage.location,
+            description: damage.description,
+            location: damage.location,
             repair_cost_estimate: parseInt(damage.repairCost, 10), // Convert to integer
           })),
           photos: this.photos.map((photo) => photo.url), // Ensure this matches backend expectations

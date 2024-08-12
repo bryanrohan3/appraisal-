@@ -39,6 +39,10 @@ const endpoints = {
   dealerProfile: apiConstants.api_hostname + "dealer-profile/current/",
   all_appraisals: apiConstants.api_hostname + "appraisals/",
   appraisals: apiConstants.api_hostname + "appraisals/csv",
+  makeWinner: (offerId) =>
+    `${apiConstants.api_hostname}offer/${offerId}/make-winner/`,
+  updateOffer: (appraisalId, offerId) =>
+    `${apiConstants.api_hostname}appraisals/${appraisalId}/update_offer/${offerId}/`,
 };
 
 export { axiosInstance, endpoints };

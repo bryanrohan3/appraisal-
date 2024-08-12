@@ -1,245 +1,390 @@
 <template>
   <div class="dashboard-container">
-    <div class="title-container">
-      <h1 class="title">View Appraisal Form</h1>
-      <div class="checkbox-and-button">
-        <label class="checkbox-container">
+    <div class="tabs">
+      <button
+        class="tab-button"
+        :class="{ active: currentTab === 'appraisal' }"
+        @click="currentTab = 'appraisal'"
+      >
+        Appraisal
+      </button>
+      <button
+        class="tab-button"
+        :class="{ active: currentTab === 'offers' }"
+        @click="currentTab = 'offers'"
+      >
+        Offers
+      </button>
+      <button
+        class="tab-button"
+        :class="{ active: currentTab === 'comments' }"
+        @click="currentTab = 'comments'"
+      >
+        Comments
+      </button>
+    </div>
+    <div v-if="currentTab === 'appraisal'">
+      <div class="title-container">
+        <h1 class="title">View Appraisal Form</h1>
+        <div class="checkbox-and-button">
+          <label class="checkbox-container">
+            <input
+              type="checkbox"
+              id="ready-for-management"
+              v-model="appraisal.ready_for_management"
+            />
+            <span class="checkbox-label">Ready for Management</span>
+          </label>
+          <div class="notification-button" @click="submitForm">
+            <span class="button-text">Save Appraisal</span>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="appraisal">
+        <Appraisal>
+          <template #header>
+            <p class="headers">Customer Personal Details</p>
+          </template>
+          <!-- Client Details -->
+          <template #customer-details>
+            <div class="form-row">
+              <input
+                type="text"
+                v-model="appraisal.customer_first_name"
+                placeholder="First Name"
+              />
+              <input
+                type="text"
+                v-model="appraisal.customer_last_name"
+                placeholder="Last Name"
+              />
+            </div>
+            <div class="form-row">
+              <input
+                type="email"
+                v-model="appraisal.customer_email"
+                placeholder="Email"
+              />
+              <div class="phone-input">
+                <select>
+                  <option
+                    v-for="(code, country) in phoneCodes"
+                    :key="code"
+                    :value="code"
+                  >
+                    {{ code }} ({{ country }})
+                  </option>
+                </select>
+                <input
+                  type="text"
+                  v-model="appraisal.customer_phone"
+                  placeholder="Phone"
+                />
+              </div>
+            </div>
+          </template>
+
+          <!-- Initiating Dealer Pro -->
+          <template #profile>
+            <p class="initiating-dealer">Initiating Dealer Pro</p>
+            <p class="name">
+              {{ appraisal.initiating_dealer?.first_name }}
+              {{ appraisal.initiating_dealer?.last_name }}
+            </p>
+            <p class="last-updated-dealer">Last Updated Dealer</p>
+            <p class="updated-name">
+              {{ appraisal.last_updating_dealer?.first_name }}
+              {{ appraisal.last_updating_dealer?.last_name }}
+            </p>
+            <div class="dealership-dropdown">
+              <select class="input-dealership" v-model="selectedDealership">
+                <option disabled value="">Select Dealership</option>
+                <option
+                  v-for="option in dealershipOptions"
+                  :key="option.id"
+                  :value="option.id"
+                >
+                  {{ option.name }}
+                </option>
+              </select>
+            </div>
+          </template>
+
+          <!-- Vehicle Details -->
+          <template #basic-vehicle-details>
+            <p class="headers">Basic Vehicle Details</p>
+            <p class="small-header">Vehicle Make</p>
+            <input
+              type="text"
+              v-model="appraisal.vehicle_make"
+              placeholder="Car Make"
+              class="input"
+            />
+            <p class="small-header">Vehicle Model</p>
+            <input
+              type="text"
+              v-model="appraisal.vehicle_model"
+              placeholder="Car Model"
+              class="input"
+            />
+            <p class="small-header">Vehicle Year</p>
+            <input
+              type="text"
+              v-model="appraisal.vehicle_year"
+              placeholder="Car Year"
+              class="input"
+            />
+            <p class="small-header">Vehicle Colour</p>
+            <input
+              type="text"
+              v-model="appraisal.color"
+              placeholder="Car Colour"
+              class="input"
+            />
+            <p class="small-header">Vehicle Registration</p>
+            <input
+              type="text"
+              v-model="appraisal.vehicle_registration"
+              placeholder="Rego"
+              class="input"
+            />
+            <p class="small-header">Vehicle VIN</p>
+            <input
+              type="text"
+              v-model="appraisal.vehicle_vin"
+              placeholder="VIN"
+              class="input"
+            />
+          </template>
+
+          <!-- Additional Details -->
+          <template #advanced-vehicle-details>
+            <p class="headers">Advanced Vehicle Details</p>
+
+            <p class="small-header">Odometer Reading</p>
+            <input
+              type="text"
+              placeholder="Odometer Reading"
+              v-model="appraisal.odometer_reading"
+              class="input"
+            />
+
+            <p class="small-header">Engine Type</p>
+            <input
+              type="text"
+              placeholder="Engine Type"
+              v-model="appraisal.engine_type"
+              class="input"
+            />
+
+            <p class="small-header">Transmission</p>
+            <select class="input" v-model="appraisal.transmission">
+              <option
+                v-for="option in transmissionOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+
+            <p class="small-header">Fuel Type</p>
+            <select class="input" v-model="appraisal.fuel_type">
+              <option
+                v-for="option in fuelOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+
+            <p class="small-header">Body Type</p>
+            <input
+              type="text"
+              placeholder="Body Type"
+              v-model="appraisal.body_type"
+              class="input"
+            />
+
+            <p class="small-header">Reserve Price</p>
+            <div class="reserve-price-container">
+              <div class="reserve-input-wrapper">
+                <span class="reserve-icon">$</span>
+                <input
+                  type="text"
+                  placeholder="Reserve Price"
+                  v-model="appraisal.reserve_price"
+                  class="reserve-input"
+                />
+              </div>
+            </div>
+          </template>
+
+          <template #vehicle-damages>
+            <div class="damages-header">
+              <p class="headers">Vehicle Damages</p>
+              <button @click="addDamage" class="add-damage-button">
+                <img src="@/assets/add.svg" alt="Car Icon" class="car-icon" />
+              </button>
+            </div>
+            <!-- if there are damages in appraisal.damages then display them in the inputs -->
+            <div
+              v-for="(damage, index) in damages"
+              :key="index"
+              class="damage-instance"
+            >
+              <p class="damage-label">{{ damageLabel(index) }}</p>
+              <input
+                type="text"
+                v-model="damage.description"
+                placeholder="Description"
+                class="input"
+              />
+              <input
+                type="text"
+                v-model="damage.location"
+                placeholder="Location"
+                class="input"
+              />
+              <input
+                type="text"
+                v-model="damage.repair_cost_estimate"
+                placeholder="Cost"
+                class="input"
+              />
+              <button @click="removeDamage(index)" class="remove-damage-button">
+                Remove
+              </button>
+            </div>
+          </template>
+
+          <template #car-pictures>
+            <p class="headers">Car Pictures</p>
+            <input
+              type="file"
+              id="photo-upload"
+              multiple
+              @change="handleFileUpload"
+              class="upload-button"
+            />
+          </template>
+        </Appraisal>
+      </div>
+      <div v-else>
+        <p>There is no appraisal with this ID.</p>
+      </div>
+    </div>
+
+    <div v-if="currentTab === 'offers'">
+      <div class="offers-container">
+        <table class="offers-table">
+          <thead>
+            <tr class="offers-table-header">
+              <th>Offer ID</th>
+              <th>User Info</th>
+              <th>Created At</th>
+              <th>Offer Amount</th>
+              <th>Offer Made At</th>
+              <th>Adjusted Amount</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="offer in appraisal.offers"
+              :key="offer.id"
+              @click="toggleDropdown(offer.id)"
+              :class="{
+                'winning-row': offer.id === appraisal.winner?.offer_id,
+              }"
+            >
+              <td>{{ offer.id }}</td>
+              <td>
+                <strong>
+                  {{ offer.user?.first_name }} {{ offer.user?.last_name }}
+                </strong>
+                <br />
+                <span>@{{ offer.user?.username }}</span>
+              </td>
+              <td>
+                {{ offer.created_at ? formatDate(offer.created_at) : "null" }}
+              </td>
+              <td>{{ offer.amount !== null ? `$${offer.amount}` : "null" }}</td>
+              <td>
+                {{
+                  offer.offer_made_at ? formatDate(offer.offer_made_at) : "null"
+                }}
+              </td>
+              <td>
+                {{
+                  offer.adjusted_amount !== null
+                    ? `$${offer.adjusted_amount}`
+                    : "null"
+                }}
+              </td>
+              <td class="actions-cell">
+                <img
+                  src="@/assets/dots.svg"
+                  alt="Actions"
+                  class="actions-icon"
+                />
+                <div v-if="offer.showDropdown" class="dropdown-menu">
+                  <button @click.stop="triggerConfirmDialog(offer.id)">
+                    Select Winner
+                  </button>
+
+                  <button @click.stop="showAdjustInput(offer)">
+                    Adjust Amount
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div v-if="showConfirmDialog" class="confirm-dialog">
+          <p>Are you sure you want to select this offer as the winner?</p>
+          <button @click="confirmSelection">Yes</button>
+          <button @click="cancelSelection">No</button>
+        </div>
+
+        <div v-if="showAdjustInputPopup" class="adjust-offer-popup">
+          <label for="adjusted-offer-input">Adjusted Offer:</label>
           <input
-            type="checkbox"
-            id="ready-for-management"
-            v-model="appraisal.ready_for_management"
+            type="number"
+            id="adjusted-offer-input"
+            v-model="selectedOffer.adjusted_amount"
+            class="adjusted-offer-input"
+            placeholder="Enter adjusted offer"
           />
-          <span class="checkbox-label">Ready for Management</span>
-        </label>
-        <div class="notification-button" @click="submitForm">
-          <span class="button-text">Save Appraisal</span>
+          <button
+            class="submit-offer-button"
+            @click="
+              submitAdjustedOffer(
+                selectedOffer.id,
+                selectedOffer.adjusted_amount
+              )
+            "
+          >
+            Submit
+          </button>
+          <button class="cancel-offer-button" @click="cancelAdjustInput">
+            Cancel
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="appraisal">
-      <Appraisal>
-        <template #header>
-          <p class="headers">Customer Personal Details</p>
-        </template>
-        <!-- Client Details -->
-        <template #customer-details>
-          <div class="form-row">
-            <input
-              type="text"
-              v-model="appraisal.customer_first_name"
-              placeholder="First Name"
-            />
-            <input
-              type="text"
-              v-model="appraisal.customer_last_name"
-              placeholder="Last Name"
-            />
-          </div>
-          <div class="form-row">
-            <input
-              type="email"
-              v-model="appraisal.customer_email"
-              placeholder="Email"
-            />
-            <div class="phone-input">
-              <select>
-                <option
-                  v-for="(code, country) in phoneCodes"
-                  :key="code"
-                  :value="code"
-                >
-                  {{ code }} ({{ country }})
-                </option>
-              </select>
-              <input
-                type="text"
-                v-model="appraisal.customer_phone"
-                placeholder="Phone"
-              />
-            </div>
-          </div>
-        </template>
+    <div v-else-if="currentTab === 'comments'">
+      <div class="offers-container">
+        <p>General Comments</p>
+        <p>{{ appraisal.general_comments }}</p>
 
-        <!-- Initiating Dealer Pro -->
-        <template #profile>
-          <p class="initiating-dealer">Initiating Dealer Pro</p>
-          <p class="name">
-            {{ appraisal.initiating_dealer?.first_name }}
-
-            {{ appraisal.initiating_dealer?.last_name }}
-          </p>
-          <p class="last-updated-dealer">Last Updated Dealer</p>
-          <p class="updated-name">
-            {{ appraisal.last_updating_dealer?.first_name }}
-            {{ appraisal.last_updating_dealer?.last_name }}
-          </p>
-          <div class="dealership-dropdown">
-            <select class="input-dealership" v-model="selectedDealership">
-              <option disabled value="">Select Dealership</option>
-              <option
-                v-for="option in dealershipOptions"
-                :key="option.id"
-                :value="option.id"
-              >
-                {{ option.name }}
-              </option>
-            </select>
-          </div>
-        </template>
-
-        <!-- Vehicle Details -->
-        <template #basic-vehicle-details>
-          <p class="headers">Basic Vehicle Details</p>
-          <p class="small-header">Vehicle Make</p>
-          <input
-            type="text"
-            v-model="appraisal.vehicle_make"
-            placeholder="Car Make"
-            class="input"
-          />
-          <p class="small-header">Vehicle Model</p>
-          <input
-            type="text"
-            v-model="appraisal.vehicle_model"
-            placeholder="Car Model"
-            class="input"
-          />
-          <p class="small-header">Vehicle Year</p>
-          <input
-            type="text"
-            v-model="appraisal.vehicle_year"
-            placeholder="Car Year"
-            class="input"
-          />
-          <p class="small-header">Vehicle Colour</p>
-          <input
-            type="text"
-            v-model="appraisal.color"
-            placeholder="Car Colour"
-            class="input"
-          />
-          <p class="small-header">Vehicle Registration</p>
-          <input
-            type="text"
-            v-model="appraisal.vehicle_registration"
-            placeholder="Rego"
-            class="input"
-          />
-          <p class="small-header">Vehicle VIN</p>
-          <input
-            type="text"
-            v-model="appraisal.vehicle_vin"
-            placeholder="VIN"
-            class="input"
-          />
-        </template>
-
-        <!-- Additional Details -->
-        <template #advanced-vehicle-details>
-          <p class="headers">Advanced Vehicle Details</p>
-
-          <p class="small-header">Odometer Reading</p>
-          <input
-            type="text"
-            placeholder="Odometer Reading"
-            v-model="appraisal.odometer_reading"
-            class="input"
-          />
-
-          <p class="small-header">Engine Type</p>
-          <input
-            type="text"
-            placeholder="Engine Type"
-            v-model="appraisal.engine_type"
-            class="input"
-          />
-
-          <p class="small-header">Transmission</p>
-          <select class="input" v-model="appraisal.transmission">
-            <option
-              v-for="option in transmissionOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-
-          <p class="small-header">Fuel Type</p>
-          <select class="input" v-model="appraisal.fuel_type">
-            <option
-              v-for="option in fuelOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-
-          <p class="small-header">Body Type</p>
-          <input
-            type="text"
-            placeholder="Body Type"
-            v-model="appraisal.body_type"
-            class="input"
-          />
-
-          <p class="small-header">Reserve Price</p>
-          <div class="reserve-price-container">
-            <div class="reserve-input-wrapper">
-              <span class="reserve-icon">$</span>
-              <input
-                type="text"
-                placeholder="Reserve Price"
-                v-model="appraisal.reserve_price"
-                class="reserve-input"
-              />
-            </div>
-          </div>
-        </template>
-
-        <template #vehicle-damages>
-          <div class="damages-header">
-            <p class="headers">Vehicle Damages</p>
-            <button @click="addDamage" class="add-damage-button">
-              <img src="@/assets/add.svg" alt="Car Icon" class="car-icon" />
-            </button>
-          </div>
-          <!-- if there are damages in appraisal.damages then display them in the inputs -->
-          <div
-            v-for="(damage, index) in damages"
-            :key="index"
-            class="damage-instance"
-          >
-            <p class="damage-label">{{ damageLabel(index) }}</p>
-            <input
-              type="text"
-              v-model="damage.description"
-              placeholder="Description"
-              class="input"
-            />
-            <input
-              type="text"
-              v-model="damage.location"
-              placeholder="Location"
-              class="input"
-            />
-            <input
-              type="text"
-              v-model="damage.repair_cost_estimate"
-              placeholder="Cost"
-              class="input"
-            />
-            <button @click="removeDamage(index)" class="remove-damage-button">
-              Remove
-            </button>
-          </div>
-        </template>
-      </Appraisal>
-    </div>
-    <div v-else>
-      <p>There is no appraisal with this ID.</p>
+        <p>Private Comments</p>
+        <p>{{ appraisal.private_comments }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -271,6 +416,7 @@ export default {
   data() {
     return {
       selectedDealership: "",
+      currentTab: "offers",
       dealershipOptions: [],
       damages: [],
       transmissionOptions: [
@@ -286,9 +432,14 @@ export default {
         { value: "Hybrid", label: "Hybrid" },
       ],
       showDropdown: false,
+      showConfirmDialog: false,
+      showAdjustInputPopup: false,
+      selectedOffer: null,
       appraisal: {
         ready_for_management: false,
         damages: [],
+        offers: [], // Initialize offers to an empty array
+        winner: {}, // Initialize winner to an empty object
       },
       phoneCodes: {
         "+61": "AU",
@@ -314,6 +465,10 @@ export default {
           this.damages = Array.isArray(this.appraisal.damages)
             ? this.appraisal.damages
             : [];
+          // Ensure offers is an array
+          this.appraisal.offers = Array.isArray(this.appraisal.offers)
+            ? this.appraisal.offers
+            : [];
         })
         .catch((error) => {
           console.error("Error fetching appraisal details:", error);
@@ -330,6 +485,10 @@ export default {
     },
     removeDamage(index) {
       this.damages.splice(index, 1);
+    },
+    formatDate(dateString) {
+      const options = { year: "numeric", month: "long", day: "numeric" };
+      return new Date(dateString).toLocaleDateString(undefined, options);
     },
     async fetchDealerProfileInfo() {
       try {
@@ -361,6 +520,70 @@ export default {
       } catch (error) {
         console.error("Error fetching dealer profile information:", error);
       }
+    },
+    toggleDropdown(offerId) {
+      const offer = this.appraisal.offers.find((o) => o.id === offerId);
+      if (offer) {
+        offer.showDropdown = !offer.showDropdown;
+        // Close any open dropdowns if clicking elsewhere
+        this.appraisal.offers.forEach((o) => {
+          if (o.id !== offerId) o.showDropdown = false;
+        });
+      }
+    },
+    showAdjustInput(offer) {
+      this.selectedOffer = offer;
+      this.showAdjustInputPopup = true;
+    },
+    triggerConfirmDialog(offerId) {
+      const offer = this.appraisal.offers.find((o) => o.id === offerId);
+      if (offer) {
+        this.selectedOffer = offer;
+        this.showConfirmDialog = true;
+      }
+    },
+
+    async confirmSelection() {
+      try {
+        if (this.selectedOffer) {
+          // Call the API to select the offer as the winner
+          await axiosInstance.post(
+            `${endpoints.makeWinner(this.selectedOffer.id)}`
+          );
+
+          // Fetch the updated appraisal details
+          await this.fetchAppraisal();
+          this.showConfirmDialog = false;
+        }
+      } catch (error) {
+        console.error("Error selecting the winner:", error);
+      }
+    },
+
+    async submitAdjustedOffer(offerId, adjustedAmount) {
+      try {
+        const appraisalId = this.$route.params.id;
+
+        // Call the API to adjust the offer amount
+        await axiosInstance.patch(
+          `${endpoints.updateOffer(appraisalId, offerId)}`,
+          { adjusted_amount: adjustedAmount }
+        );
+
+        // Fetch the updated appraisal details
+        await this.fetchAppraisal();
+        this.showAdjustInputPopup = false;
+      } catch (error) {
+        console.error("Error adjusting the offer amount:", error);
+      }
+    },
+
+    cancelSelection() {
+      this.showConfirmDialog = false;
+    },
+
+    cancelAdjustInput() {
+      this.showAdjustInputPopup = false;
     },
   },
 };
@@ -430,51 +653,6 @@ export default {
   font-weight: 600;
 }
 
-.columns-container {
-  display: flex;
-  margin: 20px 0;
-  gap: 20px;
-}
-
-.column {
-  padding: 10px;
-  box-sizing: border-box;
-  height: 210px;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-  transition: 0.3s;
-}
-
-.column-60 {
-  width: 75%;
-  background-color: #ffffff;
-}
-
-.column-40 {
-  width: 25%;
-  background-color: #ffffff;
-}
-
-.profile-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 10px;
-  margin: 0;
-  font-size: 16px;
-  font-weight: 400;
-}
-
-.profile-picture {
-  height: 70px;
-  width: 70px;
-  border-radius: 50%;
-  background-color: #e7e7e7;
-  margin-bottom: 10px;
-}
-
 .name {
   margin: 0;
 }
@@ -495,19 +673,6 @@ export default {
     Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   font-weight: 600;
   padding-left: 10px;
-}
-
-.greetings-container {
-  width: 100%;
-  padding: 10px;
-  margin: 0;
-}
-
-.customer-details-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-right: 20px;
 }
 
 .form-row {
@@ -628,86 +793,7 @@ select {
   background: white; /* Ensure the background color matches */
 }
 
-.appraisals-container {
-  display: flex;
-  margin: 20px 0;
-  gap: 20px;
-}
-
-.appraisals {
-  width: 50%;
-  background-color: #ffffff;
-  padding: 10px;
-  box-sizing: border-box;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-  height: 100%; /* Make sure the height adjusts with the content */
-}
-
-.appraisals-photos {
-  width: 50%;
-  background-color: #ffffff;
-  padding: 10px;
-  box-sizing: border-box;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-  height: 100%; /* Make sure the height adjusts with the content */
-}
-
-.stats-container {
-  width: 50%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  height: 100%; /* Make sure the height adjusts with the content */
-}
-
-.stats {
-  background-color: #ffffff;
-  padding: 10px;
-  box-sizing: border-box;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-  flex: 1; /* Ensure stats containers grow to the same height */
-}
-
-.other-stats {
-  flex: 1;
-}
-
-.appraisals-photos {
-  background-color: #ffffff;
-  padding: 10px;
-  box-sizing: border-box;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-  height: 100%; /* Adjust height as necessary */
-  position: relative;
-}
-
 #photo-upload {
-  margin-bottom: 10px;
-}
-
-.photos-preview {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 10px;
-  padding-left: 10px;
-}
-
-.photo-container {
-  position: relative;
-  width: 100px; /* Adjust size as needed */
-  height: 100px; /* Adjust size as needed */
-  overflow: hidden;
-  border-radius: 5px;
-}
-
-.photo-preview {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
   margin-bottom: 10px;
 }
 
@@ -868,5 +954,284 @@ input.reserve-input {
   font-size: 10px;
   color: #7d7b7b;
   margin-top: 30px;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  margin-bottom: 20px;
+  position: relative;
+  padding-left: 0;
+  padding-right: 0;
+  justify-content: flex-start; /* Align tabs to the left */
+}
+
+.tab-button {
+  background-color: transparent;
+  border: none;
+  padding: 10px 20px; /* Adjust padding as needed */
+  margin-right: 10px; /* Add space between buttons */
+  cursor: pointer;
+  font-size: 12px;
+  text-align: center;
+  color: #b0b0b0;
+  position: relative;
+}
+
+.tab-button.active {
+  color: #333;
+  font-weight: 600;
+}
+
+.tab-button::after {
+  content: "";
+  display: block;
+  height: 2px;
+  background-color: #eb5a58;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transform: scaleX(0);
+  transform-origin: bottom left;
+  transition: transform 0.3s ease;
+}
+
+.tab-button.active::after {
+  transform: scaleX(1);
+}
+
+/* Offers List */
+.offers-container {
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.offers-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px auto;
+}
+
+.offers-table th,
+.offers-table td {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.offers-table th {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  font-weight: 600;
+}
+
+.offers-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.offers-table tr:hover {
+  background-color: #f1f1f1;
+  cursor: pointer;
+}
+
+.actions-cell {
+  position: relative;
+}
+
+.actions-icon {
+  cursor: pointer;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 150px;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  z-index: 9999;
+}
+
+.dropdown-menu button {
+  background: none;
+  border: none;
+  color: #000;
+  padding: 8px 12px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.dropdown-menu button:hover {
+  background-color: #f8f9fa;
+}
+
+.adjust-offer-container {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.adjusted-offer-input {
+  width: 150px;
+  padding: 6px 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.submit-offer-button {
+  background-color: #f26764;
+  color: #ffffff;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+
+.submit-offer-button:hover {
+  background-color: #a34947;
+}
+
+.submit-offer-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.25);
+}
+
+.winning-row td {
+  background-color: #d4edda; /* Light green background */
+}
+
+.confirm-dialog {
+  position: fixed;
+  top: 50%;
+  left: 60%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  z-index: 9999;
+  width: 300px;
+  text-align: center;
+}
+
+.confirm-dialog p {
+  margin: 0 0 20px;
+  font-size: 16px;
+  color: #333;
+}
+
+.confirm-dialog button {
+  background-color: #f26764;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 0 10px;
+  padding: 10px 20px;
+  transition: background-color 0.3s ease;
+}
+
+.confirm-dialog button:hover {
+  background-color: #8f201e;
+}
+
+.confirm-dialog button:last-child {
+  background-color: #6c757d;
+}
+
+.confirm-dialog button:last-child:hover {
+  background-color: #5a6268;
+}
+
+/* Adjust Offer Popup Styles */
+.adjust-offer-popup {
+  position: fixed;
+  top: 50%;
+  left: 60%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  z-index: 9999;
+  width: 320px;
+  text-align: center;
+}
+
+.adjust-offer-popup h3 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.adjust-offer-popup .offer-id {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.adjust-offer-popup label {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.adjust-offer-popup input {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  padding: 10px;
+  width: calc(100% - 22px); /* Adjust for padding and border */
+  margin-bottom: 20px;
+}
+
+.adjust-offer-popup .button-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.adjust-offer-popup .submit-offer-button,
+.adjust-offer-popup .cancel-offer-button {
+  background-color: #f26764;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 10px 20px;
+  transition: background-color 0.3s ease;
+  flex: 1;
+  margin: 0 5px;
+}
+
+.adjust-offer-popup .submit-offer-button {
+  background-color: #f26764;
+}
+
+.adjust-offer-popup .submit-offer-button:hover {
+  background-color: #8f201e;
+}
+
+.adjust-offer-popup .cancel-offer-button {
+  background-color: #6c757d;
+}
+
+.adjust-offer-popup .cancel-offer-button:hover {
+  background-color: #888888;
 }
 </style>
