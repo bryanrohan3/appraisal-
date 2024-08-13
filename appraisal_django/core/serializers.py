@@ -175,6 +175,12 @@ class DealerProfileNestedSerializer(serializers.ModelSerializer):
         fields = ['id', 'first_name', 'last_name']
 
 
+class UserProfileNestedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'first_name', 'last_name', 'username']
+
+
 class WholesalerInviteSerializer(serializers.Serializer):
     wholesalers = serializers.ListField(
         child=serializers.IntegerField(), 
@@ -275,13 +281,16 @@ class PhotoSerializer(serializers.ModelSerializer):
         fields = ['id', 'image', 'appraisal'] 
     
 class CommentSerializer(serializers.ModelSerializer):
+    user = UserProfileNestedSerializer(read_only=True)  # Ensure user is read-only
+    
     class Meta:
         model = Comment
         fields = ['id', 'user', 'appraisal', 'comment', 'comment_date_time', 'is_private']
         extra_kwargs = {
-            'user': {'read_only': True},
-            'appraisal': {'write_only': True}  # Exclude appraisal from the output but include in input
+            'user': {'read_only': True},  # Mark user as read-only
+            'appraisal': {'write_only': True}  # Include appraisal in input but exclude from output
         }
+
 
 
 

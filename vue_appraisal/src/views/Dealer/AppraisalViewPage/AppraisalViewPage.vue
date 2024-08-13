@@ -430,20 +430,15 @@
       </div>
     </div>
 
-    <div v-else-if="currentTab === 'comments'">
-      <div class="offers-container">
-        <p>General Comments</p>
-        <p>{{ appraisal.general_comments }}</p>
-
-        <p>Private Comments</p>
-        <p>{{ appraisal.private_comments }}</p>
-      </div>
+    <div v-if="currentTab === 'comments'">
+      <CommentTab :appraisal="appraisal" />
     </div>
   </div>
 </template>
 
 <script>
 import Appraisal from "@/components/Appraisal.vue";
+import CommentTab from "@/components/CommentTab.vue";
 import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
 import { mapGetters } from "vuex";
 
@@ -451,6 +446,7 @@ export default {
   name: "AppraisalViewPage",
   components: {
     Appraisal,
+    CommentTab,
   },
   computed: {
     ...mapGetters(["getUserProfile"]),
@@ -488,7 +484,7 @@ export default {
   data() {
     return {
       selectedDealership: "",
-      currentTab: "appraisal",
+      currentTab: "comments",
       dealershipOptions: [],
       damages: [],
       transmissionOptions: [
@@ -512,6 +508,8 @@ export default {
         damages: [],
         offers: [], // Initialize offers to an empty array
         winner: {}, // Initialize winner to an empty object
+        general_comments: [],
+        private_comments: [],
       },
       phoneCodes: {
         "+61": "AU",

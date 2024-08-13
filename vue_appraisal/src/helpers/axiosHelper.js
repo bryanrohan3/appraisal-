@@ -43,6 +43,10 @@ const endpoints = {
     `${apiConstants.api_hostname}offer/${offerId}/make-winner/`,
   updateOffer: (appraisalId, offerId) =>
     `${apiConstants.api_hostname}appraisals/${appraisalId}/update_offer/${offerId}/`,
+  addGeneralComment: (appraisalId) =>
+    `${apiConstants.api_hostname}appraisals/${appraisalId}/add_general_comment/`,
+  addPrivateComment: (appraisalId) =>
+    `${apiConstants.api_hostname}appraisals/${appraisalId}/add_private_comment/`,
   getAppraisal: (id) => `${apiConstants.api_hostname}appraisals/${id}/`,
 };
 

@@ -422,12 +422,14 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         data = request.data
         data['appraisal'] = appraisal.id  # This associates the comment with the correct appraisal
 
+        # Note: Ensure `user` is not part of the request payload as it's managed in the view
         serializer = CommentSerializer(data=data)
         if serializer.is_valid():
             serializer.save(user=user, is_private=True)  # Save the comment, setting user and is_private
             return Response({"message": "Private comment added successfully."}, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
     @action(detail=True, methods=['PATCH'], url_path='deactivate', permission_classes=[IsManagement])
     def deactivate(self, request, pk=None):
@@ -441,19 +443,21 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
 
         return Response({'status': 'Appraisal deactivated'}, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['POST'])
+    @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
     def add_general_comment(self, request, pk=None):
         appraisal = self.get_object()
         user = request.user
         data = request.data
         data['appraisal'] = appraisal.id  # This associates the comment with the correct appraisal
 
+        # Make sure `user` is not in the payload data
         serializer = CommentSerializer(data=data)
         if serializer.is_valid():
-            serializer.save(user=user)  # Save the comment, setting user and is_private
+            serializer.save(user=user)  # Save the comment, setting user
             return Response({"message": "General comment added successfully."}, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
     @action(detail=False, methods=['get', 'post'], url_path='csv', permission_classes=[IsManagement])
     def download_csv(self, request, *args, **kwargs):
