@@ -466,6 +466,23 @@ class AppraisalSerializer(serializers.ModelSerializer):
 
         return appraisal
 
+    def update(self, instance, validated_data):
+        # Handle updating of nested fields
+        damages_data = validated_data.pop('damages', [])
+        instance = super().update(instance, validated_data)
+
+        # Update damages
+        for damage_data in damages_data:
+            damage_id = damage_data.get('id', None)
+            if damage_id:
+                # Update existing damage
+                Damage.objects.filter(id=damage_id).update(**damage_data)
+            else:
+                # Create new damage
+                Damage.objects.create(appraisal=instance, **damage_data)
+
+        return instance
+
 class SimpleAppraisalSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     

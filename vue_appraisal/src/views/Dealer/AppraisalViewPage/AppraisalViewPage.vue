@@ -539,12 +539,49 @@ export default {
       this.damages.push({
         description: "",
         location: "",
-        repairCost: "",
+        repair_cost_estimate: "",
         damagePhotos: [],
       });
     },
     updateAppraisal() {
-      // Update the appraisal details - figure out after - patch or put (most likely patch is better)
+      const id = this.$route.params.id;
+      const data = {
+        ready_for_management: this.appraisal.ready_for_management,
+        customer_first_name: this.appraisal.customer_first_name,
+        customer_last_name: this.appraisal.customer_last_name,
+        customer_email: this.appraisal.customer_email,
+        customer_phone: this.appraisal.customer_phone,
+        vehicle_make: this.appraisal.vehicle_make,
+        vehicle_model: this.appraisal.vehicle_model,
+        vehicle_year: this.appraisal.vehicle_year,
+        color: this.appraisal.color,
+        vehicle_registration: this.appraisal.vehicle_registration,
+        odometer_reading: this.appraisal.odometer_reading,
+        engine_type: this.appraisal.engine_type,
+        transmission: this.appraisal.transmission,
+        body_type: this.appraisal.body_type,
+        fuel_type: this.appraisal.fuel_type,
+        reserve_price: this.appraisal.reserve_price,
+        is_active: this.appraisal.is_active,
+        photos: this.photos.map((photo) => photo.url),
+        damages: this.damages.map((damage) => ({
+          description: damage.description,
+          location: damage.location,
+          repair_cost_estimate: parseInt(damage.repair_cost_estimate, 10),
+        })),
+        // Include other fields you need to update here
+      };
+
+      axiosInstance
+        .patch(`${endpoints.all_appraisals}${id}/`, data)
+        .then((response) => {
+          this.appraisal = response.data;
+          this.$emit("appraisal-updated", response.data);
+          console.log("Appraisal updated successfully:", response.data);
+        })
+        .catch((error) => {
+          console.error("Error updating appraisal:", error);
+        });
     },
     async submitForm() {
       try {
@@ -575,28 +612,14 @@ export default {
           photos: this.photos.map((photo) => photo.url),
         };
 
-        console.log("Submitting data:", data);
-
-        const response = await axiosInstance.post(
-          endpoints.createAppraisal,
-          data
-        );
-        console.log("Appraisal created successfully", response.data);
-
-        this.toastMessage = "Appraisal created successfully";
-        this.showToast = true;
+        if (this.isCreatingAppraisal) {
+          await axiosInstance.post(endpoints.all_appraisals, data);
+          this.$router.push({ name: "AppraisalListPage" });
+        } else if (this.isViewingAppraisal) {
+          await this.updateAppraisal();
+        }
       } catch (error) {
-        console.error("Error creating appraisal:", error);
-        this.toastMessage = "Error creating appraisal";
-        this.showToast = true;
-      }
-    },
-  },
-  watch: {
-    // Watch for updates to the selectedOffer and handle changes
-    selectedOffer(newOffer) {
-      if (newOffer) {
-        this.showAdjustInputPopup = true;
+        console.error("Error submitting form:", error);
       }
     },
   },
