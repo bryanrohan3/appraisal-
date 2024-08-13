@@ -1,10 +1,5 @@
 <template>
   <div class="dashboard-container">
-    <!-- <ToastNotification
-      v-if="showToast"
-      :message="toastMessage"
-      @close="showToast = false"
-    /> -->
     <div class="tabs">
       <!-- Appraisal tab (always shown) -->
       <button
@@ -331,103 +326,7 @@
     </div>
 
     <div v-if="currentTab === 'offers'">
-      <div class="offers-container">
-        <table class="offers-table">
-          <thead>
-            <tr class="offers-table-header">
-              <th>Offer ID</th>
-              <th>User Info</th>
-              <th>Created At</th>
-              <th>Offer Amount</th>
-              <th>Offer Made At</th>
-              <th>Adjusted Amount</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="offer in appraisal.offers"
-              :key="offer.id"
-              @click="toggleDropdown(offer.id)"
-              :class="{
-                'winning-row': offer.id === appraisal.winner?.offer_id,
-              }"
-            >
-              <td>{{ offer.id }}</td>
-              <td>
-                <strong>
-                  {{ offer.user?.first_name }} {{ offer.user?.last_name }}
-                </strong>
-                <br />
-                <span>@{{ offer.user?.username }}</span>
-              </td>
-              <td>
-                {{ offer.created_at ? formatDate(offer.created_at) : "null" }}
-              </td>
-              <td>{{ offer.amount !== null ? `$${offer.amount}` : "null" }}</td>
-              <td>
-                {{
-                  offer.offer_made_at ? formatDate(offer.offer_made_at) : "null"
-                }}
-              </td>
-              <td>
-                {{
-                  offer.adjusted_amount !== null
-                    ? `$${offer.adjusted_amount}`
-                    : "null"
-                }}
-              </td>
-              <td class="actions-cell">
-                <img
-                  src="@/assets/dots.svg"
-                  alt="Actions"
-                  class="actions-icon"
-                />
-                <div v-if="offer.showDropdown" class="dropdown-menu">
-                  <button @click.stop="triggerConfirmDialog(offer.id)">
-                    Select Winner
-                  </button>
-
-                  <button @click.stop="showAdjustInput(offer)">
-                    Adjust Amount
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div v-if="showConfirmDialog" class="confirm-dialog">
-          <p>Are you sure you want to select this offer as the winner?</p>
-          <button @click="confirmSelection">Yes</button>
-          <button @click="cancelSelection">No</button>
-        </div>
-
-        <div v-if="showAdjustInputPopup" class="adjust-offer-popup">
-          <label for="adjusted-offer-input">Adjusted Offer:</label>
-          <input
-            type="number"
-            id="adjusted-offer-input"
-            v-model="selectedOffer.adjusted_amount"
-            class="adjusted-offer-input"
-            placeholder="Enter adjusted offer"
-          />
-          <button
-            class="submit-offer-button"
-            @click="
-              submitAdjustedOffer(
-                selectedOffer.id,
-                selectedOffer.adjusted_amount
-              )
-            "
-          >
-            Submit
-          </button>
-          <button class="cancel-offer-button" @click="cancelAdjustInput">
-            Cancel
-          </button>
-        </div>
-      </div>
+      <OfferTab :appraisal="appraisal" />
     </div>
 
     <div v-if="currentTab === 'comments'">
@@ -439,6 +338,7 @@
 <script>
 import Appraisal from "@/components/Appraisal.vue";
 import CommentTab from "@/components/CommentTab.vue";
+import OfferTab from "@/components/OfferTab.vue";
 import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
 import { mapGetters } from "vuex";
 
@@ -447,6 +347,7 @@ export default {
   components: {
     Appraisal,
     CommentTab,
+    OfferTab,
   },
   computed: {
     ...mapGetters(["getUserProfile"]),
@@ -461,7 +362,6 @@ export default {
       return userProfile ? userProfile.email : "";
     },
     isCreatingAppraisal() {
-      // Check if we are on the create appraisal page based on the route
       return this.$route.name === "CreateAppraisalPage";
     },
     currentModel() {
@@ -470,21 +370,19 @@ export default {
         : this.formData || {};
     },
     isViewingAppraisal() {
-      // Check if we are on the view appraisal page
       return this.$route.name === "AppraisalViewPage";
     },
     displayedPhotos() {
-      return this.photos.slice(0, 4); // Show only up to 4 images
+      return this.photos.slice(0, 4);
     },
     additionalPhotosCount() {
-      return this.photos.length > 4 ? this.photos.length - 4 : 0; // Number of additional photos
+      return this.photos.length > 4 ? this.photos.length - 4 : 0;
     },
   },
-
   data() {
     return {
       selectedDealership: "",
-      currentTab: "comments",
+      currentTab: "appraisal",
       dealershipOptions: [],
       damages: [],
       transmissionOptions: [
@@ -506,8 +404,8 @@ export default {
       appraisal: {
         ready_for_management: false,
         damages: [],
-        offers: [], // Initialize offers to an empty array
-        winner: {}, // Initialize winner to an empty object
+        offers: [],
+        winner: {},
         general_comments: [],
         private_comments: [],
       },
@@ -557,11 +455,9 @@ export default {
         .get(`${endpoints.all_appraisals}${id}/`)
         .then((response) => {
           this.appraisal = response.data;
-          // Ensure damages is an array and update the local damages property
           this.damages = Array.isArray(this.appraisal.damages)
             ? this.appraisal.damages
             : [];
-          // Ensure offers is an array
           this.appraisal.offers = Array.isArray(this.appraisal.offers)
             ? this.appraisal.offers
             : [];
@@ -573,7 +469,7 @@ export default {
 
     selectDealership(dealership) {
       this.selectedDealership = dealership;
-      this.formData.dealership = dealership.id; // Set the ID of the selected dealership in formData
+      this.formData.dealership = dealership.id;
       this.showDropdown = false;
     },
     damageLabel(index) {
@@ -588,15 +484,12 @@ export default {
     },
     async fetchDealerProfileInfo() {
       try {
-        // Fetch dealer profile info
         const response = await axiosInstance.get(endpoints.dealerProfile);
         this.formData = response.data;
 
-        // Extract dealership IDs and names from the response
-        const dealershipIds = response.data.dealerships || []; // Ensure it's an array
-        const dealershipNames = response.data.dealership_names || []; // Ensure it's an array
+        const dealershipIds = response.data.dealerships || [];
+        const dealershipNames = response.data.dealership_names || [];
 
-        // Create a map of dealership IDs to names for easy lookup
         const dealershipMap = new Map(
           dealershipNames.map(({ id, dealership_name }) => [
             id,
@@ -604,84 +497,17 @@ export default {
           ])
         );
 
-        // Populate dealershipOptions with dealership names based on the IDs
         this.dealershipOptions = dealershipIds.map((id) => ({
           id: id,
-          name: dealershipMap.get(id) || `Dealership ${id}`, // Fallback to `Dealership ${id}` if name is not found
+          name: dealershipMap.get(id) || `Dealership ${id}`,
         }));
 
-        // Set the selectedDealership based on the first dealership option, if applicable
         this.selectedDealership =
           this.dealershipOptions.length > 0 ? this.dealershipOptions[0].id : "";
       } catch (error) {
         console.error("Error fetching dealer profile information:", error);
       }
     },
-    toggleDropdown(offerId) {
-      const offer = this.appraisal.offers.find((o) => o.id === offerId);
-      if (offer) {
-        offer.showDropdown = !offer.showDropdown;
-        // Close any open dropdowns if clicking elsewhere
-        this.appraisal.offers.forEach((o) => {
-          if (o.id !== offerId) o.showDropdown = false;
-        });
-      }
-    },
-    showAdjustInput(offer) {
-      this.selectedOffer = offer;
-      this.showAdjustInputPopup = true;
-    },
-    triggerConfirmDialog(offerId) {
-      const offer = this.appraisal.offers.find((o) => o.id === offerId);
-      if (offer) {
-        this.selectedOffer = offer;
-        this.showConfirmDialog = true;
-      }
-    },
-
-    async confirmSelection() {
-      try {
-        if (this.selectedOffer) {
-          // Call the API to select the offer as the winner
-          await axiosInstance.post(
-            `${endpoints.makeWinner(this.selectedOffer.id)}`
-          );
-
-          // Fetch the updated appraisal details
-          await this.fetchAppraisal();
-          this.showConfirmDialog = false;
-        }
-      } catch (error) {
-        console.error("Error selecting the winner:", error);
-      }
-    },
-
-    async submitAdjustedOffer(offerId, adjustedAmount) {
-      try {
-        const appraisalId = this.$route.params.id;
-
-        // Call the API to adjust the offer amount
-        await axiosInstance.patch(
-          `${endpoints.updateOffer(appraisalId, offerId)}`,
-          { adjusted_amount: adjustedAmount }
-        );
-
-        // Fetch the updated appraisal details
-        await this.fetchAppraisal();
-        this.showAdjustInputPopup = false;
-      } catch (error) {
-        console.error("Error adjusting the offer amount:", error);
-      }
-    },
-
-    cancelSelection() {
-      this.showConfirmDialog = false;
-    },
-
-    cancelAdjustInput() {
-      this.showAdjustInputPopup = false;
-    },
-    // Create Appraisal Methods
     handleFileUpload(event) {
       const files = event.target.files;
       if (files.length > 0) {
@@ -711,15 +537,8 @@ export default {
         damagePhotos: [],
       });
     },
-    removeDamage(index) {
-      this.damages.splice(index, 1);
-    },
-    damageLabel(index) {
-      return `Damage ${index + 1}`;
-    },
     async submitForm() {
       try {
-        // Prepare form data for submission
         const data = {
           dealership: this.selectedDealership,
           ready_for_management: this.formData.readyForManagement,
@@ -747,9 +566,8 @@ export default {
           photos: this.photos.map((photo) => photo.url),
         };
 
-        console.log("Submitting data:", data); // Debug output
+        console.log("Submitting data:", data);
 
-        // Make POST request to create appraisal
         const response = await axiosInstance.post(
           endpoints.createAppraisal,
           data
@@ -758,12 +576,18 @@ export default {
 
         this.toastMessage = "Appraisal created successfully";
         this.showToast = true;
-        // Handle successful submission, e.g., redirect or show a success message
       } catch (error) {
         console.error("Error creating appraisal:", error);
         this.toastMessage = "Error creating appraisal";
         this.showToast = true;
-        // Handle error, e.g., show an error message
+      }
+    },
+  },
+  watch: {
+    // Watch for updates to the selectedOffer and handle changes
+    selectedOffer(newOffer) {
+      if (newOffer) {
+        this.showAdjustInputPopup = true;
       }
     },
   },
