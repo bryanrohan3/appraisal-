@@ -54,12 +54,20 @@
             <label class="checkbox-container">
               <input
                 type="checkbox"
+                id="is-active"
+                v-model="appraisal.is_active"
+              />
+              <span class="checkbox-label">Active</span>
+            </label>
+            <label class="checkbox-container">
+              <input
+                type="checkbox"
                 id="ready-for-management"
                 v-model="appraisal.ready_for_management"
               />
               <span class="checkbox-label">Ready for Management</span>
             </label>
-            <div class="notification-button" @click="submitForm">
+            <div class="notification-button" @click="updateAppraisal">
               <span class="button-text">Save Appraisal</span>
             </div>
           </div>
@@ -414,8 +422,6 @@ export default {
         "+1": "US",
         "+44": "UK",
       },
-      showToast: false,
-      toastMessage: "",
       photos: [],
       formData: {
         readyForManagement: false,
@@ -536,6 +542,9 @@ export default {
         repairCost: "",
         damagePhotos: [],
       });
+    },
+    updateAppraisal() {
+      // Update the appraisal details - figure out after - patch or put (most likely patch is better)
     },
     async submitForm() {
       try {
@@ -1004,248 +1013,5 @@ input.reserve-input {
 
 .tab-button.active::after {
   transform: scaleX(1);
-}
-
-/* Offers List */
-.offers-container {
-  width: 100%;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-.offers-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 10px auto;
-}
-
-.offers-table th,
-.offers-table td {
-  text-align: left;
-  padding: 8px 12px;
-  font-size: 14px;
-}
-
-.offers-table th {
-  background-color: #f8f9fa;
-  color: #6c757d;
-  font-weight: 600;
-}
-
-.offers-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-.offers-table tr:hover {
-  background-color: #f1f1f1;
-  cursor: pointer;
-}
-
-.actions-cell {
-  position: relative;
-}
-
-.actions-icon {
-  cursor: pointer;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  width: 150px;
-  background-color: white;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 10px;
-  z-index: 9999;
-}
-
-.dropdown-menu button {
-  background: none;
-  border: none;
-  color: #000;
-  padding: 8px 12px;
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-}
-
-.dropdown-menu button:hover {
-  background-color: #f8f9fa;
-}
-
-.adjust-offer-container {
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.adjusted-offer-input {
-  width: 150px;
-  padding: 6px 10px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.submit-offer-button {
-  background-color: #f26764;
-  color: #ffffff;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background-color 0.3s ease;
-}
-
-.submit-offer-button:hover {
-  background-color: #a34947;
-}
-
-.submit-offer-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.25);
-}
-
-.winning-row td {
-  background-color: #d4edda; /* Light green background */
-}
-
-.confirm-dialog {
-  position: fixed;
-  top: 50%;
-  left: 60%;
-  transform: translate(-50%, -50%);
-  background-color: #fff;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  z-index: 9999;
-  width: 300px;
-  text-align: center;
-}
-
-.confirm-dialog p {
-  margin: 0 0 20px;
-  font-size: 16px;
-  color: #333;
-}
-
-.confirm-dialog button {
-  background-color: #f26764;
-  border: none;
-  border-radius: 4px;
-  color: #fff;
-  cursor: pointer;
-  font-size: 16px;
-  margin: 0 10px;
-  padding: 10px 20px;
-  transition: background-color 0.3s ease;
-}
-
-.confirm-dialog button:hover {
-  background-color: #8f201e;
-}
-
-.confirm-dialog button:last-child {
-  background-color: #6c757d;
-}
-
-.confirm-dialog button:last-child:hover {
-  background-color: #5a6268;
-}
-
-/* Adjust Offer Popup Styles */
-.adjust-offer-popup {
-  position: fixed;
-  top: 50%;
-  left: 60%;
-  transform: translate(-50%, -50%);
-  background-color: #fff;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  z-index: 9999;
-  width: 320px;
-  text-align: center;
-}
-
-.adjust-offer-popup h3 {
-  font-size: 18px;
-  margin-bottom: 15px;
-  color: #333;
-}
-
-.adjust-offer-popup .offer-id {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 15px;
-}
-
-.adjust-offer-popup label {
-  display: block;
-  font-size: 16px;
-  margin-bottom: 10px;
-  color: #333;
-}
-
-.adjust-offer-popup input {
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 16px;
-  padding: 10px;
-  width: calc(100% - 22px); /* Adjust for padding and border */
-  margin-bottom: 20px;
-}
-
-.adjust-offer-popup .button-container {
-  display: flex;
-  justify-content: space-between;
-}
-
-.adjust-offer-popup .submit-offer-button,
-.adjust-offer-popup .cancel-offer-button {
-  background-color: #f26764;
-  border: none;
-  border-radius: 4px;
-  color: #fff;
-  cursor: pointer;
-  font-size: 16px;
-  padding: 10px 20px;
-  transition: background-color 0.3s ease;
-  flex: 1;
-  margin: 0 5px;
-}
-
-.adjust-offer-popup .submit-offer-button {
-  background-color: #f26764;
-}
-
-.adjust-offer-popup .submit-offer-button:hover {
-  background-color: #8f201e;
-}
-
-.adjust-offer-popup .cancel-offer-button {
-  background-color: #6c757d;
-}
-
-.adjust-offer-popup .cancel-offer-button:hover {
-  background-color: #888888;
-}
-
-/* new code */
-.profile-picture {
-  height: 65px;
-  width: 65px;
-  border-radius: 50%;
-  background-color: #e7e7e7;
-  margin-bottom: 10px;
 }
 </style>
