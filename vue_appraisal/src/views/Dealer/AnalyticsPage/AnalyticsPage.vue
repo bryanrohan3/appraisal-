@@ -284,16 +284,17 @@ export default {
     },
     async fetchTopWholesaler() {
       try {
-        const response = await axiosInstance.get(endpoints.topWholesaler);
-        this.topWholesaler = response.data;
+        const response = await axiosInstance.get(endpoints.top_wholesaler);
+        this.topWholesaler = response.data.top_wholesaler; // Update top wholesaler data with API response
       } catch (error) {
         console.error("Error fetching top wholesaler:", error);
       }
     },
     async fetchTopCar() {
       try {
-        const response = await axiosInstance.get(endpoints.topCar);
-        this.topCar = response.data;
+        const response = await axiosInstance.get(endpoints.top_car);
+        console.log("Top Car Data:", response.data); // Log the data to verify
+        this.topCar = response.data; // Ensure this assignment is correct
       } catch (error) {
         console.error("Error fetching top car:", error);
       }
