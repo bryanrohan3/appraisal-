@@ -503,7 +503,24 @@ class SimpleAppraisalSerializer(serializers.ModelSerializer):
         elif hasattr(user, 'wholesalerprofile'):
             return obj.get_wholesaler_status(user.wholesalerprofile)
         return "Not authorized"
+    
 
+class AppraisalStatusSerializer(serializers.Serializer):
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Appraisal
+        fields = ['status', 'start_date']
+
+    def get_status(self, obj):
+        request = self.context.get('request')
+        user = request.user if request else None
+
+        if hasattr(user, 'dealerprofile'):
+            return obj.get_dealer_status()
+        elif hasattr(user, 'wholesalerprofile'):
+            return obj.get_wholesaler_status(user.wholesalerprofile)
+        return "Not authorized"
 
 
 class SelectWinnerSerializer(serializers.Serializer):
