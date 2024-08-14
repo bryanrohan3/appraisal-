@@ -8,13 +8,6 @@
     </div>
     <div class="columns-container">
       <div class="column column-60">
-        <div class="greetings-container">
-          <p class="hello-greetings">
-            Hello, {{ userName }} 👋
-            <span class="date-now">{{ currentDate }}</span>
-          </p>
-        </div>
-        <p class="time-now">{{ timeOfDay }}</p>
         <!-- Display dealership info -->
         <div class="dashboard-metrics">
           <div class="metric">
@@ -90,60 +83,138 @@
             </button>
           </div>
         </div>
-        <p class="recent-appraisals">
-          Filtered Appraisals Count: {{ filteredCount }}
-        </p>
 
-        <div class="pie-chart-container">
-          <div class="pie-chart">
-            <div
-              v-for="(segment, index) in getPieChartSegments()"
-              :key="index"
-              class="pie-chart-segment"
-              :style="segment.style"
-            ></div>
+        <div class="tabs-container">
+          <div class="tabs">
+            <button
+              :class="{ active: currentTab === 'status' }"
+              @click="currentTab = 'status'"
+            >
+              Status
+            </button>
+            <button
+              :class="{ active: currentTab === 'mostCommonCars' }"
+              @click="currentTab = 'mostCommonCars'"
+            >
+              Most Common Cars
+            </button>
           </div>
 
-          <div class="pie-chart-legend">
-            <h3>Status</h3>
+          <div class="tab-content">
+            <div v-if="currentTab === 'status'" class="status-tab">
+              <div class="pie-chart-container">
+                <div class="pie-chart">
+                  <div
+                    v-for="(segment, index) in getPieChartSegments()"
+                    :key="index"
+                    class="pie-chart-segment"
+                    :style="segment.style"
+                  ></div>
+                </div>
+
+                <div class="pie-chart-legend">
+                  <p class="legend-title">Status</p>
+                  <div
+                    v-for="(item, index) in statusCounts"
+                    :key="'legend-' + index"
+                    class="legend-item"
+                  >
+                    <div
+                      :style="{
+                        backgroundColor: getColorForStatus(item.status),
+                      }"
+                      class="legend-color"
+                    ></div>
+                    <span class="legend-label">
+                      {{ item.status }}: {{ item.count }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="metric-status">
+                  <div class="circle total-appraisals">
+                    <img
+                      src="@/assets/appraisal.svg"
+                      alt="Appraisal"
+                      class="icon-dash"
+                    />
+                  </div>
+                  <div class="metric-details">
+                    <span class="metric-value">{{ filteredCount }}</span>
+                    <span class="metric-title">Filtered Appraisals</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div
-              v-for="(item, index) in statusCounts"
-              :key="'legend-' + index"
-              class="legend-item"
+              v-if="currentTab === 'mostCommonCars'"
+              class="most-common-cars-tab"
             >
-              <div
-                :style="{ backgroundColor: getColorForStatus(item.status) }"
-                class="legend-color"
-              ></div>
-              <span class="legend-label">
-                {{ item.status }}: {{ item.count }}
-              </span>
+              <h2>Most Common Cars</h2>
+              <table class="cars-table">
+                <thead>
+                  <tr>
+                    <th>Make</th>
+                    <th>Model</th>
+                    <th>Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(car, index) in paginatedMostCommonCars"
+                    :key="index"
+                  >
+                    <td>{{ car.vehicle_make }}</td>
+                    <td>{{ car.vehicle_model }}</td>
+                    <td>{{ car.count }}</td>
+                  </tr>
+                </tbody>
+                <p v-if="mostCommonCars.length === 0">
+                  No cars found for the selected date range.
+                </p>
+              </table>
+              <p v-if="!mostCommonCars || mostCommonCars.length === 0">
+                No cars found for the selected date range.
+              </p>
+
+              <!-- Pagination Controls -->
+              <div class="pagination-controls">
+                <button
+                  :disabled="currentPage === 1"
+                  @click="changePage(currentPage - 1)"
+                >
+                  Previous
+                </button>
+                <button v-if="showFirstPageButton" @click="changePage(1)">
+                  1
+                </button>
+                <button v-if="showEllipsisLeft" disabled>...</button>
+                <button
+                  v-for="page in visiblePageNumbers"
+                  :key="page"
+                  :class="{ active: page === currentPage }"
+                  @click="changePage(page)"
+                >
+                  {{ page }}
+                </button>
+                <button v-if="showEllipsisRight" disabled>...</button>
+                <button
+                  v-if="showLastPageButton"
+                  @click="changePage(totalPages)"
+                >
+                  {{ totalPages }}
+                </button>
+                <button
+                  :disabled="currentPage === totalPages"
+                  @click="changePage(currentPage + 1)"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         </div>
-
-        <!-- <div class="most-common-cars-container">
-          <h2>Most Common Cars</h2>
-          <table class="cars-table">
-            <thead>
-              <tr>
-                <th>Make</th>
-                <th>Model</th>
-                <th>Count</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(car, index) in mostCommonCars" :key="index">
-                <td>{{ car.vehicle_make }}</td>
-                <td>{{ car.vehicle_model }}</td>
-                <td>{{ car.count }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <p v-if="!mostCommonCars.length">
-            No cars found for the selected date range.
-          </p>
-        </div> -->
       </div>
 
       <div class="stats-container">
@@ -179,17 +250,22 @@ export default {
       endDate: "",
       allCount: 0,
       filteredCount: 0,
-      mostCommonCars: [],
+      mostCommonCars: [], // Ensure this is initialized as an empty array
       topWholesaler: null,
       topCar: null,
-      statusCounts: [], // Add this to store pie chart data
+      statusCounts: [], // Ensure this is initialized as an empty array
       allStatuses: [
         "Pending - Sales",
         "Pending - Management",
         "Complete",
         "Active",
         "Trashed",
-      ], // List all possible statuses
+      ],
+      pageSize: 10, // Add default value for pageSize
+      currentPage: 1, // Add default value for currentPage
+      pageRange: 2, // Add default value for pageRange
+      totalPages: 1, // Ensure totalPages is defined and initialized
+      currentTab: "status", // Default tab
     };
   },
   computed: {
@@ -229,6 +305,51 @@ export default {
     currentDate() {
       const options = { year: "numeric", month: "long", day: "numeric" };
       return new Date().toLocaleDateString(undefined, options);
+    },
+    paginatedMostCommonCars() {
+      if (!Array.isArray(this.mostCommonCars)) {
+        return []; // Return an empty array if mostCommonCars is not defined or not an array
+      }
+      const start = (this.currentPage - 1) * this.pageSize;
+      const end = start + this.pageSize;
+      return this.mostCommonCars.slice(start, end);
+    },
+    pageNumbers() {
+      const pages = [];
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+      return pages;
+    },
+    visiblePageNumbers() {
+      const start = Math.max(1, this.currentPage - this.pageRange);
+      const end = Math.min(this.totalPages, this.currentPage + this.pageRange);
+
+      const adjustedStart = Math.max(1, end - this.pageRange * 2);
+
+      return this.pageNumbers.filter(
+        (page) => page >= adjustedStart && page <= end
+      );
+    },
+    showFirstPageButton() {
+      return this.totalPages > 1 && this.visiblePageNumbers[0] > 1;
+    },
+    showLastPageButton() {
+      return (
+        this.totalPages > 1 &&
+        this.visiblePageNumbers[this.visiblePageNumbers.length - 1] <
+          this.totalPages
+      );
+    },
+    showEllipsisLeft() {
+      return this.showFirstPageButton && this.visiblePageNumbers[0] > 2;
+    },
+    showEllipsisRight() {
+      return (
+        this.showLastPageButton &&
+        this.visiblePageNumbers[this.visiblePageNumbers.length - 1] <
+          this.totalPages - 1
+      );
     },
   },
   methods: {
@@ -274,12 +395,32 @@ export default {
         console.error("Error fetching status counts:", error);
       }
     },
-    async fetchMostCommonCars() {
+    async fetchMostCommonCars(page = 1) {
       try {
-        const response = await axiosInstance.get(endpoints.mostCommonCars);
-        this.mostCommonCars = response.data;
+        const params = {
+          from: this.startDate ? `${this.startDate}T00:00:00Z` : undefined,
+          to: this.endDate ? `${this.endDate}T23:59:59Z` : undefined,
+          page,
+          page_size: this.pageSize,
+        };
+
+        const response = await axiosInstance.get(
+          endpoints.mostCommonCarsByDateRange(),
+          { params }
+        );
+        console.log("Most Common Cars Response:", response.data);
+
+        // Adjust based on the actual API response structure
+        this.mostCommonCars = response.data.results; // Change this line if needed
+        this.totalPages = Math.ceil(response.data.count / this.pageSize); // Adjust if count is from response
+        this.currentPage = page;
       } catch (error) {
         console.error("Error fetching most common cars:", error);
+      }
+    },
+    changePage(page) {
+      if (page >= 1 && page <= this.totalPages) {
+        this.fetchMostCommonCars(page);
       }
     },
     async fetchTopWholesaler() {
@@ -372,9 +513,35 @@ export default {
 </script>
 
 <style scoped>
+.tabs-container {
+  margin-bottom: 20px;
+}
+
+.tabs {
+  display: flex;
+  justify-content: space-around;
+}
+
+.tabs button {
+  background: none;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.tabs button.active {
+  border-bottom: 2px solid #4d79ff;
+}
+
+.tab-content {
+  padding: 20px;
+}
+
 .pie-chart-container {
   display: flex;
   margin: 20px;
+  margin-left: 40px;
 }
 
 .pie-chart {
@@ -426,6 +593,12 @@ export default {
 
 .legend-label {
   font-size: 14px;
+  font-weight: 500;
+}
+
+.legend-title {
+  font-size: 16px;
+  margin-bottom: 10px;
 }
 
 .dashboard-container {
@@ -569,7 +742,7 @@ button {
   background-color: #ffffff;
   padding: 10px;
   box-sizing: border-box;
-  height: 410px;
+  height: 710px; /* Adjust the height as needed for the box with piechart (will need to make bigger)*/
   border-radius: 10px;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
 }
@@ -654,6 +827,14 @@ button {
   align-items: center;
   gap: 10px;
   flex: 1; /* Ensure metrics take up equal space */
+}
+
+.metric-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1; /* Ensure metrics take up equal space */
+  margin-left: 60px;
 }
 
 .circle {
@@ -770,5 +951,37 @@ button {
 
 .cars-table th {
   background-color: #f4f4f4;
+}
+/* Pagination Controls */
+.pagination-controls {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.pagination-controls button {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  color: #333;
+  cursor: pointer;
+  margin: 0 5px;
+  padding: 5px 10px;
+}
+
+.pagination-controls button.active {
+  background-color: #f26764;
+  color: #fff;
+}
+
+.pagination-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.total-records {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: #999;
 }
 </style>

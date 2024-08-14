@@ -48,6 +48,10 @@ const endpoints = {
   addPrivateComment: (appraisalId) =>
     `${apiConstants.api_hostname}appraisals/${appraisalId}/add_private_comment/`,
   getAppraisal: (id) => `${apiConstants.api_hostname}appraisals/${id}/`,
+  mostCommonCarsByDateRange: (from, to) =>
+    `${apiConstants.api_hostname}appraisals/most_common_cars_by_date_range/?from=${from}&to=${to}`,
+  allCount: apiConstants.api_hostname + "appraisals/count/", // Add this line
+  statusList: apiConstants.api_hostname + "appraisals/status-list/",
 };
 
 export { axiosInstance, endpoints };

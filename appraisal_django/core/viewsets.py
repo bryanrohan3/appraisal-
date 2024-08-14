@@ -787,27 +787,41 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
 
     @action(detail=False, methods=['get'], url_path='most_common_cars_by_date_range')
     def most_common_cars_by_date_range(self, request, *args, **kwargs):
-        date_range, error_response = self._parse_date_range(request)
-        if error_response:
-            return error_response
+        # Get date_from and date_to from request query parameters
+        date_from = request.query_params.get('from')
+        date_to = request.query_params.get('to')
 
-        date_from, date_to = date_range
+        # Parse dates if provided, otherwise set them to None
+        date_from = parse_date(date_from) if date_from else None
+        date_to = parse_date(date_to) if date_to else None
+
         user = request.user
 
         if hasattr(user, 'dealerprofile'):
             dealer_id = user.dealerprofile.id
-            queryset = Appraisal.objects.filter(initiating_dealer_id=dealer_id, start_date__range=[date_from, date_to])
+            queryset = Appraisal.objects.filter(initiating_dealer_id=dealer_id)
 
+            # Apply date range filter if both dates are provided
+            if date_from and date_to:
+                queryset = queryset.filter(start_date__range=[date_from, date_to])
+
+            # Aggregate the counts of cars by make and model
             car_counts = (queryset
                         .values('vehicle_make', 'vehicle_model')
                         .annotate(count=Count('id'))
                         .order_by('-count'))
+            
+            # Paginate the results
+            page = self.paginate_queryset(car_counts)
+            if page is not None:
+                return self.get_paginated_response(page)
 
             return Response({
                 "car_counts": car_counts
             }, status=status.HTTP_200_OK)
         else:
             return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
+
         
     @action(detail=False, methods=['get'], url_path='best_performing_wholesalers')
     def best_performing_wholesalers(self, request, *args, **kwargs):
