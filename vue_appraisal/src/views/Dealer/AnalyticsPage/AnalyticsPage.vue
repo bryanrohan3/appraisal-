@@ -339,17 +339,17 @@ export default {
     getColorForStatus(status) {
       switch (status) {
         case "Complete":
-          return "#4caf50"; // Green
+          return "#eb5a58"; // Green
         case "Pending - Sales":
-          return "#ff9800"; // Orange
+          return "#ff8f06"; // Orange
         case "Pending - Management":
-          return "#2196f3"; // Blue
+          return "#3059d3"; // Blue
         case "Active":
-          return "#ffeb3b"; // Yellow
+          return "#65bd70"; // Yellow
         case "Trashed":
           return "#9e9e9e"; // Gray
         default:
-          return "#e0e0e0"; // Light gray
+          return "#b2b2b2"; // Light gray
       }
     },
 
