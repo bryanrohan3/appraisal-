@@ -335,16 +335,17 @@ export default {
     fetchAppraisals(page = 1) {
       console.log("Current Tab:", this.currentTab); // Log current tab value
 
-      const filter = this.searchQuery ? `&filter=${this.searchQuery}` : "";
+      const searchQuery = this.searchQuery ? `&filter=${this.searchQuery}` : ""; // Log search query
       const status =
-        this.currentTab !== "all" ? `&filter=${this.currentTab}` : "";
-      const start = this.startDate ? `&start_date=${this.startDate}` : "";
-      const end = this.endDate ? `&end_date=${this.endDate}` : "";
+        this.currentTab !== "all" ? `&filter=${this.currentTab}` : ""; // Log status filter
+      const start = this.startDate ? `&start_date=${this.startDate}` : ""; // Log start date filter
+      const end = this.endDate ? `&end_date=${this.endDate}` : ""; // Log end date filter
+
+      const url = `${endpoints.appraisals}/?page=${page}${searchQuery}${status}${start}${end}`;
+      console.log("Final URL:", url);
 
       axiosInstance
-        .get(
-          `${endpoints.appraisals}/?page=${page}${filter}${status}${start}${end}`
-        )
+        .get(url)
         .then((response) => {
           this.appraisals = response.data.results;
           this.totalAppraisals = response.data.count;

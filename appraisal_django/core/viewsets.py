@@ -407,9 +407,8 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
 
 
     def filter_queryset_by_keyword(self, queryset):
-        keyword = self.request.query_params.get('filter', None)
-        if keyword:
-            # Use the get_status method to filter by status directly if needed
+        filters = self.request.query_params.getlist('filter')  # Use getlist to get multiple filter values
+        if filters:
             status_map = {
                 'Trashed': 'Trashed',
                 'Complete': 'Complete',
@@ -418,28 +417,30 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
                 'Pending - Sales': 'Pending - Sales',
                 # Add more status mappings if needed
             }
-            # Filter queryset based on the status keyword
-            if keyword in status_map:
-                # Map the keyword to the status
-                status = status_map[keyword]
-                # Use the `get_dealer_status` method to get the status
-                queryset = queryset.filter(
-                    Q(id__in=[appraisal.id for appraisal in queryset if appraisal.get_dealer_status() == status])
-                )
-            else:
-                # Fallback to the existing keyword search if status does not match
-                queryset = queryset.filter(
-                    Q(customer_email__icontains=keyword) |
-                    Q(vehicle_make__icontains=keyword) |
-                    Q(vehicle_model__icontains=keyword) |
-                    Q(vehicle_year__icontains=keyword) |
-                    Q(customer_last_name__icontains=keyword) |
-                    Q(vehicle_vin__icontains=keyword) |
-                    Q(customer_first_name__icontains=keyword) |
-                    Q(vehicle_registration__icontains=keyword) |
-                    Q(id__icontains=keyword)
-                )
+
+            for keyword in filters:
+                # Filter queryset based on the status keyword
+                if keyword in status_map:
+                    status = status_map[keyword]
+                    queryset = queryset.filter(
+                        Q(id__in=[appraisal.id for appraisal in queryset if appraisal.get_dealer_status() == status])
+                    )
+                else:
+                    # Fallback to the existing keyword search if status does not match
+                    queryset = queryset.filter(
+                        Q(customer_email__icontains=keyword) |
+                        Q(vehicle_make__icontains=keyword) |
+                        Q(vehicle_model__icontains=keyword) |
+                        Q(vehicle_year__icontains=keyword) |
+                        Q(customer_last_name__icontains=keyword) |
+                        Q(vehicle_vin__icontains=keyword) |
+                        Q(customer_first_name__icontains=keyword) |
+                        Q(vehicle_registration__icontains=keyword) |
+                        Q(id__icontains=keyword)
+                    )
+
         return queryset
+
 
 
     @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
