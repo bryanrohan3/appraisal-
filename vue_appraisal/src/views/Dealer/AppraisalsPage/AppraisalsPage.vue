@@ -388,7 +388,7 @@ export default {
       this.fetchAppraisals(page);
     },
     viewAppraisal(id) {
-      this.$router.push({ name: "appraisal-details", params: { id } });
+      this.$router.push({ name: "AppraisalViewPage", params: { id } });
     },
   },
 };
