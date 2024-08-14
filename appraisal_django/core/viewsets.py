@@ -20,6 +20,7 @@ from django.utils.dateparse import parse_datetime
 from django.db.models import Count
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.exceptions import NotFound
+from django.utils.dateparse import parse_date
 
 
 class CustomPagination(PageNumberPagination):
@@ -363,21 +364,6 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         return queryset
 
 
-    # def filter_queryset_by_keyword(self, queryset):
-    #     keyword = self.request.query_params.get('filter', None)
-    #     if keyword:
-    #         queryset = queryset.filter(
-    #             Q(customer_email__icontains=keyword) |
-    #             Q(vehicle_make__icontains=keyword) |
-    #             Q(vehicle_model__icontains=keyword) |
-    #             Q(vehicle_year__icontains=keyword) |
-    #             Q(customer_last_name__icontains=keyword) |
-    #             Q(vehicle_vin__icontains=keyword) |
-    #             Q(customer_first_name__icontains=keyword) |
-    #             Q(vehicle_registration__icontains=keyword) |
-    #             Q(status__icontains=keyword)
-    #         )
-    #     return queryset
     def filter_queryset_by_keyword(self, queryset):
         keyword = self.request.query_params.get('filter', None)
         if keyword:
@@ -413,7 +399,6 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
                 )
         return queryset
 
-    
 
     @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
     def add_private_comment(self, request, pk=None):
@@ -463,9 +448,20 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
     def download_csv(self, request, *args, **kwargs):
         if request.method == 'POST':
             # Handle CSV generation here
-            filter_keyword = request.query_params.get('filter', None)
-            queryset = self.filter_queryset_by_keyword(self.get_queryset())
+            start_date_str = request.query_params.get('start_date', None)
+            end_date_str = request.query_params.get('end_date', None)
             
+            # Convert strings to datetime objects if provided
+            start_date = parse_datetime(start_date_str) if start_date_str else None
+            end_date = parse_datetime(end_date_str) if end_date_str else None
+            
+            queryset = self.get_queryset()
+            
+            if start_date and end_date:
+                queryset = queryset.filter(start_date__range=(start_date, end_date))
+            
+            queryset = self.filter_queryset_by_keyword(queryset)
+
             # Create a response object for CSV
             response = HttpResponse(content_type='text/csv')
             response['Content-Disposition'] = 'attachment; filename="appraisals.csv"'
@@ -474,10 +470,10 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             writer = csv.writer(response, delimiter=',')
             # Write headers
             writer.writerow(['ID', 'Start Date', 'Last Updated', 'Is Active', 'Dealership', 'Initiating Dealer',
-                             'Last Updating Dealer', 'Customer First Name', 'Customer Last Name', 'Customer Email',
-                             'Customer Phone', 'Make', 'Model', 'Year', 'VIN', 'Registration', 'Color',
-                             'Odometer Reading', 'Engine Type', 'Transmission', 'Body Type', 'Fuel Type', 
-                             'Reserve Price'])
+                            'Last Updating Dealer', 'Customer First Name', 'Customer Last Name', 'Customer Email',
+                            'Customer Phone', 'Make', 'Model', 'Year', 'VIN', 'Registration', 'Color',
+                            'Odometer Reading', 'Engine Type', 'Transmission', 'Body Type', 'Fuel Type', 
+                            'Reserve Price'])
 
             # Write data rows
             for appraisal in queryset:
@@ -510,19 +506,30 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             return response
 
         else:
-
             # Handle GET request (filtering and returning JSON)
-            queryset = self.filter_queryset_by_keyword(self.get_queryset())
+            start_date_str = request.query_params.get('start_date', None)
+            end_date_str = request.query_params.get('end_date', None)
+            
+            # Convert strings to datetime objects if provided
+            start_date = parse_datetime(start_date_str) if start_date_str else None
+            end_date = parse_datetime(end_date_str) if end_date_str else None
+            
+            queryset = self.get_queryset()
+            
+            if start_date and end_date:
+                queryset = queryset.filter(start_date__range=(start_date, end_date))
+            
+            queryset = self.filter_queryset_by_keyword(queryset)
 
-            #Paginate the queryset
+            # Paginate the queryset
             page = self.paginate_queryset(queryset)
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
                 return self.get_paginated_response(serializer.data)
 
-
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
+
     
     @action(detail=True, methods=['POST'], url_path='make-offer', permission_classes=[IsWholesaler])
     def make_offer(self, request, pk=None):
@@ -855,6 +862,32 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
                 return Response({"message": "No car data available"}, status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
+        
+    @action(detail=False, methods=['get'], url_path='count')
+    def count_appraisals(self, request, *args, **kwargs):
+        # Extract query parameters
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+
+        # Parse dates if provided
+        if start_date:
+            start_date = parse_date(start_date)
+        if end_date:
+            end_date = parse_date(end_date)
+
+        # Filter queryset based on provided dates
+        queryset = self.get_queryset()
+        if start_date and end_date:
+            queryset = queryset.filter(start_date__gte=start_date, start_date__lte=end_date)
+        elif start_date:
+            queryset = queryset.filter(start_date__gte=start_date)
+        elif end_date:
+            queryset = queryset.filter(start_date__lte=end_date)
+
+        # Count the number of filtered appraisals
+        appraisal_count = queryset.count()
+
+        return Response({"count": appraisal_count}, status=status.HTTP_200_OK)
 
 
 

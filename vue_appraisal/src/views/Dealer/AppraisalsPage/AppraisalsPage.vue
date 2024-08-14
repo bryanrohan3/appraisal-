@@ -12,6 +12,33 @@
       </div>
     </div>
 
+    <div class="filters-container">
+      <!-- Date Range Filter -->
+      <div class="date-range-filter">
+        <div class="date-filter-group">
+          <label for="start-date" class="date-label">Start Date</label>
+          <input
+            type="date"
+            id="start-date"
+            v-model="startDate"
+            class="date-input"
+          />
+        </div>
+
+        <div class="date-filter-group">
+          <label for="end-date" class="date-label">End Date</label>
+          <input
+            type="date"
+            id="end-date"
+            v-model="endDate"
+            class="date-input"
+          />
+        </div>
+
+        <button @click="applyDateFilter" class="search-button">Apply</button>
+      </div>
+    </div>
+
     <transition
       name="fade"
       @before-enter="beforeEnter"
@@ -204,7 +231,7 @@ import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
 import debounce from "lodash/debounce";
 
 export default {
-  name: "DealerDashboardPage",
+  name: "AppraisalsPage",
   data() {
     return {
       appraisals: [],
@@ -214,7 +241,9 @@ export default {
       totalPages: 1,
       pageSize: 10,
       totalAppraisals: 0,
-      pageRange: 2,
+      startDate: null, // New data property for start date
+      endDate: null, // New data property for end date
+      pageRange: 2, // Define pageRange here
     };
   },
   computed: {
@@ -304,18 +333,19 @@ export default {
       done();
     },
     fetchAppraisals(page = 1) {
+      console.log("Current Tab:", this.currentTab); // Log current tab value
+
       const filter = this.searchQuery ? `&filter=${this.searchQuery}` : "";
       const status =
         this.currentTab !== "all" ? `&filter=${this.currentTab}` : "";
-
-      console.log(
-        `Fetching appraisals with page=${page}, filter=${filter}, status=${status}`
-      );
+      const start = this.startDate ? `&start_date=${this.startDate}` : "";
+      const end = this.endDate ? `&end_date=${this.endDate}` : "";
 
       axiosInstance
-        .get(`${endpoints.appraisals}/?page=${page}${filter}${status}`)
+        .get(
+          `${endpoints.appraisals}/?page=${page}${filter}${status}${start}${end}`
+        )
         .then((response) => {
-          console.log("Response data:", response.data); // Log API response
           this.appraisals = response.data.results;
           this.totalAppraisals = response.data.count;
           this.totalPages = Math.ceil(this.totalAppraisals / this.pageSize);
@@ -337,20 +367,28 @@ export default {
         })
         .then((response) => {
           const blob = new Blob([response.data], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
           const link = document.createElement("a");
-          link.href = URL.createObjectURL(blob);
+          link.href = url;
           link.download = "appraisals.csv";
           link.click();
+          URL.revokeObjectURL(url);
         })
         .catch((error) => {
           console.error("Error exporting data:", error);
         });
     },
     openFilter() {
-      // Logic to open filter dialog or menu
+      this.showFilterModal = true;
+    },
+    applyDateFilter() {
+      this.fetchAppraisals(); // Re-fetch appraisals with the new date filters
+    },
+    changePage(page) {
+      this.fetchAppraisals(page);
     },
     viewAppraisal(id) {
-      this.$router.push({ name: "AppraisalViewPage", params: { id } });
+      this.$router.push({ name: "appraisal-details", params: { id } });
     },
   },
 };
@@ -726,5 +764,63 @@ export default {
   text-align: center;
   font-size: 12px;
   color: #999;
+}
+
+/* Date Filter */
+.filters-container {
+  display: flex;
+  padding: 10px;
+  padding-left: 0;
+}
+
+.date-range-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #fff;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.date-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.date-label {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.date-input {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 12px;
+  width: 120px;
+}
+
+.date-input:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+.search-button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: #eb5a58;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.search-button:hover {
+  background-color: #a43b39;
 }
 </style>
