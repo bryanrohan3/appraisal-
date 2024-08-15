@@ -6,53 +6,6 @@
         <img src="@/assets/bell.svg" alt="Notification Icon" class="car-icon" />
       </div>
     </div>
-    <div class="columns-container">
-      <div class="column column-60">
-        <!-- Display dealership info -->
-        <div class="dashboard-metrics">
-          <div class="metric">
-            <div class="circle total-appraisals">
-              <img
-                src="@/assets/appraisal.svg"
-                alt="Appraisal"
-                class="icon-dash"
-              />
-            </div>
-            <div class="metric-details">
-              <span class="metric-value">{{ allCount }}</span>
-              <span class="metric-title">Total Appraisals</span>
-            </div>
-          </div>
-          <div class="metric">
-            <div class="circle pending-completions">
-              <img src="@/assets/pending.svg" alt="Pending" class="icon-dash" />
-            </div>
-            <div class="metric-details">
-              <span class="metric-value">0</span>
-              <span class="metric-title">Ongoing Appraisals</span>
-            </div>
-          </div>
-          <div class="metric">
-            <div class="circle number-of-dealers">
-              <img src="@/assets/person.svg" alt="Dealers" class="icon-dash" />
-            </div>
-            <div class="metric-details">
-              <span class="metric-value">7</span>
-              <span class="metric-title">Dealership Dealers</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="column column-40">
-        <div class="profile-container">
-          <div class="profile-picture"></div>
-          <p class="name">{{ userName }}</p>
-          <p class="email">{{ userEmail }}</p>
-          <button class="edit-profile-button">Edit Profile</button>
-        </div>
-      </div>
-    </div>
 
     <div class="appraisals-container">
       <div class="appraisals">
@@ -766,7 +719,7 @@ export default {
 .column {
   padding: 10px;
   box-sizing: border-box;
-  height: 210px;
+  height: 130px;
   border-radius: 10px;
   /* shadow */
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
@@ -774,15 +727,10 @@ export default {
 }
 
 .column-60 {
-  width: 75%;
+  width: 100%;
+  margin-top: 50px;
   background-color: #ffffff;
 }
-
-.column-40 {
-  width: 25%; /* Adjust the width as needed */
-  background-color: #ffffff;
-}
-
 .profile-container {
   display: flex;
   flex-direction: column;

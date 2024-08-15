@@ -581,4 +581,27 @@ button {
   font-size: 18px;
   font-weight: bold;
 }
+
+/* Add more styles as needed */
+.total-appraisals-container {
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.date-filter-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.date-filter-container label {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.date-filter-container input {
+  padding: 5px;
+  font-size: 16px;
+}
 </style>
