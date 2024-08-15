@@ -250,8 +250,8 @@
               <!-- Pagination Controls -->
               <div class="pagination-controls">
                 <button
-                  :disabled="currentPage === 1"
-                  @click="changePage(currentPage - 1)"
+                  :disabled="currentPageWholesaler === 1"
+                  @click="changePage(currentPageWholesaler - 1)"
                 >
                   Previous
                 </button>
@@ -262,7 +262,7 @@
                 <button
                   v-for="page in visiblePageNumbers"
                   :key="page"
-                  :class="{ active: page === currentPage }"
+                  :class="{ active: page === currentPageWholesaler }"
                   @click="changePage(page)"
                 >
                   {{ page }}
@@ -276,7 +276,7 @@
                 </button>
                 <button
                   :disabled="currentPage === totalPages"
-                  @click="changePage(currentPage + 1)"
+                  @click="changePage(currentPageWholesaler + 1)"
                 >
                   Next
                 </button>
@@ -333,6 +333,7 @@ export default {
       ],
       pageSize: 10, // Add default value for pageSize
       currentPage: 1, // Add default value for currentPage
+      currentPageWholesaler: 1, // Add default value for currentPageWholesaler
       pageRange: 2, // Add default value for pageRange
       totalPages: 1, // Ensure totalPages is defined and initialized
       currentTab: "status", // Default tab
@@ -1100,5 +1101,9 @@ export default {
 .pagination-controls button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.status-tab {
+  margin-top: 55px;
 }
 </style>
