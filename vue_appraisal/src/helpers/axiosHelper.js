@@ -50,6 +50,8 @@ const endpoints = {
   getAppraisal: (id) => `${apiConstants.api_hostname}appraisals/${id}/`,
   mostCommonCarsByDateRange: () =>
     apiConstants.api_hostname + "appraisals/most_common_cars_by_date_range/",
+  bestWholesalersByDateRange: () =>
+    apiConstants.api_hostname + "appraisals/best-performing-wholesalers/",
   allCount: apiConstants.api_hostname + "appraisals/count/", // Add this line
   statusList: apiConstants.api_hostname + "appraisals/status-list/",
 };

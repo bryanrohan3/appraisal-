@@ -824,49 +824,43 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
 
         
-    @action(detail=False, methods=['get'], url_path='best_performing_wholesalers')
+    @action(detail=False, methods=['get'], url_path='best-performing-wholesalers', permission_classes=[IsDealer])
     def best_performing_wholesalers(self, request, *args, **kwargs):
-        # Optional date parameters
+        # Get date_from and date_to from request query parameters
         date_from = request.query_params.get('from')
         date_to = request.query_params.get('to')
-        
-        # Convert date parameters to datetime objects or use default values
-        if date_from:
-            try:
-                date_from = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
-            except ValueError:
-                return Response({"error": "Invalid 'from' date format. Use ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            date_from = datetime.min  # Default to earliest possible date
-        
-        if date_to:
-            try:
-                date_to = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
-            except ValueError:
-                return Response({"error": "Invalid 'to' date format. Use ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            date_to = datetime.max  # Default to latest possible date
-        
+
+        # Parse dates if provided, otherwise set them to None
+        date_from = parse_date(date_from) if date_from else None
+        date_to = parse_date(date_to) if date_to else None
+
         user = request.user
+        dealer_id = user.dealerprofile.id  # Assuming the permission class ensures that dealerprofile exists
 
-        if hasattr(user, 'dealerprofile'):
-            dealer_id = user.dealerprofile.id
-            queryset = Appraisal.objects.filter(
-                initiating_dealer_id=dealer_id,
-                start_date__range=[date_from, date_to]
-            ).select_related('winner')  # Optimize query to fetch related 'winner'
+        queryset = Appraisal.objects.filter(
+            initiating_dealer_id=dealer_id
+        ).select_related('winner')  # Optimize query to fetch related 'winner'
 
-            # Count by winner's profile ID and get username
-            wholesaler_counts = (queryset
-                                .values('winner__user_id', 'winner__user__wholesaler_name')  # Access winner's profile ID and username
-                                .annotate(count=Count('winner__user_id'))  # Count how many times each ID appears
-                                .order_by('-count'))
+        # Apply date range filter if both dates are provided
+        if date_from and date_to:
+            queryset = queryset.filter(start_date__range=[date_from, date_to])
 
-            return Response({
-                "wholesaler_counts": wholesaler_counts
-            }, status=status.HTTP_200_OK)
-        else:
-            return Response({"error": "User does not have a valid dealer profile"}, status=status.HTTP_403_FORBIDDEN)
+        # Count by winner's profile ID and get username
+        top_wholesalers = (queryset
+                        .values('winner__user_id', 'winner__user__wholesaler_name', 'winner__user__user__username')  # Access winner's profile ID and username
+                        .annotate(count=Count('winner__user_id'))  # Count how many times each ID appears
+                        .filter(winner__user_id__isnull=False)  # Exclude entries with null winner__user_id
+                        .order_by('-count'))  # Order by count in descending order
+
+        # Paginate the results
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(top_wholesalers, request)
+        if page is not None:
+            return paginator.get_paginated_response(page)
+
+        return Response({
+            "top_wholesalers": list(top_wholesalers)  # Convert queryset to list
+        }, status=status.HTTP_200_OK)
         
     @action(detail=False, methods=['get'], url_path='top-wholesaler')
     def top_wholesaler(self, request, *args, **kwargs):

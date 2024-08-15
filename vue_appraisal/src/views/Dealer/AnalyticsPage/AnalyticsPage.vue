@@ -98,6 +98,12 @@
             >
               Most Common Cars
             </button>
+            <button
+              :class="{ active: currentTab === 'topWholesalers' }"
+              @click="currentTab = 'topWholesalers'"
+            >
+              Top Wholesalers
+            </button>
           </div>
 
           <div class="tab-content">
@@ -213,6 +219,69 @@
                 </button>
               </div>
             </div>
+
+            <div v-if="currentTab === 'topWholesalers'">
+              <table class="cars-table">
+                <thead>
+                  <tr class="cars-table-header">
+                    <th>Wholesaler Name</th>
+                    <th>Username</th>
+                    <th>Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(wholesaler, index) in paginatedBestWholesalers"
+                    :key="index"
+                  >
+                    <td>{{ wholesaler.winner__user__wholesaler_name }}</td>
+                    <td>{{ wholesaler.winner__user__user__username }}</td>
+                    <td>{{ wholesaler.count }}</td>
+                  </tr>
+                </tbody>
+                <p v-if="bestWholesalers.length === 0">
+                  No wholesalers found for the selected date range.
+                </p>
+              </table>
+              <p v-if="!bestWholesalers || bestWholesalers.length === 0">
+                No wholesalers found for the selected date range.
+              </p>
+
+              <!-- Pagination Controls -->
+              <div class="pagination-controls">
+                <button
+                  :disabled="currentPage === 1"
+                  @click="changePage(currentPage - 1)"
+                >
+                  Previous
+                </button>
+                <button v-if="showFirstPageButton" @click="changePage(1)">
+                  1
+                </button>
+                <button v-if="showEllipsisLeft" disabled>...</button>
+                <button
+                  v-for="page in visiblePageNumbers"
+                  :key="page"
+                  :class="{ active: page === currentPage }"
+                  @click="changePage(page)"
+                >
+                  {{ page }}
+                </button>
+                <button v-if="showEllipsisRight" disabled>...</button>
+                <button
+                  v-if="showLastPageButton"
+                  @click="changePage(totalPages)"
+                >
+                  {{ totalPages }}
+                </button>
+                <button
+                  :disabled="currentPage === totalPages"
+                  @click="changePage(currentPage + 1)"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -251,6 +320,7 @@ export default {
       allCount: 0,
       filteredCount: 0,
       mostCommonCars: [], // Ensure this is initialized as an empty array
+      bestWholesalers: [],
       topWholesaler: null,
       topCar: null,
       statusCounts: [], // Ensure this is initialized as an empty array
@@ -308,6 +378,9 @@ export default {
     },
     paginatedMostCommonCars() {
       return this.mostCommonCars;
+    },
+    paginatedBestWholesalers() {
+      return this.bestWholesalers;
     },
     pageNumbers() {
       const pages = [];
@@ -417,6 +490,28 @@ export default {
         this.fetchMostCommonCars(page);
       }
     },
+    async fetchBestWholesalers(page = 1) {
+      try {
+        const params = {
+          from: this.startDate || "", // Use the startDate directly if the backend expects YYYY-MM-DD
+          to: this.endDate || "", // Use the endDate directly if the backend expects YYYY-MM-DD
+          page,
+          page_size: this.pageSize,
+        };
+
+        console.log("Fetching Most Common Cars with params:", params);
+        const response = await axiosInstance.get(
+          endpoints.bestWholesalersByDateRange(),
+          { params }
+        );
+
+        this.bestWholesalers = response.data.results;
+        this.totalPages = Math.ceil(response.data.count / this.pageSize);
+        this.currentPage = page;
+      } catch (error) {
+        console.error("Error fetching most common cars:", error);
+      }
+    },
     async fetchTopWholesaler() {
       try {
         const response = await axiosInstance.get(endpoints.top_wholesaler);
@@ -494,6 +589,7 @@ export default {
       this.fetchMostCommonCars();
       this.fetchTopWholesaler();
       this.fetchTopCar();
+      this.fetchBestWholesalers();
     },
   },
   mounted() {
@@ -501,6 +597,7 @@ export default {
     this.fetchStatusCounts();
     this.fetchMostCommonCars();
     this.fetchTopWholesaler();
+    this.fetchBestWholesalers();
     this.fetchTopCar();
   },
 };
