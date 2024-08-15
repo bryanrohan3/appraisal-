@@ -151,15 +151,15 @@
               v-if="currentTab === 'mostCommonCars'"
               class="most-common-cars-tab"
             >
-              <h2>Most Common Cars</h2>
               <table class="cars-table">
                 <thead>
-                  <tr>
+                  <tr class="cars-table-header">
                     <th>Make</th>
                     <th>Model</th>
                     <th>Count</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   <tr
                     v-for="(car, index) in paginatedMostCommonCars"
@@ -307,12 +307,7 @@ export default {
       return new Date().toLocaleDateString(undefined, options);
     },
     paginatedMostCommonCars() {
-      if (!Array.isArray(this.mostCommonCars)) {
-        return []; // Return an empty array if mostCommonCars is not defined or not an array
-      }
-      const start = (this.currentPage - 1) * this.pageSize;
-      const end = start + this.pageSize;
-      return this.mostCommonCars.slice(start, end);
+      return this.mostCommonCars;
     },
     pageNumbers() {
       const pages = [];
@@ -398,21 +393,20 @@ export default {
     async fetchMostCommonCars(page = 1) {
       try {
         const params = {
-          from: this.startDate ? `${this.startDate}T00:00:00Z` : undefined,
-          to: this.endDate ? `${this.endDate}T23:59:59Z` : undefined,
+          from: this.startDate || "", // Use the startDate directly if the backend expects YYYY-MM-DD
+          to: this.endDate || "", // Use the endDate directly if the backend expects YYYY-MM-DD
           page,
           page_size: this.pageSize,
         };
 
+        console.log("Fetching Most Common Cars with params:", params);
         const response = await axiosInstance.get(
           endpoints.mostCommonCarsByDateRange(),
           { params }
         );
-        console.log("Most Common Cars Response:", response.data);
 
-        // Adjust based on the actual API response structure
-        this.mostCommonCars = response.data.results; // Change this line if needed
-        this.totalPages = Math.ceil(response.data.count / this.pageSize); // Adjust if count is from response
+        this.mostCommonCars = response.data.results;
+        this.totalPages = Math.ceil(response.data.count / this.pageSize);
         this.currentPage = page;
       } catch (error) {
         console.error("Error fetching most common cars:", error);
@@ -519,25 +513,33 @@ export default {
 
 .tabs {
   display: flex;
-  justify-content: space-around;
+  margin-left: 20px;
 }
 
 .tabs button {
-  background: none;
+  background-color: transparent;
   border: none;
-  padding: 10px 20px;
-  font-size: 16px;
+  padding: 10px 20px; /* Adjust padding as needed */
+  margin-right: 10px; /* Add space between buttons */
   cursor: pointer;
+  font-size: 12px;
+  text-align: center;
+  color: #b0b0b0;
+  position: relative;
 }
 
 .tabs button.active {
-  border-bottom: 2px solid #4d79ff;
+  border-bottom: 2px solid #eb5a58;
+  color: #333;
+  font-weight: 600;
 }
 
 .tab-content {
   padding: 20px;
+  padding-top: 0px;
 }
 
+/* Pie Chart */
 .pie-chart-container {
   display: flex;
   margin: 20px;
@@ -601,6 +603,7 @@ export default {
   margin-bottom: 10px;
 }
 
+/* Dashboard Container */
 .dashboard-container {
   margin-left: auto;
   margin-right: auto;
@@ -633,7 +636,7 @@ export default {
   height: 20px;
 }
 
-button {
+/*button {
   padding: 8px 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
@@ -646,7 +649,7 @@ button {
   width: 60%;
   color: #000000;
   cursor: pointer;
-}
+}*/
 
 .title {
   font-size: 24px;
@@ -742,7 +745,7 @@ button {
   background-color: #ffffff;
   padding: 10px;
   box-sizing: border-box;
-  height: 710px; /* Adjust the height as needed for the box with piechart (will need to make bigger)*/
+  height: 410px; /* Adjust the height as needed for the box with piechart (will need to make bigger)*/
   border-radius: 10px;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
 }
@@ -937,24 +940,48 @@ button {
   margin: 20px;
 }
 
+/* Cars Table Styling */
 .cars-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
+  margin: 10px auto;
 }
 
 .cars-table th,
 .cars-table td {
-  padding: 8px;
   text-align: left;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.cars-table tr {
+  margin: 0;
 }
 
 .cars-table th {
-  background-color: #f4f4f4;
+  font-weight: 400;
+  padding-bottom: 5px;
 }
+
+.cars-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.cars-table tr:hover {
+  background-color: #f1f1f1;
+  cursor: pointer;
+}
+
+.cars-table-header {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-size: 12px;
+  color: #7d7b7b;
+}
+
 /* Pagination Controls */
 .pagination-controls {
-  margin-top: 20px;
+  margin-top: 40px;
   text-align: center;
 }
 
@@ -976,12 +1003,5 @@ button {
 .pagination-controls button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
-}
-
-.total-records {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 12px;
-  color: #999;
 }
 </style>
