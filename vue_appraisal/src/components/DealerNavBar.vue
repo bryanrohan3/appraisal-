@@ -56,10 +56,21 @@
         </div>
       </router-link>
 
-      <router-link to="/#" :class="{ 'active-link': isActive('/analytics') }">
+      <router-link
+        to="/analytics"
+        :class="{ 'active-link': isActive('/analytics') }"
+      >
         <div class="nav-item">
-          <img src="@/assets/analytics.svg" class="icon" />
-          Analytics
+          <!-- <img src="@/assets/analytics.svg" class="icon" /> -->
+          <img
+            :src="
+              isActive('/analytics')
+                ? require('@/assets/analytics-active.svg')
+                : require('@/assets/analytics.svg')
+            "
+            class="icon"
+          />
+          <a>Analytics</a>
         </div>
       </router-link>
 
