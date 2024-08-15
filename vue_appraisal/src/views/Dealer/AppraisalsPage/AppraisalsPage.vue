@@ -151,6 +151,7 @@
                 <th>Rego</th>
                 <th>Status</th>
                 <th>Initiating Dealer</th>
+                <th>Winner</th>
               </tr>
             </thead>
             <tbody>
@@ -179,6 +180,13 @@
                 <td>
                   {{ appraisal.initiating_dealer.first_name }}
                   {{ appraisal.initiating_dealer.last_name }}
+                </td>
+                <td>
+                  <!-- display winner and if null display null -->
+                  <span v-if="appraisal.winner">
+                    {{ appraisal.winner.username }}
+                  </span>
+                  <span v-else>null</span>
                 </td>
               </tr>
             </tbody>
