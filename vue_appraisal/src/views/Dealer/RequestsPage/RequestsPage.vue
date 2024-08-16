@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-container">
     <div class="title-container">
-      <h1 class="title">Dealer Dashboard Overview</h1>
+      <h1 class="title">Wholesalers List & Requests</h1>
       <div class="dealership-dropdown">
         <select
           class="input-dealership"
@@ -140,7 +140,7 @@
 import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
 
 export default {
-  name: "DashboardPage",
+  name: "RequestsPage",
   data() {
     return {
       activeTab: "Friends", // Default active tab
