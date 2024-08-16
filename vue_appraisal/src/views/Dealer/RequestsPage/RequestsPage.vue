@@ -47,8 +47,7 @@
     <!-- Tab Content -->
     <div class="tab-content">
       <!-- Friends Tab -->
-      <div v-if="activeTab === 'Friends'" class="tab-pane">
-        <h1 class="section-title">Friends</h1>
+      <div v-if="activeTab === 'Friends'" class="tab-pane content-container">
         <table v-if="friends.length" class="data-table">
           <thead>
             <tr>
@@ -74,8 +73,7 @@
       </div>
 
       <!-- Requests Tab -->
-      <div v-if="activeTab === 'Requests'" class="tab-pane">
-        <h1 class="section-title">Requests</h1>
+      <div v-if="activeTab === 'Requests'" class="tab-pane content-container">
         <table v-if="pendingRequests.length" class="data-table">
           <thead>
             <tr>
@@ -107,8 +105,10 @@
       </div>
 
       <!-- Rejected Requests Tab -->
-      <div v-if="activeTab === 'RejectedRequests'" class="tab-pane">
-        <h1 class="section-title">Rejected Requests</h1>
+      <div
+        v-if="activeTab === 'RejectedRequests'"
+        class="tab-pane content-container"
+      >
         <table v-if="rejectedRequests.length" class="data-table">
           <thead>
             <tr>
@@ -298,6 +298,18 @@ export default {
 
 .tab-button.active::after {
   transform: scaleX(1);
+}
+
+.tab-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.content-container {
+  background-color: #fff;
+  border-radius: 4px;
 }
 
 .data-table {
