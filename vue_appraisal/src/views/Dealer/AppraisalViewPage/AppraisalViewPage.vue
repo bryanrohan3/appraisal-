@@ -834,6 +834,14 @@ select {
   margin-bottom: 10px;
 }
 
+.profile-picture {
+  height: 65px;
+  width: 65px;
+  border-radius: 50%;
+  background-color: #e7e7e7;
+  margin-bottom: 10px;
+}
+
 .photo-placeholder {
   width: 100%;
   height: 100%;
