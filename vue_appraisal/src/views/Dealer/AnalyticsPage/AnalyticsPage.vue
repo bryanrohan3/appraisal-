@@ -7,6 +7,43 @@
       </div>
     </div>
 
+    <div class="columns-container">
+      <div class="column column-60">
+        <div class="dashboard-metrics">
+          <div class="metric">
+            <div class="stats other-stats">
+              <img class="star" src="@/assets/star.svg" alt="Star" />
+              <p class="stats-title">Best Performing Wholesaler</p>
+              <p class="stats-name">{{ topWholesalerName }}</p>
+            </div>
+          </div>
+          <div class="metric">
+            <div class="stats other-stats">
+              <img class="money" src="@/assets/money.svg" alt="Money" />
+              <p class="stats-title">Profit/Loss Comparison</p>
+              <p
+                class="stats-name"
+                :class="{
+                  'positive-profit': totalProfitOrLoss >= 0,
+                  'negative-profit': totalProfitOrLoss < 0,
+                }"
+              >
+                {{ totalProfitOrLoss >= 0 ? "+" : ""
+                }}{{ totalProfitOrLoss.toLocaleString() }}
+              </p>
+            </div>
+          </div>
+          <div class="metric">
+            <div class="stats other-stats">
+              <img class="car" src="@/assets/car.svg" alt="Car" />
+              <p class="stats-title">Most Common Car</p>
+              <p class="stats-name">{{ mostCommonCarMakeModel }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="appraisals-container">
       <div class="appraisals">
         <div class="filters-container">
@@ -56,6 +93,12 @@
               @click="currentTab = 'topWholesalers'"
             >
               Top Wholesalers
+            </button>
+            <button
+              :class="{ active: currentTab === 'profit' }"
+              @click="currentTab = 'profit'"
+            >
+              Profit
             </button>
           </div>
 
@@ -235,25 +278,10 @@
                 </button>
               </div>
             </div>
+            <div v-if="currentTab === 'profit'" class="profit-tab">
+              <canvas id="profitChart"></canvas>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <div class="stats-container">
-        <div class="stats other-stats">
-          <img class="star" src="@/assets/star.svg" alt="Star" />
-          <p class="stats-title">Best Performing Wholesaler</p>
-          <p class="stats-name">{{ topWholesalerName }}</p>
-        </div>
-        <div class="stats other-stats">
-          <img class="money" src="@/assets/money.svg" alt="Money" />
-          <p class="stats-title">Profit/Loss Comparison</p>
-          <p class="stats-name">+$100,005</p>
-        </div>
-        <div class="stats other-stats">
-          <img class="car" src="@/assets/car.svg" alt="Car" />
-          <p class="stats-title">Most Common Car</p>
-          <p class="stats-name">{{ mostCommonCarMakeModel }}</p>
         </div>
       </div>
     </div>
@@ -263,6 +291,27 @@
 <script>
 import { mapGetters } from "vuex";
 import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
+import {
+  Chart,
+  LineElement,
+  LineController,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Title,
+  Tooltip,
+} from "chart.js";
+
+// Register components
+Chart.register(
+  LineElement,
+  LineController,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Title,
+  Tooltip
+);
 
 export default {
   name: "AnalyticsPage",
@@ -290,6 +339,9 @@ export default {
       pageRange: 2, // Add default value for pageRange
       totalPages: 1, // Ensure totalPages is defined and initialized
       currentTab: "status", // Default tab
+      profitData: [], // To store profit data
+      profitLabels: [], // To store months or dates for X-axis
+      totalProfitOrLoss: 0,
     };
   },
   computed: {
@@ -375,6 +427,111 @@ export default {
     },
   },
   methods: {
+    async fetchProfitData() {
+      try {
+        const params = {};
+        if (this.startDate) params.from = this.startDate;
+        if (this.endDate) params.to = this.endDate;
+
+        const response = await axiosInstance.get(endpoints.profitData(), {
+          params,
+        });
+        console.log(response.data);
+
+        const data = response.data;
+
+        // Set total profit or loss
+        this.totalProfitOrLoss = data.total_profit_or_loss;
+
+        // Process the daily profit data
+        this.profitLabels = data.daily_profit.map((item) => item.date);
+        this.profitData = data.daily_profit.map((item) => item.profit_or_loss);
+
+        // Render the chart
+        this.renderChart();
+      } catch (error) {
+        console.error("Error fetching profit data:", error);
+      }
+    },
+
+    generateMonthLabels() {
+      const months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      return months; // Adjust based on actual data range
+    },
+
+    renderChart() {
+      const ctx = document.getElementById("profitChart").getContext("2d");
+
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: this.profitLabels,
+          datasets: [
+            {
+              label: "Daily Profit",
+              data: this.profitData,
+              borderColor: "rgba(75, 192, 192, 1)",
+              backgroundColor: "rgba(75, 192, 192, 0.2)",
+              fill: true,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: true,
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return `Profit: ${context.raw}`;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: "Date",
+              },
+              ticks: {
+                autoSkip: true,
+                maxTicksLimit: 10,
+              },
+            },
+            y: {
+              title: {
+                display: true,
+                text: "Profit/Loss",
+              },
+              beginAtZero: true,
+            },
+          },
+        },
+      });
+    },
+
+    // Call fetchProfitData when the tab is switched or on component mount
+    fetchData() {
+      if (this.currentTab === "profit") {
+        this.fetchProfitData();
+      }
+    },
     async fetchAllCount() {
       try {
         const response = await axiosInstance.get(endpoints.allCount);
@@ -543,16 +700,30 @@ export default {
       this.fetchMostCommonCars();
       this.fetchTopWholesaler();
       this.fetchTopCar();
+      this.fetchProfitData();
       this.fetchBestWholesalers();
     },
   },
   mounted() {
     this.fetchAllCount();
     this.fetchStatusCounts();
+    this.fetchData(); // Fetch data when component mounts
     this.fetchMostCommonCars();
     this.fetchTopWholesaler();
     this.fetchBestWholesalers();
     this.fetchTopCar();
+    this.fetchProfitData();
+  },
+  watch: {
+    currentTab(newValue) {
+      this.fetchData();
+    },
+    startDate() {
+      this.fetchData();
+    },
+    endDate() {
+      this.fetchData();
+    },
   },
 };
 </script>
@@ -594,7 +765,10 @@ export default {
 .pie-chart-container {
   display: flex;
   margin: 20px;
-  margin-left: 40px;
+  justify-content: center;
+  align-items: center;
+  margin-left: 60px;
+  margin-top: 50px;
 }
 
 .pie-chart {
@@ -719,7 +893,7 @@ export default {
 .column {
   padding: 10px;
   box-sizing: border-box;
-  height: 130px;
+  height: 160px;
   border-radius: 10px;
   /* shadow */
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
@@ -728,7 +902,6 @@ export default {
 
 .column-60 {
   width: 100%;
-  margin-top: 50px;
   background-color: #ffffff;
 }
 .profile-container {
@@ -787,11 +960,11 @@ export default {
 }
 
 .appraisals {
-  width: 75%;
+  width: 100%;
   background-color: #ffffff;
   padding: 10px;
   box-sizing: border-box;
-  height: 410px; /* Adjust the height as needed for the box with piechart (will need to make bigger)*/
+  height: 640px; /* Adjust the height as needed for the box with piechart (will need to make bigger)*/
   border-radius: 10px;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
 }
@@ -801,14 +974,6 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.stats {
-  background-color: #ffffff;
-  padding: 10px;
-  box-sizing: border-box;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
 }
 
 .other-stats {
@@ -833,6 +998,14 @@ export default {
   font-weight: 600;
   color: #333;
   margin: 0;
+}
+
+.positive-profit {
+  color: green;
+}
+
+.negative-profit {
+  color: red;
 }
 
 /* welcome message styling */
@@ -883,7 +1056,7 @@ export default {
   align-items: center;
   gap: 10px;
   flex: 1; /* Ensure metrics take up equal space */
-  margin-left: 60px;
+  margin-left: 120px;
 }
 
 .circle {

@@ -54,6 +54,11 @@ const endpoints = {
     apiConstants.api_hostname + "appraisals/best-performing-wholesalers/",
   allCount: apiConstants.api_hostname + "appraisals/count/", // Add this line
   statusList: apiConstants.api_hostname + "appraisals/status-list/",
+  // Add this to your endpoints object
+  profitData: (from, to) =>
+    from && to
+      ? `${apiConstants.api_hostname}appraisals/profit-loss/?from=${from}&to=${to}`
+      : `${apiConstants.api_hostname}appraisals/profit-loss/`,
 };
 
 export { axiosInstance, endpoints };
