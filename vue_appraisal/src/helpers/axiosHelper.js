@@ -63,6 +63,7 @@ const endpoints = {
     `${apiConstants.api_hostname}friend-requests/received/?dealership=${dealershipId}`,
   respondToRequest: (requestId) =>
     `${apiConstants.api_hostname}friend-requests/${requestId}/respond/`,
+  dealerCreateProfile: apiConstants.api_hostname + "dealer-profile/",
 };
 
 export { axiosInstance, endpoints };

@@ -240,10 +240,6 @@ export default {
   justify-content: space-between;
 }
 
-.dealership-dropdown {
-  margin-bottom: 20px;
-}
-
 .input-dealership {
   padding: 10px 15px;
   font-size: 14px;
@@ -251,7 +247,6 @@ export default {
   border-radius: 4px;
   background-color: #fff;
   color: #333;
-  margin-top: 20px;
 }
 
 .tabs {
