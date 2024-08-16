@@ -132,19 +132,18 @@
                     </span>
                   </div>
                 </div>
-
-                <div class="metric-status">
-                  <div class="circle total-appraisals">
-                    <img
-                      src="@/assets/appraisal.svg"
-                      alt="Appraisal"
-                      class="icon-dash"
-                    />
-                  </div>
-                  <div class="metric-details">
-                    <span class="metric-value">{{ filteredCount }}</span>
-                    <span class="metric-title">Filtered Appraisals</span>
-                  </div>
+              </div>
+              <div class="metric-status">
+                <div class="circle total-appraisals">
+                  <img
+                    src="@/assets/appraisal.svg"
+                    alt="Appraisal"
+                    class="icon-dash"
+                  />
+                </div>
+                <div class="metric-details">
+                  <span class="metric-value">{{ filteredCount }}</span>
+                  <span class="metric-title">Filtered Appraisals</span>
                 </div>
               </div>
             </div>
@@ -769,12 +768,13 @@ export default {
   align-items: center;
   margin-left: 60px;
   margin-top: 50px;
+  gap: 100px;
 }
 
 .pie-chart {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 300px;
+  height: 300px;
   border-radius: 50%;
   overflow: hidden;
 }
@@ -783,7 +783,7 @@ export default {
   position: absolute;
   width: 100%;
   height: 100%;
-  clip: rect(0, 200px, 200px, 100px);
+  clip: rect(0, 300px, 300px, 150px);
   border-radius: 50%;
   transform-origin: center;
   transition: transform 1s ease-in-out, background 1s ease-in-out; /* Added transition */
@@ -987,14 +987,14 @@ export default {
 }
 
 .stats-title {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
   color: #7d7b7b; /* Lighter color for the title */
   margin: 0;
 }
 
 .stats-name {
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 600;
   color: #333;
   margin: 0;
@@ -1054,9 +1054,9 @@ export default {
 .metric-status {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1; /* Ensure metrics take up equal space */
-  margin-left: 120px;
+  gap: 30px;
+  margin-top: 60px; /* Added space between pie chart and filtered appraisals */
+  justify-content: center; /* Center the filtered appraisals */
 }
 
 .circle {

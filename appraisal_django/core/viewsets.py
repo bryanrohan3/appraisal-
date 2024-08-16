@@ -22,7 +22,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.exceptions import NotFound
 from django.utils.dateparse import parse_date
 from collections import Counter
-
+from collections import defaultdict
+from decimal import Decimal
 
 
 class CustomPagination(PageNumberPagination):
@@ -939,6 +940,54 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         appraisal_count = queryset.count()
 
         return Response({"count": appraisal_count}, status=status.HTTP_200_OK)
+    
+    
+    @action(detail=False, methods=['get'], url_path='profit-loss')
+    def profit_loss(self, request, *args, **kwargs):
+        # Get 'from' and 'to' query parameters
+        from_date_str = request.query_params.get('from', None)
+        to_date_str = request.query_params.get('to', None)
+
+        # Convert query parameters to datetime objects
+        try:
+            from_date = parse_datetime(from_date_str) if from_date_str else None
+            to_date = parse_datetime(to_date_str) if to_date_str else None
+        except ValueError:
+            return Response({"detail": "Invalid date format. Use ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate date range
+        if from_date and to_date and from_date > to_date:
+            return Response({"detail": "The 'from' date cannot be after the 'to' date."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get the queryset
+        queryset = self.filter_queryset(self.get_queryset())
+
+        # Apply date range filters if provided
+        if from_date and to_date:
+            queryset = queryset.filter(start_date__range=(from_date, to_date))
+        elif from_date:
+            queryset = queryset.filter(start_date__gte=from_date)
+        elif to_date:
+            queryset = queryset.filter(start_date__lte=to_date)
+
+        # Aggregate profit/loss by day
+        daily_profit = defaultdict(Decimal)
+        total_profit_or_loss = Decimal('0.0')
+
+        for appraisal in queryset:
+            if appraisal.winner:
+                profit_loss = Decimal(appraisal.winner.amount) - Decimal(appraisal.reserve_price)
+                total_profit_or_loss += profit_loss
+                day = appraisal.start_date.strftime('%Y-%m-%d')  # Format date as 'YYYY-MM-DD'
+                daily_profit[day] += profit_loss
+
+        # Prepare the final response
+        response_data = {
+            'total_profit_or_loss': float(total_profit_or_loss),
+            'daily_profit': [{'date': day, 'profit_or_loss': float(profit)} for day, profit in sorted(daily_profit.items())]
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 class RequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = FriendRequest.objects.all()
