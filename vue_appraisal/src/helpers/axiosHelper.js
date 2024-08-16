@@ -59,6 +59,10 @@ const endpoints = {
     from && to
       ? `${apiConstants.api_hostname}appraisals/profit-loss/?from=${from}&to=${to}`
       : `${apiConstants.api_hostname}appraisals/profit-loss/`,
+  getReceivedRequests: (dealershipId) =>
+    `${apiConstants.api_hostname}friend-requests/received/?dealership=${dealershipId}`,
+  respondToRequest: (requestId) =>
+    `${apiConstants.api_hostname}friend-requests/${requestId}/respond/`,
 };
 
 export { axiosInstance, endpoints };

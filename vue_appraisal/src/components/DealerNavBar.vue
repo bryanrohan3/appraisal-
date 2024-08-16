@@ -74,7 +74,10 @@
         </div>
       </router-link>
 
-      <router-link to="/#" :class="{ 'active-link': isActive('/requests') }">
+      <router-link
+        to="/requests"
+        :class="{ 'active-link': isActive('/requests') }"
+      >
         <div class="nav-item">
           <img src="@/assets/requests.svg" class="icon" />
           Requests

@@ -9,6 +9,7 @@ import CreateAppraisalPage from "@/views/Dealer/CreateAppraisalPage/CreateApprai
 import AppraisalsPage from "@/views/Dealer/AppraisalsPage/AppraisalsPage.vue";
 import AppraisalViewPage from "@/views/Dealer/AppraisalViewPage/AppraisalViewPage.vue";
 import AnalyticsPage from "@/views/Dealer/AnalyticsPage/AnalyticsPage.vue";
+import RequestsPage from "@/views/Dealer/RequestsPage/RequestsPage.vue";
 
 const routes = [
   {
@@ -57,6 +58,11 @@ const routes = [
         path: "analytics",
         name: "AnalyticsPage",
         component: AnalyticsPage,
+      },
+      {
+        path: "requests",
+        name: "RequestsPage",
+        component: RequestsPage,
       },
     ],
   },
