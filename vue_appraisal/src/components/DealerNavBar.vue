@@ -61,7 +61,6 @@
         :class="{ 'active-link': isActive('/analytics') }"
       >
         <div class="nav-item">
-          <!-- <img src="@/assets/analytics.svg" class="icon" /> -->
           <img
             :src="
               isActive('/analytics')
@@ -84,6 +83,24 @@
         </div>
       </router-link>
 
+      <router-link
+        v-if="userRole === 'M'"
+        to="/management"
+        :class="{ 'active-link': isActive('/management') }"
+      >
+        <div class="nav-item">
+          <img
+            :src="
+              isActive('/management')
+                ? require('@/assets/analytics-active.svg')
+                : require('@/assets/analytics.svg')
+            "
+            class="icon"
+          />
+          <a>Management</a>
+        </div>
+      </router-link>
+
       <div class="logout-container">
         <button @click="handleLogout" class="logout-button">
           <img src="@/assets/logout.svg" class="logout-icon" />
@@ -95,12 +112,29 @@
 </template>
 
 <script>
-import { mapMutations } from "vuex";
+import { mapGetters, mapMutations } from "vuex";
+import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
 
 export default {
   name: "DealerNavBar",
+  computed: {
+    ...mapGetters({
+      userRole: "getUserRole", // Map Vuex getter to computed property
+    }),
+  },
   methods: {
     ...mapMutations(["logout"]),
+    async fetchUserProfile() {
+      try {
+        const response = await axiosInstance.get(endpoints.dealerProfile);
+        const profile = response.data;
+
+        this.$store.commit("setUserProfile", profile);
+        this.$store.commit("setUserRole", profile.role);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+    },
     handleLogout() {
       this.logout(); // Clear Vuex state
       this.$router.push({ name: "login" }); // Redirect to login page
@@ -108,6 +142,9 @@ export default {
     isActive(route) {
       return this.$route.path.startsWith(route);
     },
+  },
+  mounted() {
+    this.fetchUserProfile(); // Fetch profile data on mount
   },
 };
 </script>

@@ -10,6 +10,7 @@ import AppraisalsPage from "@/views/Dealer/AppraisalsPage/AppraisalsPage.vue";
 import AppraisalViewPage from "@/views/Dealer/AppraisalViewPage/AppraisalViewPage.vue";
 import AnalyticsPage from "@/views/Dealer/AnalyticsPage/AnalyticsPage.vue";
 import RequestsPage from "@/views/Dealer/RequestsPage/RequestsPage.vue";
+import ManagementPage from "@/views/Dealer/ManagementPage/ManagementPage.vue";
 
 const routes = [
   {
@@ -64,6 +65,12 @@ const routes = [
         name: "RequestsPage",
         component: RequestsPage,
       },
+      {
+        path: "management",
+        name: "ManagementPage",
+        component: ManagementPage,
+        meta: { role: "M" }, // Manager Access
+      },
     ],
   },
 ];
@@ -79,7 +86,7 @@ router.beforeEach((to, from, next) => {
 
   if (requiresAuth && !store.getters.getAuthToken) {
     next("/login");
-  } else if (requiresAuth && userRole !== to.meta.role) {
+  } else if (requiresAuth && to.meta.role && userRole !== to.meta.role) {
     next("/login"); // Redirect to login if role does not match
   } else {
     next();
