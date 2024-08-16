@@ -69,7 +69,6 @@ const routes = [
         path: "management",
         name: "ManagementPage",
         component: ManagementPage,
-        meta: { role: "M" }, // Manager Access
       },
     ],
   },
@@ -86,7 +85,7 @@ router.beforeEach((to, from, next) => {
 
   if (requiresAuth && !store.getters.getAuthToken) {
     next("/login");
-  } else if (requiresAuth && to.meta.role && userRole !== to.meta.role) {
+  } else if (requiresAuth && userRole !== to.meta.role) {
     next("/login"); // Redirect to login if role does not match
   } else {
     next();

@@ -1,4 +1,3 @@
-// store/index.js
 import { createStore } from "vuex";
 import createPersistedState from "vuex-persistedstate";
 
@@ -6,7 +5,7 @@ export default createStore({
   state: {
     authToken: null,
     userProfile: null,
-    userRole: null,
+    userRole: null, // Add this line
   },
   getters: {
     getAuthToken(state) {
@@ -27,27 +26,15 @@ export default createStore({
       state.userProfile = user;
     },
     setUserRole(state, role) {
-      state.userRole = role;
+      state.userRole = role; // Make sure this line is present
     },
     logout(state) {
       state.authToken = null;
       state.userProfile = null;
-      state.userRole = null;
+      state.userRole = null; // Clear the role on logout
     },
   },
-  actions: {
-    fetchUserProfile({ commit }) {
-      axiosInstance
-        .get(endpoints.dealerProfile)
-        .then((response) => {
-          const profile = response.data;
-          commit("setUserProfile", profile);
-          commit("setUserRole", profile.role);
-        })
-        .catch((error) => {
-          console.error("Error fetching user profile:", error);
-        });
-    },
-  },
+
+  actions: {},
   plugins: [createPersistedState()],
 });

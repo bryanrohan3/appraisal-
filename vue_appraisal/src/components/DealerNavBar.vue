@@ -12,7 +12,7 @@
         <div class="nav-item">
           <img
             :src="
-              isActive('/')
+              isActive('/dashboard')
                 ? require('@/assets/dashboard-active.svg')
                 : require('@/assets/dashboard.svg')
             "
@@ -61,6 +61,7 @@
         :class="{ 'active-link': isActive('/analytics') }"
       >
         <div class="nav-item">
+          <!-- <img src="@/assets/analytics.svg" class="icon" /> -->
           <img
             :src="
               isActive('/analytics')
@@ -78,13 +79,20 @@
         :class="{ 'active-link': isActive('/requests') }"
       >
         <div class="nav-item">
-          <img src="@/assets/requests.svg" class="icon" />
-          Requests
+          <img
+            :src="
+              isActive('/requests')
+                ? require('@/assets/requests-active.svg')
+                : require('@/assets/requests.svg')
+            "
+            class="icon"
+          />
+          <a>Requests</a>
         </div>
       </router-link>
 
       <router-link
-        v-if="userRole === 'M'"
+        v-if="isManager"
         to="/management"
         :class="{ 'active-link': isActive('/management') }"
       >
@@ -92,8 +100,8 @@
           <img
             :src="
               isActive('/management')
-                ? require('@/assets/analytics-active.svg')
-                : require('@/assets/analytics.svg')
+                ? require('@/assets/manager-active.svg')
+                : require('@/assets/manager.svg')
             "
             class="icon"
           />
@@ -112,27 +120,37 @@
 </template>
 
 <script>
-import { mapGetters, mapMutations } from "vuex";
+import { mapMutations } from "vuex";
 import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
 
 export default {
   name: "DealerNavBar",
-  computed: {
-    ...mapGetters({
-      userRole: "getUserRole", // Map Vuex getter to computed property
-    }),
+  data() {
+    return {
+      isManager: false,
+    };
   },
   methods: {
     ...mapMutations(["logout"]),
-    async fetchUserProfile() {
+    async fetchDealerProfileInfo() {
       try {
         const response = await axiosInstance.get(endpoints.dealerProfile);
-        const profile = response.data;
+        console.log("Dealer Profile Response:", response.data); // Log the full response
 
-        this.$store.commit("setUserProfile", profile);
-        this.$store.commit("setUserRole", profile.role);
+        // Access properties directly
+        const dealerProfile = response.data;
+
+        // Log the profile data
+        console.log("Dealer Profile:", dealerProfile);
+
+        if (dealerProfile) {
+          this.isManager = dealerProfile.role === "M";
+          console.log("Is Manager:", this.isManager); // Log the manager status
+        } else {
+          console.warn("Dealer profile data is empty");
+        }
       } catch (error) {
-        console.error("Error fetching user profile:", error);
+        console.error("Error fetching dealer profile information:", error);
       }
     },
     handleLogout() {
@@ -144,7 +162,7 @@ export default {
     },
   },
   mounted() {
-    this.fetchUserProfile(); // Fetch profile data on mount
+    this.fetchDealerProfileInfo();
   },
 };
 </script>
