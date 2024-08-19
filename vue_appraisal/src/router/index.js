@@ -11,6 +11,7 @@ import AppraisalViewPage from "@/views/Dealer/AppraisalViewPage/AppraisalViewPag
 import AnalyticsPage from "@/views/Dealer/AnalyticsPage/AnalyticsPage.vue";
 import RequestsPage from "@/views/Dealer/RequestsPage/RequestsPage.vue";
 import ManagementPage from "@/views/Dealer/ManagementPage/ManagementPage.vue";
+import ProfilePage from "@/views/Dealer/ProfilePage/ProfilePage.vue";
 
 const routes = [
   {
@@ -64,6 +65,11 @@ const routes = [
         path: "requests",
         name: "RequestsPage",
         component: RequestsPage,
+      },
+      {
+        path: "profile",
+        name: "ProfilePage",
+        component: ProfilePage,
       },
       {
         path: "management",

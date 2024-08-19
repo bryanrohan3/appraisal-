@@ -92,6 +92,23 @@
       </router-link>
 
       <router-link
+        to="/profile"
+        :class="{ 'active-link': isActive('/profile') }"
+      >
+        <div class="nav-item">
+          <img
+            :src="
+              isActive('/profile')
+                ? require('@/assets/account-active.svg')
+                : require('@/assets/account.svg')
+            "
+            class="icon"
+          />
+          <a>Profile</a>
+        </div>
+      </router-link>
+
+      <router-link
         v-if="isManager"
         to="/management"
         :class="{ 'active-link': isActive('/management') }"
