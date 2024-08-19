@@ -125,6 +125,19 @@
         v-if="activeTab === 'ManageDealership'"
         class="tab-pane content-container"
       >
+        <!-- Filter Button and Role Dropdown -->
+        <div class="filter-container">
+          <select
+            v-model="selectedRole"
+            @change="applyFilter"
+            class="role-filter"
+          >
+            <option value="">All Roles</option>
+            <option value="S">Sales</option>
+            <option value="M">Management</option>
+          </select>
+        </div>
+
         <!-- Dealers Table -->
         <table class="appraisals-table">
           <thead>
@@ -139,7 +152,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="dealer in dealers" :key="dealer.user.id">
+            <tr v-for="dealer in filteredDealers" :key="dealer.user.id">
               <td>{{ dealer.user.username }}</td>
               <td>{{ dealer.user.first_name }}</td>
               <td>{{ dealer.user.last_name }}</td>
@@ -170,35 +183,9 @@
             </tr>
           </tbody>
         </table>
-        <div class="pagination-controls">
-          <button
-            :disabled="currentPage === 1"
-            @click="fetchDealers(currentPage - 1)"
-          >
-            Previous
-          </button>
-          <button v-if="showFirstPageButton" @click="fetchDealers(1)">1</button>
-          <button v-if="showEllipsisLeft" disabled>...</button>
-          <button
-            v-for="page in visiblePageNumbers"
-            :key="page"
-            :class="{ active: page === currentPage }"
-            @click="fetchDealers(page)"
-          >
-            {{ page }}
-          </button>
-          <button v-if="showEllipsisRight" disabled>...</button>
-          <button v-if="showLastPageButton" @click="fetchDealers(totalPages)">
-            {{ totalPages }}
-          </button>
-          <button
-            :disabled="currentPage === totalPages"
-            @click="fetchDealers(currentPage + 1)"
-          >
-            Next
-          </button>
-        </div>
-        <span class="total-records">Total Dealers: {{ totalDealers }}</span>
+        <span class="total-records"
+          >Total Dealers: {{ filteredDealers.length }}</span
+        >
       </div>
     </div>
   </div>
@@ -211,7 +198,7 @@ export default {
   name: "ManagementPage",
   data() {
     return {
-      activeTab: "CreateUser",
+      activeTab: "ManageDealership",
       newUser: {
         username: "",
         password: "",
@@ -226,52 +213,11 @@ export default {
       formData: {},
       dealers: [],
       selectedDealership: "",
-      currentPage: 1,
-      totalPages: 1,
-      pageSize: 10,
+      selectedRole: "", // Added to store the selected role for filtering
+      filteredDealers: [], // Added to store filtered dealers
       totalDealers: 0,
-      pageRange: 2, // Range of visible pages
       dropdownOpen: null,
     };
-  },
-  computed: {
-    pageNumbers() {
-      const pages = [];
-      for (let i = 1; i <= this.totalPages; i++) {
-        pages.push(i);
-      }
-      return pages;
-    },
-    visiblePageNumbers() {
-      const start = Math.max(1, this.currentPage - this.pageRange);
-      const end = Math.min(this.totalPages, this.currentPage + this.pageRange);
-
-      const adjustedStart = Math.max(1, end - this.pageRange * 2);
-
-      return this.pageNumbers.filter(
-        (page) => page >= adjustedStart && page <= end
-      );
-    },
-    showFirstPageButton() {
-      return this.totalPages > 1 && this.visiblePageNumbers[0] > 1;
-    },
-    showLastPageButton() {
-      return (
-        this.totalPages > 1 &&
-        this.visiblePageNumbers[this.visiblePageNumbers.length - 1] <
-          this.totalPages
-      );
-    },
-    showEllipsisLeft() {
-      return this.showFirstPageButton && this.visiblePageNumbers[0] > 2;
-    },
-    showEllipsisRight() {
-      return (
-        this.showLastPageButton &&
-        this.visiblePageNumbers[this.visiblePageNumbers.length - 1] <
-          this.totalPages - 1
-      );
-    },
   },
   methods: {
     setActiveTab(tab) {
@@ -308,26 +254,28 @@ export default {
       }
     },
 
-    async fetchDealers(page = 1) {
+    async fetchDealers() {
       if (!this.selectedDealership) return;
 
       try {
         const response = await axiosInstance.get(
-          endpoints.dealersByDealership(this.selectedDealership),
-          {
-            params: {
-              page: page,
-              page_size: this.pageSize,
-            },
-          }
+          endpoints.dealersByDealership(this.selectedDealership)
         );
 
-        this.dealers = response.data.results || [];
-        this.currentPage = page;
-        this.totalPages = Math.ceil(response.data.count / this.pageSize);
-        this.totalDealers = response.data.count;
+        this.dealers = response.data;
+        this.applyFilter(); // Apply filter when dealers are fetched
       } catch (error) {
         console.error("Error fetching dealers:", error);
+      }
+    },
+
+    applyFilter() {
+      if (this.selectedRole) {
+        this.filteredDealers = this.dealers.filter(
+          (dealer) => dealer.role === this.selectedRole
+        );
+      } else {
+        this.filteredDealers = this.dealers;
       }
     },
     async createUser() {
@@ -376,16 +324,18 @@ export default {
       // Implement API call or other logic here
     },
     async deleteDealer(userId) {
-      // Logic to delete the dealer
+      try {
+        // Logic to delete the dealer
+        await axiosInstance.delete(endpoints.deleteDealer(userId));
+        this.fetchDealers();
+        console.log(`Deleted dealer with ID ${userId}`);
+      } catch (error) {
+        console.error("Error deleting dealer:", error);
+      }
     },
   },
-  mounted() {
+  created() {
     this.fetchDealerProfileInfo();
-    this.$watch("selectedDealership", (newValue) => {
-      if (newValue) {
-        this.fetchDealers();
-      }
-    });
   },
 };
 </script>
@@ -544,30 +494,17 @@ button[type="submit"]:hover {
   color: #7d7b7b;
 }
 
-/* Pagination Controls */
-.pagination-controls {
-  margin-top: 20px;
-  text-align: center;
+/* Filter Controls */
+.filter-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+  width: 20%;
 }
 
-.pagination-controls button {
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  color: #333;
-  cursor: pointer;
-  margin: 0 5px;
-  padding: 5px 10px;
-}
-
-.pagination-controls button.active {
-  background-color: #f26764;
-  color: #fff;
-}
-
-.pagination-controls button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+.role-filter {
+  margin-right: 1rem;
+  padding: 0.5rem;
 }
 
 .total-records {

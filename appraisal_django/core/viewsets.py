@@ -141,16 +141,10 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         dealer_profile = request.user.dealerprofile  # Directly access the dealer profile
         if dealership not in dealer_profile.dealerships.all():
             return Response({'detail': 'Not authorized to view dealers of this dealership.'}, status=403)
-        
-        # Apply pagination to the filtered queryset
-        page = self.paginate_queryset(filtered_queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
 
-        # Use get_serializer to serialize the data
+        # Serialize the entire filtered queryset without pagination
         serializer = self.get_serializer(filtered_queryset, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data)    
 
 
     @action(detail=True, methods=['PATCH'], url_path='deactivate', permission_classes=[IsManagement])
