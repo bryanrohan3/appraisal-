@@ -2,6 +2,22 @@
   <div class="dashboard-container">
     <div class="title-container">
       <h1 class="title">Management Dealer Panel</h1>
+      <div class="dealership-dropdown">
+        <select
+          class="input-dealership"
+          v-model="selectedDealership"
+          @change="fetchDealers"
+        >
+          <option disabled value="">Select Dealership</option>
+          <option
+            v-for="option in dealershipOptions"
+            :key="option.id"
+            :value="option.id"
+          >
+            {{ option.name }}
+          </option>
+        </select>
+      </div>
     </div>
 
     <!-- Tabs -->
@@ -109,7 +125,58 @@
         v-if="activeTab === 'ManageDealership'"
         class="tab-pane content-container"
       >
-        <p>This is where you can manage dealership settings.</p>
+        <!-- Dealers Table -->
+        <table class="appraisals-table">
+          <thead>
+            <tr class="appraisals-table-header">
+              <th>Username</th>
+              <th>First Name</th>
+              <th>Last Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="dealer in dealers" :key="dealer.user.id">
+              <td>{{ dealer.user.username }}</td>
+              <td>{{ dealer.user.first_name }}</td>
+              <td>{{ dealer.user.last_name }}</td>
+              <td>{{ dealer.user.email }}</td>
+              <td>{{ dealer.phone }}</td>
+              <td>{{ dealer.role }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination-controls">
+          <button
+            :disabled="currentPage === 1"
+            @click="fetchDealers(currentPage - 1)"
+          >
+            Previous
+          </button>
+          <button v-if="showFirstPageButton" @click="fetchDealers(1)">1</button>
+          <button v-if="showEllipsisLeft" disabled>...</button>
+          <button
+            v-for="page in visiblePageNumbers"
+            :key="page"
+            :class="{ active: page === currentPage }"
+            @click="fetchDealers(page)"
+          >
+            {{ page }}
+          </button>
+          <button v-if="showEllipsisRight" disabled>...</button>
+          <button v-if="showLastPageButton" @click="fetchDealers(totalPages)">
+            {{ totalPages }}
+          </button>
+          <button
+            :disabled="currentPage === totalPages"
+            @click="fetchDealers(currentPage + 1)"
+          >
+            Next
+          </button>
+        </div>
+        <span class="total-records">Total Dealers: {{ totalDealers }}</span>
       </div>
     </div>
   </div>
@@ -135,7 +202,53 @@ export default {
       },
       dealershipOptions: [],
       formData: {},
+      dealers: [],
+      selectedDealership: "",
+      currentPage: 1,
+      totalPages: 1,
+      pageSize: 10,
+      totalDealers: 0,
+      pageRange: 2, // Range of visible pages
     };
+  },
+  computed: {
+    pageNumbers() {
+      const pages = [];
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+      return pages;
+    },
+    visiblePageNumbers() {
+      const start = Math.max(1, this.currentPage - this.pageRange);
+      const end = Math.min(this.totalPages, this.currentPage + this.pageRange);
+
+      const adjustedStart = Math.max(1, end - this.pageRange * 2);
+
+      return this.pageNumbers.filter(
+        (page) => page >= adjustedStart && page <= end
+      );
+    },
+    showFirstPageButton() {
+      return this.totalPages > 1 && this.visiblePageNumbers[0] > 1;
+    },
+    showLastPageButton() {
+      return (
+        this.totalPages > 1 &&
+        this.visiblePageNumbers[this.visiblePageNumbers.length - 1] <
+          this.totalPages
+      );
+    },
+    showEllipsisLeft() {
+      return this.showFirstPageButton && this.visiblePageNumbers[0] > 2;
+    },
+    showEllipsisRight() {
+      return (
+        this.showLastPageButton &&
+        this.visiblePageNumbers[this.visiblePageNumbers.length - 1] <
+          this.totalPages - 1
+      );
+    },
   },
   methods: {
     setActiveTab(tab) {
@@ -161,10 +274,37 @@ export default {
           name: dealershipMap.get(id) || `Dealership ${id}`,
         }));
 
+        this.selectedDealership =
+          this.dealershipOptions.length > 0 ? this.dealershipOptions[0].id : "";
+        this.fetchDealers();
+
         this.newUser.dealership =
           this.dealershipOptions.length > 0 ? this.dealershipOptions[0].id : "";
       } catch (error) {
         console.error("Error fetching dealer profile information:", error);
+      }
+    },
+
+    async fetchDealers(page = 1) {
+      if (!this.selectedDealership) return;
+
+      try {
+        const response = await axiosInstance.get(
+          endpoints.dealersByDealership(this.selectedDealership),
+          {
+            params: {
+              page: page,
+              page_size: this.pageSize,
+            },
+          }
+        );
+
+        this.dealers = response.data.results || [];
+        this.currentPage = page;
+        this.totalPages = Math.ceil(response.data.count / this.pageSize);
+        this.totalDealers = response.data.count;
+      } catch (error) {
+        console.error("Error fetching dealers:", error);
       }
     },
     async createUser() {
@@ -201,6 +341,11 @@ export default {
   },
   mounted() {
     this.fetchDealerProfileInfo();
+    this.$watch("selectedDealership", (newValue) => {
+      if (newValue) {
+        this.fetchDealers();
+      }
+    });
   },
 };
 </script>
@@ -284,5 +429,111 @@ export default {
 .content-container {
   background-color: #fff;
   border-radius: 4px;
+}
+
+/* Input styles */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+select:focus {
+  border-color: #eb5a58;
+  outline: none;
+}
+
+button[type="submit"] {
+  padding: 10px 20px;
+  background-color: #eb5a58;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+button[type="submit"]:hover {
+  background-color: #d14c4a;
+}
+
+/* table styles */
+.appraisals-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px auto;
+}
+
+.appraisals-table th,
+.appraisals-table td {
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.appraisals-table tr {
+  margin: 0;
+}
+
+.appraisals-table th {
+  font-weight: 400;
+  padding-bottom: 5px;
+}
+
+.appraisals-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.appraisals-table-header {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-size: 12px;
+  color: #7d7b7b;
+}
+
+/* Pagination Controls */
+.pagination-controls {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.pagination-controls button {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  color: #333;
+  cursor: pointer;
+  margin: 0 5px;
+  padding: 5px 10px;
+}
+
+.pagination-controls button.active {
+  background-color: #f26764;
+  color: #fff;
+}
+
+.pagination-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.total-records {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: #999;
 }
 </style>
