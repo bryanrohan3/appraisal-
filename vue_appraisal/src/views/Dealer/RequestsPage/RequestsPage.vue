@@ -322,6 +322,7 @@ export default {
 .data-table td {
   padding: 12px;
   text-align: left;
+  font-size: 12px;
 }
 
 .data-table th {
@@ -333,7 +334,7 @@ export default {
 }
 
 .action-button {
-  padding: 6px 12px;
+  padding: 6px 10px;
   border: none;
   border-radius: 4px;
   font-size: 14px;
