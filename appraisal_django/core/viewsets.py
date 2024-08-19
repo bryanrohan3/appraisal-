@@ -294,19 +294,27 @@ class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
         queryset = self.get_queryset()
 
         try:
-            # Fetch dealer profile with the given user_id and ensure it is a Management Dealer
-            dealer_to_demote = queryset.get(user_id=pk, role='M')
+            # Fetch dealer profile with the given user_id
+            dealer_to_demote = queryset.get(user_id=pk)
         except DealerProfile.DoesNotExist:
             return Response({"error": "Dealer not found or not eligible for demotion"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Check if the dealer to demote is actually a Management Dealer
+        # Check if the dealer is already a Sales Dealer
+        if dealer_to_demote.role == 'S':
+            return Response({"error": "Dealer is already a Sales Dealer and cannot be demoted further"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if the dealer is a Management Dealer
         if dealer_to_demote.role != 'M':
             return Response({"error": "Dealer is not a Management Dealer"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Demote the dealer to a Sales Dealer
         dealer_to_demote.role = 'S'
         dealer_to_demote.save()
+
         serializer = self.get_serializer(dealer_to_demote)
         return Response(serializer.data)
+
+
 
 
 class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):

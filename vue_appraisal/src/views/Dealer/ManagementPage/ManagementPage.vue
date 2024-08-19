@@ -335,12 +335,31 @@ export default {
           endpoints.demoteDealer(userId)
         );
         alert("Dealer demoted successfully!");
-        // Optionally, refresh the list of dealers
         this.fetchDealers();
         console.log(`Demoted dealer with ID ${userId}`);
       } catch (error) {
         console.error("Error demoting dealer:", error);
-        alert("Failed to demote dealer. Please try again.");
+
+        if (error.response) {
+          if (
+            error.response.data.error ===
+            "Dealer is already a Sales Dealer and cannot be demoted further"
+          ) {
+            alert(
+              "This dealer is already a Sales Dealer and cannot be demoted further."
+            );
+          } else if (
+            error.response.data.error === "Dealer is not a Management Dealer"
+          ) {
+            alert("This dealer is not a Management Dealer.");
+          } else if (error.response.status === 404) {
+            alert("Dealer not found or not eligible for demotion.");
+          } else {
+            alert("Failed to demote dealer. Please try again.");
+          }
+        } else {
+          alert("Failed to demote dealer. Please try again.");
+        }
       }
     },
     async deleteDealer(userId) {
