@@ -31,18 +31,28 @@
 
           <div class="form-row-horizontal">
             <div class="form-group">
+              <label for="email">Username</label>
+              <input
+                id="username"
+                type="text"
+                v-model="profile.user.username"
+              />
+            </div>
+            <div class="form-group">
               <label for="email">Email</label>
               <input id="email" type="text" v-model="profile.user.email" />
             </div>
+          </div>
+
+          <div class="form-row-horizontal">
             <div class="form-group">
               <label for="phone">Phone Number</label>
               <input id="phone" type="text" v-model="profile.phone" />
             </div>
-          </div>
-
-          <div class="form-row">
-            <label for="role">Role</label>
-            <input id="role" type="text" :value="formattedRole" disabled />
+            <div class="form-group">
+              <label for="role">Phone Number</label>
+              <input id="role" type="text" :value="formattedRole" disabled />
+            </div>
           </div>
           <div class="form-row">
             <label for="dealerships">Dealerships</label>
@@ -52,7 +62,10 @@
                   v-for="(dealership, index) in profile.dealership_names"
                   :key="index"
                 >
-                  <td>{{ dealership.dealership_name }}</td>
+                  <td>
+                    <img class="car" src="@/assets/car.svg" alt="car" />
+                    {{ dealership.dealership_name }}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -224,7 +237,7 @@ select {
   padding: 10px;
   margin-bottom: 16px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 5px;
   font-size: 14px;
   box-sizing: border-box;
   transition: border-color 0.3s ease;
@@ -288,5 +301,12 @@ select:focus {
   text-align: center;
   border: 4px solid white;
   border-radius: 50px;
+}
+
+.car {
+  width: 20px; /* Keep the car size */
+  margin-right: 10px; /* Keep spacing between the image and the dealership name */
+  vertical-align: middle; /* Align the car image with the middle of the text */
+  padding-bottom: 3px;
 }
 </style>
