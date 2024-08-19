@@ -259,20 +259,44 @@ class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
         """
         Action to promote a Sales Dealer to Management Dealer by a Management Dealer.
         """
+        # Filter queryset to ensure the dealer is in the same dealership as the requesting user
         queryset = self.get_queryset()
 
         try:
-            dealer_to_promote = queryset.get(pk=pk, role='S')
+            # Fetch dealer profile with the given user_id and ensure it is a Sales Dealer
+            dealer_to_promote = queryset.get(user_id=pk, role='S')
         except DealerProfile.DoesNotExist:
-            return Response({"error": "Dealer not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        if not dealer_to_promote:
-            return Response({"error": "Dealer not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Dealer not found or not eligible for promotion"}, status=status.HTTP_404_NOT_FOUND)
 
         dealer_to_promote.role = 'M'
         dealer_to_promote.save()
         serializer = self.get_serializer(dealer_to_promote)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['POST'], url_path='demote', permission_classes=[IsManagement])
+    def demote_dealer(self, request, pk=None):
+        """
+        Action to demote a Management Dealer to a Sales Dealer by another Management Dealer.
+        """
+        # Filter queryset to ensure the dealer is in the same dealership as the requesting user
+        queryset = self.get_queryset()
+
+        try:
+            # Fetch dealer profile with the given user_id and ensure it is a Management Dealer
+            dealer_to_demote = queryset.get(user_id=pk, role='M')
+        except DealerProfile.DoesNotExist:
+            return Response({"error": "Dealer not found or not eligible for demotion"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the dealer to demote is actually a Management Dealer
+        if dealer_to_demote.role != 'M':
+            return Response({"error": "Dealer is not a Management Dealer"}, status=status.HTTP_400_BAD_REQUEST)
+
+        dealer_to_demote.role = 'S'
+        dealer_to_demote.save()
+        serializer = self.get_serializer(dealer_to_demote)
+        return Response(serializer.data)
+
+
 
 
 class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):

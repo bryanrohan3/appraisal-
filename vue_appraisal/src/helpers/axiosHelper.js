@@ -66,6 +66,10 @@ const endpoints = {
   dealerCreateProfile: apiConstants.api_hostname + "dealer-profile/",
   dealersByDealership: (dealershipId) =>
     `${apiConstants.api_hostname}dealerships/${dealershipId}/dealers/`,
+  promoteDealer: (userId) =>
+    `${apiConstants.api_hostname}dealer-profile/${userId}/promote/`, // Add this line
+  demoteDealer: (userId) =>
+    `${apiConstants.api_hostname}dealer-profile/${userId}/demote/`,
 };
 
 export { axiosInstance, endpoints };

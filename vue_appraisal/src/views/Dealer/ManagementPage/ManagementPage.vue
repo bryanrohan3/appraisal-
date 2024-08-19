@@ -314,14 +314,34 @@ export default {
       this.dropdownOpen = this.dropdownOpen === userId ? null : userId;
     },
     async promoteDealer(userId) {
-      // Logic to promote the dealer
-      console.log(`Promote dealer with ID ${userId}`);
-      // Implement API call or other logic here
+      try {
+        // Call the promote endpoint
+        const response = await axiosInstance.post(
+          endpoints.promoteDealer(userId)
+        );
+        alert("Dealer promoted successfully!");
+        // Optionally, refresh the list of dealers
+        this.fetchDealers();
+        console.log(`Promoted dealer with ID ${userId}`);
+      } catch (error) {
+        console.error("Error promoting dealer:", error);
+        alert("Failed to promote dealer. Please try again.");
+      }
     },
     async demoteDealer(userId) {
-      // Logic to demote the dealer
-      console.log(`Demote dealer with ID ${userId}`);
-      // Implement API call or other logic here
+      try {
+        // Call the demote endpoint
+        const response = await axiosInstance.post(
+          endpoints.demoteDealer(userId)
+        );
+        alert("Dealer demoted successfully!");
+        // Optionally, refresh the list of dealers
+        this.fetchDealers();
+        console.log(`Demoted dealer with ID ${userId}`);
+      } catch (error) {
+        console.error("Error demoting dealer:", error);
+        alert("Failed to demote dealer. Please try again.");
+      }
     },
     async deleteDealer(userId) {
       try {
