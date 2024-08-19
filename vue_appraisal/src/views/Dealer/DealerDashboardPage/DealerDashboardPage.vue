@@ -60,7 +60,9 @@
           <div class="profile-picture"></div>
           <p class="name">{{ userName }}</p>
           <p class="email">{{ userEmail }}</p>
-          <button class="edit-profile-button">Edit Profile</button>
+          <button class="edit-profile-button" @click="goToProfile">
+            Edit Profile
+          </button>
         </div>
       </div>
     </div>
@@ -232,6 +234,9 @@ export default {
       } catch (error) {
         console.error("Error fetching top car:", error);
       }
+    },
+    goToProfile() {
+      this.$router.push("/profile");
     },
   },
 };
