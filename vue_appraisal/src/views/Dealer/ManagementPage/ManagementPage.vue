@@ -345,12 +345,17 @@ export default {
     },
     async deleteDealer(userId) {
       try {
-        // Logic to delete the dealer
-        await axiosInstance.delete(endpoints.deleteDealer(userId));
+        // Call the delete endpoint
+        const response = await axiosInstance.patch(
+          endpoints.deactivateDealer(userId)
+        );
+        alert("Dealer deleted successfully!");
+        // Optionally, refresh the list of dealers
         this.fetchDealers();
         console.log(`Deleted dealer with ID ${userId}`);
       } catch (error) {
         console.error("Error deleting dealer:", error);
+        alert("Failed to delete dealer. Please try again.");
       }
     },
   },

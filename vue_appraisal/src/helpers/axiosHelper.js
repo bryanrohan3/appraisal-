@@ -70,6 +70,8 @@ const endpoints = {
     `${apiConstants.api_hostname}dealer-profile/${userId}/promote/`, // Add this line
   demoteDealer: (userId) =>
     `${apiConstants.api_hostname}dealer-profile/${userId}/demote/`,
+  deactivateDealer: (userId) =>
+    `${apiConstants.api_hostname}dealer-profile/${userId}/deactivate/`,
 };
 
 export { axiosInstance, endpoints };

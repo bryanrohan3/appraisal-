@@ -135,7 +135,7 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         """
         dealership = self.get_object()  # Get the Dealership instance
 
-        queryset = DealerProfile.objects.filter(dealerships=dealership)
+        queryset = DealerProfile.objects.filter(dealerships=dealership, is_active=True)
         filtered_queryset = self.filter_queryset(queryset)
 
         dealer_profile = request.user.dealerprofile  # Directly access the dealer profile
@@ -240,19 +240,30 @@ class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
         Only a Management Dealer can deactivate any dealer, including other Management Dealers,
         within the same dealership. Sales Dealers cannot deactivate their own account or any other account.
         """
+        user = request.user
+
+        if not hasattr(user, 'dealerprofile'):
+            return Response({'error': 'User does not have a dealer profile'}, status=status.HTTP_403_FORBIDDEN)
+
         try:
-            dealer_profile = self.get_object()  # Get the dealer profile specified by the URL
+            # Use get_queryset to filter the queryset based on the authenticated user's dealership
+            queryset = self.get_queryset()
+            # Filter by user ID instead of DealerProfile ID
+            dealer_profile_to_deactivate = queryset.get(user_id=pk)  # Assuming pk is user_id
 
-            dealer_profile.is_active = False
-            dealer_profile.save()
+            # Deactivate the dealer profile
+            dealer_profile_to_deactivate.is_active = False
+            dealer_profile_to_deactivate.save()
 
-            user = dealer_profile.user
-            user.is_active = False
-            user.save()
+            # Deactivate the associated user
+            user_to_deactivate = dealer_profile_to_deactivate.user
+            user_to_deactivate.is_active = False
+            user_to_deactivate.save()
 
             return Response({'status': 'Dealer and user deactivated'}, status=status.HTTP_200_OK)
         except DealerProfile.DoesNotExist:
-            return Response({'error': 'Dealer profile not found or not in the same dealership'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Dealer profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        
         
     @action(detail=True, methods=['POST'], url_path='promote', permission_classes=[IsManagement])
     def promote_dealer(self, request, pk=None):
@@ -273,6 +284,7 @@ class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
         serializer = self.get_serializer(dealer_to_promote)
         return Response(serializer.data)
     
+
     @action(detail=True, methods=['POST'], url_path='demote', permission_classes=[IsManagement])
     def demote_dealer(self, request, pk=None):
         """
@@ -295,8 +307,6 @@ class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
         dealer_to_demote.save()
         serializer = self.get_serializer(dealer_to_demote)
         return Response(serializer.data)
-
-
 
 
 class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
