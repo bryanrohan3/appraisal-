@@ -164,7 +164,7 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         return Response({'status': 'Dealership deactivated'}, status=status.HTTP_200_OK)
 
     
-class UserViewSet(viewsets.GenericViewSet):
+class UserViewSet(viewsets.GenericViewSet, mixins.UpdateModelMixin, mixins.RetrieveModelMixin):
     """
     ViewSet for managing users.
     """

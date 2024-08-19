@@ -104,7 +104,7 @@ class DealerProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DealerProfile
-        fields = ['user', 'phone', 'role', 'dealerships', 'dealership_names', 'received_requests', 'sent_requests']
+        fields = ['id', 'user', 'phone', 'role', 'dealerships', 'dealership_names', 'received_requests', 'sent_requests']
 
     def get_dealership_names(self, instance):
         # Retrieve the dealerships associated with the profile
@@ -136,14 +136,16 @@ class DealerProfileSerializer(serializers.ModelSerializer):
     # And DealerUpdateSerializer
     # DealerSerializer -> Model Serializer -> Phone + Role fields
     def update(self, instance, validated_data):
-        user_data = validated_data.pop('user')
+        # Check if 'user' is in the validated data
+        user_data = validated_data.pop('user', None)
         dealerships_data = validated_data.pop('dealerships', instance.dealerships.all())
 
-        user_serializer = UserSerializer(instance.user, data=user_data, partial=True)
-        if user_serializer.is_valid():
-            user_serializer.save()
+        if user_data:
+            user_serializer = UserSerializer(instance.user, data=user_data, partial=True)
+            if user_serializer.is_valid():
+                user_serializer.save()
 
-        # Here we just do what we did above with the User Serializer
+        # Update other fields
         instance.phone = validated_data.get('phone', instance.phone)
         instance.role = validated_data.get('role', instance.role)
         instance.save()
