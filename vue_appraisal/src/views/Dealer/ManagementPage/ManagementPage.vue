@@ -198,7 +198,7 @@ export default {
   name: "ManagementPage",
   data() {
     return {
-      activeTab: "ManageDealership",
+      activeTab: "CreateUser",
       newUser: {
         username: "",
         password: "",
@@ -460,6 +460,14 @@ button[type="submit"]:hover {
   background-color: #d14c4a;
 }
 
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #7d7b7b;
+  font-weight: 600;
+}
+
 /* table styles */
 .appraisals-table {
   width: 100%;
@@ -505,6 +513,7 @@ button[type="submit"]:hover {
 .role-filter {
   margin-right: 1rem;
   padding: 0.5rem;
+  font-size: 12px;
 }
 
 .total-records {
