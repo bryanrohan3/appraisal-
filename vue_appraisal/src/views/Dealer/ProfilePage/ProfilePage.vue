@@ -10,26 +10,36 @@
     <div v-if="profile" class="columns-container">
       <div class="column column-60">
         <form class="customer-details-form">
-          <div class="form-row">
-            <label for="firstName">First Name</label>
-            <input
-              id="firstName"
-              type="text"
-              v-model="profile.user.first_name"
-            />
+          <div class="form-row-horizontal">
+            <div class="form-group">
+              <label for="firstName">First Name</label>
+              <input
+                id="firstName"
+                type="text"
+                v-model="profile.user.first_name"
+              />
+            </div>
+            <div class="form-group">
+              <label for="lastName">Last Name</label>
+              <input
+                id="lastName"
+                type="text"
+                v-model="profile.user.last_name"
+              />
+            </div>
           </div>
-          <div class="form-row">
-            <label for="lastName">Last Name</label>
-            <input id="lastName" type="text" v-model="profile.user.last_name" />
+
+          <div class="form-row-horizontal">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input id="email" type="text" v-model="profile.user.email" />
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone Number</label>
+              <input id="phone" type="text" v-model="profile.phone" />
+            </div>
           </div>
-          <div class="form-row">
-            <label for="email">Email</label>
-            <input id="email" type="text" v-model="profile.user.email" />
-          </div>
-          <div class="form-row">
-            <label for="phone">Phone Number</label>
-            <input id="phone" type="text" v-model="profile.phone" />
-          </div>
+
           <div class="form-row">
             <label for="role">Role</label>
             <input id="role" type="text" :value="formattedRole" disabled />
@@ -179,12 +189,26 @@ export default {
   gap: 20px;
 }
 
-.form-row {
+.form-row-horizontal {
+  display: flex;
+  gap: 20px;
+}
+
+.form-group {
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
 
 .form-row label {
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #7d7b7b;
+  margin-top: 0;
+  font-weight: 600;
+}
+
+.form-row-horizontal label {
   margin-bottom: 10px;
   font-size: 12px;
   color: #7d7b7b;
