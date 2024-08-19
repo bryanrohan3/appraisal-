@@ -92,7 +92,6 @@ class DealershipCurrentUserFKSerializer(serializers.PrimaryKeyRelatedField):
             raise serializers.ValidationError("You are not associated with this dealership.")
         return super().to_internal_value(data)
 
-
 class DealerProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for DealerProfile model.
@@ -165,6 +164,21 @@ class DealerProfileSerializer(serializers.ModelSerializer):
             return FriendRequestSerializer(sent_requests, many=True).data
         return []
 
+class DealerProfileSmallSerializer(serializers.ModelSerializer):
+    """
+    Serializer for a simplified version of DealerProfile model with selected fields.
+    """
+    user = UserSerializer()
+    dealerships = DealershipCurrentUserFKSerializer(many=True, required=False)
+    dealership_names = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DealerProfile
+        fields = ['user', 'phone', 'role', 'dealerships', 'dealership_names']
+
+    def get_dealership_names(self, instance):
+        # Retrieve and serialize the names of the associated dealerships
+        return [dealership.dealership_name for dealership in instance.dealerships.all()]
 
 class DealerProfileNestedSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name')

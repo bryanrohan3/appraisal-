@@ -49,7 +49,7 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
     permission_classes = [permissions.IsAuthenticated, IsDealer]
     serializer_classes = {
         'default': DealershipSerializer,
-        'dealers': DealerProfileSerializer,
+        'dealers': DealerProfileSmallSerializer,
         'search': DealershipBasicSerializer
     }
     pagination_class = CustomPagination

@@ -135,6 +135,7 @@
               <th>Email</th>
               <th>Phone</th>
               <th>Role</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -144,7 +145,28 @@
               <td>{{ dealer.user.last_name }}</td>
               <td>{{ dealer.user.email }}</td>
               <td>{{ dealer.phone }}</td>
-              <td>{{ dealer.role }}</td>
+              <td>{{ dealer.role === "S" ? "Sales" : "Management" }}</td>
+              <td>
+                <!-- Actions Dropdown Button -->
+                <button @click="toggleDropdown(dealer.user.id)">
+                  <img
+                    src="@/assets/dots.svg"
+                    alt="Actions"
+                    class="actions-icon"
+                  />
+                </button>
+                <!-- Actions Dropdown Menu -->
+                <div
+                  v-if="dropdownOpen === dealer.user.id"
+                  class="dropdown-menu"
+                >
+                  <button @click="promoteDealer(dealer.user.id)">
+                    Promote
+                  </button>
+                  <button @click="demoteDealer(dealer.user.id)">Demote</button>
+                  <button @click="deleteDealer(dealer.user.id)">Delete</button>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -209,6 +231,7 @@ export default {
       pageSize: 10,
       totalDealers: 0,
       pageRange: 2, // Range of visible pages
+      dropdownOpen: null,
     };
   },
   computed: {
@@ -337,6 +360,23 @@ export default {
         console.error("Error creating user:", error);
         alert("Failed to create user. Please try again.");
       }
+    },
+    // Action Dropdown
+    toggleDropdown(userId) {
+      this.dropdownOpen = this.dropdownOpen === userId ? null : userId;
+    },
+    async promoteDealer(userId) {
+      // Logic to promote the dealer
+      console.log(`Promote dealer with ID ${userId}`);
+      // Implement API call or other logic here
+    },
+    async demoteDealer(userId) {
+      // Logic to demote the dealer
+      console.log(`Demote dealer with ID ${userId}`);
+      // Implement API call or other logic here
+    },
+    async deleteDealer(userId) {
+      // Logic to delete the dealer
     },
   },
   mounted() {
@@ -535,5 +575,33 @@ button[type="submit"]:hover {
   text-align: center;
   font-size: 12px;
   color: #999;
+}
+
+/* actions dropdown */
+.actions-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.dropdown-menu {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  background: white;
+  border: 1px solid #ddd;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 5px;
+  z-index: 1000;
+}
+
+.dropdown-menu button {
+  background: none;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.dropdown-menu button:hover {
+  background-color: #f0f0f0;
 }
 </style>
