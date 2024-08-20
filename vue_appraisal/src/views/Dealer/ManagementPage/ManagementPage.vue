@@ -44,76 +44,90 @@
       <!-- Create User Tab -->
       <div v-if="activeTab === 'CreateUser'" class="tab-pane content-container">
         <!-- Content for Create User -->
-        <form @submit.prevent="createUser">
-          <div>
-            <label for="username">Username:</label>
-            <input
-              v-model="newUser.username"
-              type="text"
-              id="username"
-              required
-            />
-          </div>
-          <div>
-            <label for="password">Password:</label>
-            <input
-              v-model="newUser.password"
-              type="password"
-              id="password"
-              required
-            />
-          </div>
-          <div>
-            <label for="email">Email:</label>
-            <input v-model="newUser.email" type="email" id="email" required />
-          </div>
-          <div>
-            <label for="first_name">First Name:</label>
-            <input
-              v-model="newUser.first_name"
-              type="text"
-              id="first_name"
-              required
-            />
-          </div>
-          <div>
-            <label for="last_name">Last Name:</label>
-            <input
-              v-model="newUser.last_name"
-              type="text"
-              id="last_name"
-              required
-            />
-          </div>
-          <div>
-            <label for="phone">Phone:</label>
-            <input v-model="newUser.phone" type="text" id="phone" required />
-          </div>
-          <div>
-            <label for="role">Role:</label>
-            <select v-model="newUser.role" id="role" required>
-              <option value="M">Management</option>
-              <option value="S">Sales</option>
-            </select>
+        <form @submit.prevent="createUser" class="customer-details-form">
+          <!-- Row 1: First Name, Last Name -->
+          <div class="form-row-horizontal">
+            <div class="form-group">
+              <label for="first_name">First Name:</label>
+              <input
+                v-model="newUser.first_name"
+                type="text"
+                id="first_name"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="last_name">Last Name:</label>
+              <input
+                v-model="newUser.last_name"
+                type="text"
+                id="last_name"
+                required
+              />
+            </div>
           </div>
 
-          <div class="dealership-dropdown">
-            <label for="dealership">Select Dealership:</label>
-            <select
-              id="dealership"
-              v-model="newUser.dealership"
-              class="input-dealership"
-              required
-            >
-              <option disabled value="">Select Dealership</option>
-              <option
-                v-for="option in dealershipOptions"
-                :key="option.id"
-                :value="option.id"
+          <!-- Row 2: Username, Password -->
+          <div class="form-row-horizontal">
+            <div class="form-group">
+              <label for="username">Username:</label>
+              <input
+                v-model="newUser.username"
+                type="text"
+                id="username"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="password">Password:</label>
+              <input
+                v-model="newUser.password"
+                type="password"
+                id="password"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Row 3: Phone, Email -->
+          <div class="form-row-horizontal">
+            <div class="form-group">
+              <label for="phone">Phone:</label>
+              <input v-model="newUser.phone" type="text" id="phone" required />
+            </div>
+            <div class="form-group">
+              <label for="email">Email:</label>
+              <input v-model="newUser.email" type="email" id="email" required />
+            </div>
+          </div>
+
+          <!-- Row 4: Role, Dealership -->
+          <div class="form-row-horizontal">
+            <div class="form-group">
+              <label for="role">Role:</label>
+              <select v-model="newUser.role" id="role" required>
+                <option value="M">Management</option>
+                <option value="S">Sales</option>
+              </select>
+            </div>
+            <div class="form-group dealership-dropdown">
+              <label for="dealership">Select Dealership:</label>
+              <select
+                id="dealership"
+                v-model="newUser.dealership"
+                class="input-dealership"
+                required
               >
-                {{ option.name }}
-              </option>
-            </select>
+                <option disabled value="">Select Dealership</option>
+                <option
+                  v-for="option in dealershipOptions"
+                  :key="option.id"
+                  :value="option.id"
+                >
+                  {{ option.name }}
+                </option>
+              </select>
+            </div>
           </div>
 
           <button type="submit">Create User</button>
@@ -593,5 +607,16 @@ label {
 
 .dropdown-menu button:hover {
   background-color: #f0f0f0;
+}
+
+.form-row-horizontal {
+  display: flex;
+  gap: 20px;
+}
+
+.form-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 </style>
