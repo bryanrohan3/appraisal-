@@ -97,6 +97,7 @@
 
 <script>
 import { endpoints, axiosInstance } from "@/helpers/axiosHelper";
+import { mapMutations } from "vuex";
 
 export default {
   name: "ProfilePage",
@@ -129,6 +130,7 @@ export default {
     }
   },
   methods: {
+    ...mapMutations(["logout"]),
     async saveProfile() {
       try {
         const userId = this.profile.user.id;
@@ -181,6 +183,7 @@ export default {
     async handleDeleteAccount() {
       try {
         const response = await axiosInstance.patch(endpoints.deleteCurrentUser);
+        this.logout();
         console.log("Profile deleted successfully:", response.data);
 
         // Redirect to login page after successful deletion
