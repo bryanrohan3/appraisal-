@@ -77,6 +77,8 @@ const endpoints = {
     `${apiConstants.api_hostname}dealer-profile/${dealerProfileId}/`, // URL with dealer profile ID
   deleteCurrentUser:
     apiConstants.api_hostname + "dealer-profile/deactivate-self/",
+  duplicateAppraisal: (id) =>
+    `${apiConstants.api_hostname}appraisals/${id}/duplicate/`,
 };
 
 export { axiosInstance, endpoints };

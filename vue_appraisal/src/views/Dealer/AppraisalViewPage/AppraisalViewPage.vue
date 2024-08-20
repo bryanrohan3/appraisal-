@@ -52,6 +52,11 @@
         <div v-else-if="isViewingAppraisal" class="title-container">
           <h1 class="title">View Appraisal Form</h1>
           <div class="checkbox-and-button">
+            <!-- <button @click="duplicateAppraisal">Duplicate</button> -->
+            <div class="duplicate-button" @click="duplicateAppraisal">
+              <!-- <span class="button-text">Duplicate</span> -->
+              <img src="@/assets/duplicate.svg" alt="Duplicate" />
+            </div>
             <label class="checkbox-container">
               <input
                 type="checkbox"
@@ -553,6 +558,21 @@ export default {
         damagePhotos: [],
       });
     },
+    async duplicateAppraisal() {
+      const id = this.$route.params.id; // Get the current appraisal ID from the route
+      try {
+        const response = await axiosInstance.post(
+          endpoints.duplicateAppraisal(id)
+        );
+        this.$router.push({
+          name: "AppraisalViewPage",
+          params: { id: response.data.id },
+        });
+        console.log("Appraisal duplicated successfully:", response.data);
+      } catch (error) {
+        console.error("Error duplicating appraisal:", error);
+      }
+    },
     updateAppraisal() {
       const id = this.$route.params.id;
       const data = {
@@ -686,6 +706,24 @@ export default {
   text-align: center;
   border: 4px solid white;
   border-radius: 50px;
+}
+
+.duplicate-button {
+  width: 40px; /* Adjust width to fit text */
+  height: 40px;
+  border-radius: 20px; /* Rounded corners for button */
+  background-color: #f26764;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px; /* Adjust font size */
+  font-weight: 600;
+  color: #ffffff; /* Text color */
+  text-align: center;
+  border: 4px solid white;
+  border-radius: 50px;
+  margin-right: 20px;
 }
 
 .button-text {

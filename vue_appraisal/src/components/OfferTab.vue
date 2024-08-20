@@ -1,6 +1,6 @@
 <template>
   <div class="offers-container">
-    <table class="offers-table">
+    <table class="offers-table" v-if="appraisal.offers.length > 0">
       <thead>
         <tr class="offers-table-header">
           <th>Offer ID</th>
@@ -58,6 +58,8 @@
         </tr>
       </tbody>
     </table>
+
+    <div v-else class="no-offers-message">No offers available.</div>
 
     <div v-if="showConfirmDialog" class="confirm-dialog">
       <p>Are you sure you want to select this offer as the winner?</p>
@@ -424,5 +426,13 @@ export default {
 
 .adjust-offer-popup .cancel-offer-button:hover {
   background-color: #888888;
+}
+
+/* No Offers */
+.no-offers-message {
+  text-align: center;
+  font-size: 16px;
+  color: #6c757d;
+  padding: 20px;
 }
 </style>
