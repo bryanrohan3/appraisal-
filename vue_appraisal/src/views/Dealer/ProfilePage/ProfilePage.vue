@@ -74,6 +74,20 @@
       </div>
     </div>
 
+    <div v-if="profile" class="delete-account-container">
+      <div class="delete-account-icon">
+        <img src="@/assets/error.svg" alt="Error" />
+      </div>
+      <div class="delete-account-content">
+        <p><strong>Delete Account</strong></p>
+        <p>
+          After making a deletion request, you will have
+          <strong>6 months</strong> to maintain this account.
+        </p>
+        <button class="delete-account-button">Delete My Account</button>
+      </div>
+    </div>
+
     <div v-else>
       <p>Loading profile...</p>
     </div>
@@ -308,5 +322,58 @@ select:focus {
   margin-right: 10px; /* Keep spacing between the image and the dealership name */
   vertical-align: middle; /* Align the car image with the middle of the text */
   padding-bottom: 3px;
+}
+
+/* Delete Account Button */
+.delete-account-container {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.delete-account-icon {
+  flex-shrink: 0;
+  margin-right: 20px;
+}
+
+.delete-account-icon img {
+  width: 40px; /* Adjust size as needed */
+  height: 40px;
+}
+
+.delete-account-content {
+  flex-grow: 1;
+}
+
+.delete-account-content p {
+  margin: 0;
+  font-size: 14px;
+  padding: 5px 0 5px 0;
+  color: #6c757d;
+}
+
+.delete-account-content strong {
+  font-size: 16px;
+  color: #343a40;
+}
+
+.delete-account-button {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #eb5a58;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+}
+
+.delete-account-button:hover {
+  background-color: #d9534f;
 }
 </style>
