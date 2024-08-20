@@ -75,6 +75,8 @@ const endpoints = {
   updateUser: (userId) => `${apiConstants.api_hostname}users/${userId}/`, // URL with user ID
   dealerProfileUpdate: (dealerProfileId) =>
     `${apiConstants.api_hostname}dealer-profile/${dealerProfileId}/`, // URL with dealer profile ID
+  deleteCurrentUser:
+    apiConstants.api_hostname + "dealer-profile/deactivate-self/",
 };
 
 export { axiosInstance, endpoints };

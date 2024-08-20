@@ -74,7 +74,10 @@
       </div>
     </div>
 
-    <div v-if="profile" class="delete-account-container">
+    <div
+      v-if="profile && profile.role === 'M'"
+      class="delete-account-container"
+    >
       <div class="delete-account-icon">
         <img src="@/assets/error.svg" alt="Error" />
       </div>
@@ -84,12 +87,10 @@
           After making a deletion request, you will have
           <strong>6 months</strong> to maintain this account.
         </p>
-        <button class="delete-account-button">Delete My Account</button>
+        <button class="delete-account-button" @click="confirmDeleteAccount">
+          Delete My Account
+        </button>
       </div>
-    </div>
-
-    <div v-else>
-      <p>Loading profile...</p>
     </div>
   </div>
 </template>
@@ -164,6 +165,28 @@ export default {
         console.log("Profile updated successfully");
       } catch (error) {
         console.error("Error updating profile:", error);
+      }
+    },
+
+    confirmDeleteAccount() {
+      // Show confirmation dialog
+      const confirmed = confirm(
+        "Are you sure you want to delete your account? This action cannot be undone."
+      );
+      if (confirmed) {
+        this.handleDeleteAccount();
+      }
+    },
+
+    async handleDeleteAccount() {
+      try {
+        const response = await axiosInstance.patch(endpoints.deleteCurrentUser);
+        console.log("Profile deleted successfully:", response.data);
+
+        // Redirect to login page after successful deletion
+        this.$router.push({ name: "login" });
+      } catch (error) {
+        console.error("Error deleting profile:", error);
       }
     },
   },
@@ -304,7 +327,7 @@ select:focus {
   width: 150px; /* Adjust width to fit text */
   height: 40px;
   border-radius: 20px; /* Rounded corners for button */
-  background-color: #f26764;
+  background-color: #eb5a58;
   display: flex;
   align-items: center;
   justify-content: center;

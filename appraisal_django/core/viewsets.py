@@ -188,12 +188,16 @@ class UserViewSet(viewsets.GenericViewSet, mixins.UpdateModelMixin, mixins.Retri
         serializer.is_valid(raise_exception=True)
         
         user = authenticate(username=serializer.validated_data['username'], password=serializer.validated_data['password'])
+        
         if user:
+            if not user.is_active:
+                return Response({'error': 'This account is inactive.'}, status=status.HTTP_403_FORBIDDEN)
+                
             login(request, user)
             token, _ = Token.objects.get_or_create(user=user)
             return Response({'message': 'Login successful', 'user': UserSerializer(user).data, 'token': token.key})
         else:
-            return Response({'error': 'Invalid email or password'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Invalid username or password'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
@@ -261,6 +265,33 @@ class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
             user_to_deactivate.save()
 
             return Response({'status': 'Dealer and user deactivated'}, status=status.HTTP_200_OK)
+        except DealerProfile.DoesNotExist:
+            return Response({'error': 'Dealer profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+    @action(detail=False, methods=['PATCH'], permission_classes=[IsManagement], url_path='deactivate-self')
+    def deactivate_self(self, request):
+        """
+        Action to allow a Management Dealer to deactivate (soft delete) their own account.
+        Only Management Dealers can deactivate their own account.
+        """
+        user = request.user
+
+        if not hasattr(user, 'dealerprofile'):
+            return Response({'error': 'User does not have a dealer profile'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            # Fetch the dealer profile associated with the authenticated user
+            dealer_profile_to_deactivate = user.dealerprofile
+
+            # Deactivate the dealer profile
+            dealer_profile_to_deactivate.is_active = False
+            dealer_profile_to_deactivate.save()
+
+            # Deactivate the associated user
+            user.is_active = False
+            user.save()
+
+            return Response({'status': 'Your account has been deactivated'}, status=status.HTTP_200_OK)
         except DealerProfile.DoesNotExist:
             return Response({'error': 'Dealer profile not found'}, status=status.HTTP_404_NOT_FOUND)
         
