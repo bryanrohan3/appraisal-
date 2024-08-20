@@ -13,6 +13,7 @@
       <!-- Offers and Comments tabs (only shown if viewing an appraisal) -->
       <template v-if="isViewingAppraisal">
         <button
+          v-if="isManagementDealer"
           class="tab-button"
           :class="{ active: currentTab === 'offers' }"
           @click="currentTab = 'offers'"
@@ -386,6 +387,12 @@ export default {
     additionalPhotosCount() {
       return this.photos.length > 4 ? this.photos.length - 4 : 0;
     },
+    isManagementDealer() {
+      return this.formData && this.formData.role === "M";
+    },
+    isSalesDealer() {
+      return this.formData && this.formData.role === "S";
+    },
   },
   data() {
     return {
@@ -492,6 +499,9 @@ export default {
       try {
         const response = await axiosInstance.get(endpoints.dealerProfile);
         this.formData = response.data;
+        console.log("Dealer Profile Response:", response.data);
+        // console log dealer profile role
+        console.log("Dealer Profile Role:", response.data.role);
 
         const dealershipIds = response.data.dealerships || [];
         const dealershipNames = response.data.dealership_names || [];

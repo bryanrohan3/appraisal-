@@ -555,7 +555,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-    @action(detail=False, methods=['get', 'post'], url_path='csv', permission_classes=[IsManagement])
+    @action(detail=False, methods=['get', 'post'], url_path='csv', permission_classes=[IsDealer])
     def download_csv(self, request, *args, **kwargs):
         if request.method == 'POST':
             # Handle CSV generation here
