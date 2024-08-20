@@ -50,7 +50,7 @@
               <input id="phone" type="text" v-model="profile.phone" />
             </div>
             <div class="form-group">
-              <label for="role">Phone Number</label>
+              <label for="role">Role</label>
               <input id="role" type="text" :value="formattedRole" disabled />
             </div>
           </div>
