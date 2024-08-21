@@ -573,7 +573,15 @@ export default {
         console.error("Error duplicating appraisal:", error);
       }
     },
+
     updateAppraisal() {
+      // Check if there are existing offers
+      if (this.appraisal.offers.length > 0) {
+        // Display a pop-up message
+        alert("Offers exist, so the appraisal cannot be updated.");
+        return; // Exit the function to prevent further execution
+      }
+
       const id = this.$route.params.id;
       const data = {
         ready_for_management: this.appraisal.ready_for_management,
@@ -613,6 +621,7 @@ export default {
           console.error("Error updating appraisal:", error);
         });
     },
+
     async submitForm() {
       try {
         const data = {

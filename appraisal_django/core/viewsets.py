@@ -24,6 +24,8 @@ from django.utils.dateparse import parse_date
 from collections import Counter
 from collections import defaultdict
 from decimal import Decimal
+from rest_framework.exceptions import ValidationError
+
 
 
 class CustomPagination(PageNumberPagination):
@@ -396,6 +398,16 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         queryset = self.filter_queryset(self.get_queryset()).order_by('-start_date')[:8]
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+    
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        # Check if there are offers for the appraisal
+        if instance.offers.exists():
+            raise ValidationError("This appraisal has offers and cannot be updated.")
+
+        # Proceed with the standard update process if no offers exist
+        return super().update(request, *args, **kwargs)
     
     @action(detail=False, methods=['get'], url_path='status-list')
     def status_list(self, request, *args, **kwargs):
