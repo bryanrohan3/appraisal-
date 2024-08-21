@@ -308,8 +308,6 @@ class CommentSerializer(serializers.ModelSerializer):
         }
 
 
-
-
 class OfferSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
 
