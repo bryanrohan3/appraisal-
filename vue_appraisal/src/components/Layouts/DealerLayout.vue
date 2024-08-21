@@ -1,5 +1,5 @@
 <template>
-  <div class="layout">
+  <div class="layout dealer-layout">
     <DealerNavBar />
     <main class="main-content">
       <router-view></router-view>
@@ -29,5 +29,9 @@ main {
   margin-left: 250px; /* Match the width of the sidebar */
   padding: 2rem;
   box-sizing: border-box; /* Ensures padding is included in the width */
+}
+
+.dealer-layout {
+  background-color: #f5f5f5; /* Dealer background color */
 }
 </style>

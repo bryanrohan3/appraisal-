@@ -107,6 +107,7 @@ export default {
     Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   font-weight: 200;
   font-weight: 600;
+  color: #eee;
 }
 
 .car-icon {
@@ -115,6 +116,7 @@ export default {
 }
 
 button {
+  margin-top: 10px;
   padding: 8px 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
@@ -122,10 +124,10 @@ button {
   font-size: 12px;
   border: none;
   border-radius: 5px;
-  background-color: #ffffff;
-  border: 1px solid #000000;
+  background-color: #f26764;
+  border: 1px solid #eee;
   width: 60%;
-  color: #000000;
+  color: #eee;
   cursor: pointer;
 }
 
@@ -155,12 +157,12 @@ button {
 
 .column-60 {
   width: 75%;
-  background-color: #ffffff;
+  background-color: #282828;
 }
 
 .column-40 {
   width: 25%; /* Adjust the width as needed */
-  background-color: #ffffff;
+  background-color: #282828;
 }
 
 .profile-container {
@@ -185,9 +187,10 @@ button {
 
 .name {
   margin: 0;
+  color: #eee;
 }
 .email {
-  color: #7d7b7b;
+  color: #aaa;
   font-size: 12px;
 }
 
@@ -197,6 +200,7 @@ button {
   font-size: 15px;
   font-weight: 400;
   margin-bottom: 5px;
+  color: #eee;
 }
 
 .hello-greetings {
@@ -215,6 +219,7 @@ button {
   margin: 0;
   font-size: 34px;
   font-weight: 500;
+  color: #eee;
   /* space between text letters */
 }
 
@@ -227,7 +232,7 @@ button {
 
 .appraisals {
   width: 50%;
-  background-color: #ffffff;
+  background-color: #282828;
   padding: 10px;
   box-sizing: border-box;
   height: 410px;
@@ -243,7 +248,7 @@ button {
 }
 
 .stats {
-  background-color: #ffffff;
+  background-color: #282828;
   padding: 10px;
   box-sizing: border-box;
   border-radius: 10px;
