@@ -31,7 +31,7 @@
       </table>
     </div>
 
-    <div class="selected-friends">
+    <div v-if="selectedFriends.length" class="selected-friends">
       <p class="titles">Selected Wholesalers</p>
       <table class="data-table">
         <tbody>
@@ -47,7 +47,11 @@
       </table>
     </div>
 
-    <button @click="sendInvitations" class="send-button">
+    <button
+      @click="sendInvitations"
+      v-if="selectedFriends.length"
+      class="send-button"
+    >
       Send Invitations
     </button>
 
@@ -210,7 +214,7 @@ export default {
 
 .data-table th,
 .data-table td {
-  padding: 12px;
+  padding: 10px;
   text-align: left;
   font-size: 14px;
 }
@@ -226,7 +230,7 @@ export default {
 .add-button,
 .remove-button,
 .send-button {
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -235,7 +239,7 @@ export default {
 .add-button {
   background-color: #eb5a58;
   color: #fff;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .add-button:hover {
@@ -257,7 +261,7 @@ export default {
   margin-top: 20px;
   background-color: #eb5a58;
   color: #fff;
-  font-size: 14px;
+  font-size: 12px;
   margin-left: 10px;
 }
 
