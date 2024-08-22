@@ -541,15 +541,18 @@ class SelectWinnerSerializer(serializers.Serializer):
     offer_id = serializers.IntegerField()
 
 
+from rest_framework import serializers
+
 class FriendRequestSerializer(serializers.ModelSerializer):
     sender = serializers.ReadOnlyField(source='sender.user.username')
+    sender_id = serializers.PrimaryKeyRelatedField(source='sender', read_only=True)
     dealership = serializers.PrimaryKeyRelatedField(queryset=Dealership.objects.all(), required=False)
     recipient_wholesaler = serializers.PrimaryKeyRelatedField(queryset=WholesalerProfile.objects.all(), required=False)
 
     class Meta:
         model = FriendRequest
-        fields = ['id', 'sender', 'dealership', 'recipient_wholesaler', 'status', 'created_at']
-        read_only_fields = ['sender', 'status', 'created_at']
+        fields = ['id', 'sender', 'sender_id', 'dealership', 'recipient_wholesaler', 'status', 'created_at']
+        read_only_fields = ['sender', 'sender_id', 'status', 'created_at']
 
     def validate(self, data):
         # Ensure either recipient wholesaler or dealership is specified

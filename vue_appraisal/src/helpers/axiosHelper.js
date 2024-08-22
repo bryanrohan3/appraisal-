@@ -79,6 +79,8 @@ const endpoints = {
     apiConstants.api_hostname + "dealer-profile/deactivate-self/",
   duplicateAppraisal: (id) =>
     `${apiConstants.api_hostname}appraisals/${id}/duplicate/`,
+  inviteWholesaler: (appraisalId) =>
+    `${apiConstants.api_hostname}appraisals/${appraisalId}/invite_wholesaler/`, // Add this line
 };
 
 export { axiosInstance, endpoints };

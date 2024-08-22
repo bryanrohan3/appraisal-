@@ -348,8 +348,6 @@ class DealerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mix
         return Response(serializer.data)
 
 
-
-
 class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     """
     ViewSet for managing wholesaler profiles.
@@ -1182,6 +1180,11 @@ class RequestViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Up
 
         else:
             return Response({'error': 'User must be a dealer or wholesaler.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Apply search functionality
+        search_term = request.query_params.get('search', None)
+        if search_term:
+            received_requests = received_requests.filter(sender__user__username__icontains=search_term.strip('"'))
         
         # Apply Pagination
         page = self.paginate_queryset(received_requests)

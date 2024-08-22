@@ -27,6 +27,15 @@
         >
           Comments
         </button>
+
+        <button
+          class="tab-button"
+          v-if="isManagementDealer"
+          :class="{ active: currentTab === 'invited' }"
+          @click="currentTab = 'invited'"
+        >
+          Invited
+        </button>
       </template>
     </div>
 
@@ -346,6 +355,14 @@
     <div v-if="currentTab === 'comments'">
       <CommentTab :appraisal="appraisal" />
     </div>
+
+    <div v-if="currentTab === 'invited'">
+      <InviteWholesaler
+        :appraisal="appraisal"
+        :dealershipId="dealershipId"
+        :appraisal-id="appraisalId"
+      />
+    </div>
   </div>
 </template>
 
@@ -353,6 +370,7 @@
 import Appraisal from "@/components/Appraisal.vue";
 import CommentTab from "@/components/CommentTab.vue";
 import OfferTab from "@/components/OfferTab.vue";
+import InviteWholesaler from "@/components/InviteWholesaler.vue";
 import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
 import { mapGetters } from "vuex";
 
@@ -362,6 +380,7 @@ export default {
     Appraisal,
     CommentTab,
     OfferTab,
+    InviteWholesaler,
   },
   computed: {
     ...mapGetters(["getUserProfile"]),
@@ -397,6 +416,12 @@ export default {
     },
     isSalesDealer() {
       return this.formData && this.formData.role === "S";
+    },
+    dealershipId() {
+      return this.appraisal.dealership ? this.appraisal.dealership.id : null;
+    },
+    appraisalId() {
+      return this.appraisal.id;
     },
   },
   data() {
