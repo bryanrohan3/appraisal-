@@ -462,12 +462,8 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
     def get_queryset(self):
         user = self.request.user
 
-        # TODO: Change for the offer one2one thing <<<<ASK ABOUT>>>>
-        # if hasattr(user, 'wholesalerprofile'):
-        #     invited_appraisal_ids = Offer.objects.filter(user=user.wholesalerprofile).values_list('appraisal_id', flat=True)
-        #     queryset = Appraisal.objects.filter(id__in=invited_appraisal_ids)
         if hasattr(user, 'wholesalerprofile'):
-        # Fetch appraisals that the wholesaler has made offers on
+            # Fetch appraisals that the wholesaler has made offers on
             queryset = Appraisal.objects.filter(offers__user=user.wholesalerprofile).distinct()
 
         elif hasattr(user, 'dealerprofile'):
@@ -475,15 +471,13 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             queryset = Appraisal.objects.filter(dealership_id__in=user_dealership_ids)
 
         else:
-            queryset = Appraisal.object.none()
+            queryset = Appraisal.objects.none()
 
         queryset = self.filter_queryset(queryset)
-
         queryset = self.filter_queryset_by_keyword(queryset)
 
         return queryset
-    
-    
+
     def filter_queryset(self, queryset):
         """
         Apply filtering to the queryset based on query parameters.
@@ -491,16 +485,17 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         dealership_id = self.request.query_params.get('dealership_id')
         if dealership_id:
             queryset = queryset.filter(dealership_id=dealership_id)
-        
+
         user_id = self.request.query_params.get('user_id')
         if user_id:
             queryset = queryset.filter(Q(initiating_dealer__user__id=user_id) | Q(last_updating_dealer__user__id=user_id))
 
         return queryset
 
-
     def filter_queryset_by_keyword(self, queryset):
         filters = self.request.query_params.getlist('filter')  # Use getlist to get multiple filter values
+        user = self.request.user  # Get the current user
+
         if filters:
             status_map = {
                 'Trashed': 'Trashed',
@@ -519,9 +514,14 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
                 # Filter queryset based on the status keyword
                 if keyword in status_map:
                     status = status_map[keyword]
-                    queryset = queryset.filter(
-                        Q(id__in=[appraisal.id for appraisal in queryset if appraisal.get_dealer_status() == status])
-                    )
+                    if hasattr(user, 'wholesalerprofile'):
+                        queryset = queryset.filter(
+                            Q(id__in=[appraisal.id for appraisal in queryset if appraisal.get_wholesaler_status(user.wholesalerprofile) == status])
+                        )
+                    elif hasattr(user, 'dealerprofile'):
+                        queryset = queryset.filter(
+                            Q(id__in=[appraisal.id for appraisal in queryset if appraisal.get_dealer_status() == status])
+                        )
                 else:
                     # Fallback to the existing keyword search if status does not match
                     queryset = queryset.filter(
@@ -537,6 +537,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
                     )
 
         return queryset
+
 
 
 
@@ -642,6 +643,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
                     appraisal.fuel_type,
                     appraisal.reserve_price
                 ])
+
             
             return response
 

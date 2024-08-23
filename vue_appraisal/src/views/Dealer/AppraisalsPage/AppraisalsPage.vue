@@ -504,20 +504,38 @@ export default {
       this.fetchAppraisals();
     },
     exportData() {
-      const filter =
-        this.currentTab !== "all" ? `status=${this.currentTab}` : "";
+      // Construct the filter parameter based on the current tab and search query
+      const filters = [];
+      if (this.currentTab !== "all") {
+        filters.push(`filter=${this.currentTab}`);
+      }
+      if (this.searchQuery) {
+        filters.push(`filter=${this.searchQuery}`);
+      }
+
+      // Create the query string
+      const queryString = filters.join("&");
+      const url = `${endpoints.appraisals}/?${queryString}`;
+
       axiosInstance
-        .get(`${endpoints.appraisals}?export=true&${filter}`, {
-          params: { search: this.searchQuery },
+        .post(url, null, {
+          responseType: "blob", // Handle binary data
         })
         .then((response) => {
+          // Create a Blob from the response data
           const blob = new Blob([response.data], { type: "text/csv" });
-          const url = URL.createObjectURL(blob);
+          const downloadUrl = URL.createObjectURL(blob);
+
+          // Create an anchor element and trigger a download
           const link = document.createElement("a");
-          link.href = url;
+          link.href = downloadUrl;
           link.download = "appraisals.csv";
+          document.body.appendChild(link); // Append the link to the body
           link.click();
-          URL.revokeObjectURL(url);
+          document.body.removeChild(link); // Remove the link after downloading
+
+          // Clean up
+          URL.revokeObjectURL(downloadUrl);
         })
         .catch((error) => {
           console.error("Error exporting data:", error);
