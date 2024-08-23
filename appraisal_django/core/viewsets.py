@@ -27,7 +27,6 @@ from decimal import Decimal
 from rest_framework.exceptions import ValidationError
 
 
-
 class CustomPagination(PageNumberPagination):
     page_size = 10  
     page_size_query_param = 'page_size'
@@ -159,7 +158,6 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
         queryset = self.filter_queryset(self.get_queryset())
         if not queryset.filter(id=dealership.id).exists():
             return Response({"message": "You do not have permission to deactivate this dealership"}, status=status.HTTP_403_FORBIDDEN)
-
         
         dealership.is_active = False
         dealership.save()
@@ -387,11 +385,20 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             return SimpleAppraisalSerializer
         elif self.action == 'status_list':
             return AppraisalStatusSerializer
+        elif self.action == 'wholesaler_dashboard_list':
+            return SimpleWholesalerAppraisalSerializer
         return AppraisalSerializer
 
 
     @action(detail=False, methods=['get'], url_path='simple-list')
     def simple_list(self, request, *args, **kwargs):
+        # Get the latest 8 appraisals
+        queryset = self.filter_queryset(self.get_queryset()).order_by('-start_date')[:8]
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='wholesaler-dashboard-list', permission_classes=[IsWholesaler])
+    def wholesaler_dashboard_list(self, request, *args, **kwargs):
         # Get the latest 8 appraisals
         queryset = self.filter_queryset(self.get_queryset()).order_by('-start_date')[:8]
         serializer = self.get_serializer(queryset, many=True)

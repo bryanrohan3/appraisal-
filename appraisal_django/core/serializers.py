@@ -454,6 +454,12 @@ class AppraisalSerializer(serializers.ModelSerializer):
             representation.pop('private_comments', None)
             representation.pop('reserve_price', None)
             representation.pop('winner', None)
+            representation.pop('customer_phone', None)
+            representation.pop('customer_email', None)
+            representation.pop('customer_first_name', None)
+            representation.pop('customer_last_name', None)
+            representation.pop('ready_for_management', None)
+
 
         return representation
     
@@ -515,6 +521,23 @@ class SimpleAppraisalSerializer(serializers.ModelSerializer):
         if hasattr(user, 'dealerprofile'):
             return obj.get_dealer_status()
         elif hasattr(user, 'wholesalerprofile'):
+            return obj.get_wholesaler_status(user.wholesalerprofile)
+        return "Not authorized"
+    
+class SimpleWholesalerAppraisalSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+    last_updating_dealer = DealerProfileNestedSerializer(read_only=True)
+    dealership = DealershipNestedSerializer(read_only=True)
+
+    class Meta:
+        model = Appraisal
+        fields = ['id', 'status', 'vehicle_make', 'vehicle_model', 'vehicle_vin', 'vehicle_registration', 'dealership', 'last_updating_dealer']
+
+    def get_status(self, obj):
+        request = self.context.get('request')
+        user = request.user if request else None
+
+        if hasattr(user, 'wholesalerprofile'):
             return obj.get_wholesaler_status(user.wholesalerprofile)
         return "Not authorized"
     

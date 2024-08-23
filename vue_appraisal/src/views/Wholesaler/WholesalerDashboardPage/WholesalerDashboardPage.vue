@@ -29,10 +29,42 @@
     </div>
 
     <div class="appraisals-container">
-      <div class="appraisals"></div>
-
-      <div class="stats-container">
-        <div class="stats other-stats"></div>
+      <div class="appraisals">
+        <p class="recent-appraisals">Recent Appraisals</p>
+        <table class="appraisals-table">
+          <thead>
+            <tr class="appraisals-table-header">
+              <th>Dealer Name</th>
+              <th>Dealership</th>
+              <th>Car Make</th>
+              <th>Car Model</th>
+              <th>VIN</th>
+              <th>Rego</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="appraisal in appraisals" :key="appraisal.id">
+              <td>
+                {{ appraisal.last_updating_dealer.first_name }}
+                {{ appraisal.last_updating_dealer.last_name }}
+              </td>
+              <td>{{ appraisal.dealership.dealership_name }}</td>
+              <td>{{ appraisal.vehicle_make }}</td>
+              <td>{{ appraisal.vehicle_model }}</td>
+              <td>{{ appraisal.vehicle_vin }}</td>
+              <td>{{ appraisal.vehicle_registration }}</td>
+              <td>
+                <span
+                  :class="getStatusClass(appraisal.status)"
+                  class="status-word"
+                >
+                  {{ appraisal.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -43,6 +75,7 @@
 
 <script>
 import { mapGetters, mapMutations } from "vuex";
+import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
 
 export default {
   name: "WholesalerDashboardPage",
@@ -74,11 +107,45 @@ export default {
       return new Date().toLocaleDateString(undefined, options);
     },
   },
+  data() {
+    return {
+      appraisals: [],
+    };
+  },
+  mounted() {
+    this.fetchAppraisals();
+  },
   methods: {
     ...mapMutations(["logout"]),
     handleLogout() {
       this.logout(); // Clear Vuex state
       this.$router.push({ name: "login" }); // Redirect to login page
+    },
+    getStatusClass(status) {
+      switch (status) {
+        case "Active":
+          return "status-pending-sales";
+        case "Complete - Lost":
+          return "status-pending-management";
+        case "Complete - Won":
+          return "status-active";
+        case "Complete - Priced":
+          return "status-complete";
+        case "Complete - Missed":
+          return "status-trashed";
+        default:
+          return "";
+      }
+    },
+    async fetchAppraisals() {
+      try {
+        const response = await axiosInstance.get(
+          endpoints.wholesaler_dashboard_appraisals
+        );
+        this.appraisals = response.data; // Update appraisals data with API response
+      } catch (error) {
+        console.error("Error fetching appraisals:", error);
+      }
     },
   },
 };
@@ -207,7 +274,7 @@ button {
   padding-left: 40px;
   font-size: 15px;
   font-weight: 400;
-  margin-top: 30px;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -231,7 +298,7 @@ button {
 }
 
 .appraisals {
-  width: 50%;
+  width: 100%;
   background-color: #282828;
   padding: 10px;
   box-sizing: border-box;
@@ -240,28 +307,79 @@ button {
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
 }
 
-.stats-container {
-  width: 50%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+/* Table Styling */
+/* Table Styling */
+.appraisals-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px auto;
 }
 
-.stats {
-  background-color: #282828;
-  padding: 10px;
-  box-sizing: border-box;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+.appraisals-table th,
+.appraisals-table td {
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 12px;
 }
 
-.other-stats {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Center horizontally */
-  justify-content: center; /* Center vertically */
-  text-align: center; /* Center text */
-  gap: 10px;
+.appraisals-table tr {
+  margin: 0;
+}
+
+.appraisals-table th {
+  font-weight: 400;
+
+  padding-bottom: 5px;
+}
+
+.appraisals-table tr:nth-child(even) {
+  background-color: #3f3f3f;
+}
+
+.appraisals-table-header {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-size: 12px;
+  color: #a8a5a5;
+}
+
+/* Status color styling */
+.status-word {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-align: center;
+  display: inline-block;
+}
+
+/* Specific color classes for status */
+.status-pending-sales {
+  background-color: #efd4b3; /* Orange for Pending - Sales */
+  color: #ff8f06;
+  font-weight: 600;
+}
+
+.status-pending-management {
+  background-color: #9dc6f0; /* Dodger Blue for Pending - Management */
+  color: #3059d3;
+  font-weight: 600;
+}
+
+.status-active {
+  background-color: #e0f2e5; /* Green for Active */
+  color: #65bd70;
+  font-weight: 600;
+}
+
+.status-complete {
+  background-color: #f6c6c6; /* Red for Complete */
+  color: #eb5a58;
+  font-weight: 600;
+}
+
+.status-trashed {
+  background-color: #b2b2b2; /* Grey for Trashed */
+  color: #fff;
+  font-weight: 600;
 }
 </style>
