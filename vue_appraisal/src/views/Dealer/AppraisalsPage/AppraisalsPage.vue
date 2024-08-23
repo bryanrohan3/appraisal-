@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-container">
     <div class="title-container">
-      <h1 class="title">Appraisals Overview</h1>
+      <h1 :class="titleClass">Appraisals Overview</h1>
       <div class="info-icon">
         <span class="info-icon-circle">?</span>
         <div class="tooltip">
@@ -46,8 +46,8 @@
       @leave="leave"
     >
       <div class="appraisals-container">
-        <div class="appraisals">
-          <div class="tabs">
+        <div :class="appraisalsClass">
+          <div class="tabs" v-if="this.userRole === 'dealer'">
             <button
               class="tab-button"
               :class="{ active: currentTab === 'all' }"
@@ -110,9 +110,72 @@
             </button>
           </div>
 
+          <div class="tabs" v-if="this.userRole === 'wholesaler'">
+            <button
+              class="tab-button"
+              :class="{ active: currentTab === 'all' }"
+              @click="
+                currentTab = 'all';
+                fetchAppraisals();
+              "
+            >
+              All Appraisals
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: currentTab === 'Complete - Priced' }"
+              @click="
+                currentTab = 'Complete - Priced';
+                fetchAppraisals();
+              "
+            >
+              Complete - Priced
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: currentTab === 'Complete - Won' }"
+              @click="
+                currentTab = 'Complete - Won';
+                fetchAppraisals();
+              "
+            >
+              Complete - Won
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: currentTab === 'Active' }"
+              @click="
+                currentTab = 'Active';
+                fetchAppraisals();
+              "
+            >
+              Active
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: currentTab === 'Complete - Lost' }"
+              @click="
+                currentTab = 'Complete - Lost';
+                fetchAppraisals();
+              "
+            >
+              Complete - Lost
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: currentTab === 'Complete - Missed' }"
+              @click="
+                currentTab = 'Complete - Missed';
+                fetchAppraisals();
+              "
+            >
+              Complete - Missed
+            </button>
+          </div>
+
           <!-- Search Bar -->
           <div class="search-bar-container">
-            <div class="search-bar">
+            <div :class="inputClass">
               <input
                 type="text"
                 v-model="searchQuery"
@@ -140,7 +203,7 @@
             </div>
           </div>
           <!-- Table -->
-          <table class="appraisals-table">
+          <table :class="tableClass" v-if="this.userRole === 'dealer'">
             <thead>
               <tr class="appraisals-table-header">
                 <th>ID</th>
@@ -187,6 +250,47 @@
                     {{ appraisal.winner.username }}
                   </span>
                   <span v-else>null</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table :class="tableClass" v-else="this.userRole === 'wholesaler'">
+            <thead>
+              <tr class="appraisals-table-header">
+                <th>ID</th>
+                <th>Initiating Dealer</th>
+                <th>Dealership</th>
+                <th>Car Make</th>
+                <th>Car Model</th>
+                <th>VIN</th>
+                <th>Rego</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="appraisal in appraisals"
+                :key="appraisal.id"
+                @click="viewAppraisal(appraisal.id)"
+              >
+                <td>{{ appraisal.id }}</td>
+                <td>
+                  {{ appraisal.initiating_dealer.first_name }}
+                  {{ appraisal.initiating_dealer.last_name }}
+                </td>
+                <td>{{ appraisal.vehicle_make }}</td>
+                <td>{{ appraisal.vehicle_make }}</td>
+                <td>{{ appraisal.vehicle_model }}</td>
+                <td>{{ appraisal.vehicle_vin }}</td>
+                <td>{{ appraisal.vehicle_registration }}</td>
+                <td>
+                  <span
+                    :class="getStatusClass(appraisal.status)"
+                    class="status-word"
+                  >
+                    {{ appraisal.status }}
+                  </span>
                 </td>
               </tr>
             </tbody>
@@ -262,6 +366,30 @@ export default {
         ? `${userProfile.first_name} ${userProfile.last_name}`
         : "Guest";
     },
+    userRole() {
+      const userProfile = this.getUserProfile;
+      return userProfile ? userProfile.role : "guest"; // Adjust 'role' according to your user profile structure
+    },
+    titleClass() {
+      return this.userRole === "wholesaler"
+        ? "title-wholesaler"
+        : "title-dealer";
+    },
+    appraisalsClass() {
+      return this.userRole === "wholesaler"
+        ? "appraisals-wholesaler"
+        : "appraisals-dealer";
+    },
+    tableClass() {
+      return this.userRole === "wholesaler"
+        ? "appraisals-table-wholesaler"
+        : "appraisals-table-dealer";
+    },
+    inputClass() {
+      return this.userRole === "wholesaler"
+        ? "search-bar-wholesaler"
+        : "search-bar-dealer";
+    },
     pageNumbers() {
       const pages = [];
       for (let i = 1; i <= this.totalPages; i++) {
@@ -321,6 +449,14 @@ export default {
         case "Complete":
           return "status-complete";
         case "Trashed":
+          return "status-trashed";
+        case "Complete - Won":
+          return "status-pending-management";
+        case "Complete - Lost":
+          return "status-complete";
+        case "Complete - Priced":
+          return "status-pending-sales";
+        case "Complete - Missed":
           return "status-trashed";
         default:
           return "";
@@ -720,7 +856,7 @@ export default {
 }
 
 .tab-button.active {
-  color: #333;
+  color: #eb5a58;
   font-weight: 600;
 }
 
@@ -831,5 +967,160 @@ export default {
 
 .search-button:hover {
   background-color: #a43b39;
+}
+
+/* Define styles for wholesalers */
+.title-wholesaler {
+  font-size: 24px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-weight: 200;
+  font-weight: 600;
+  color: #eee;
+}
+
+.appraisals-wholesaler {
+  width: 100%;
+  background-color: #282828;
+  padding: 20px;
+  box-sizing: border-box;
+  height: 560px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Define styles for dealers */
+.title-dealer {
+  font-size: 24px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-weight: 200;
+  font-weight: 600;
+  color: #333333;
+}
+
+.appraisals-dealer {
+  width: 100%;
+  background-color: #ffffff;
+  padding: 20px;
+  box-sizing: border-box;
+  height: 560px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Add other styles as needed */
+
+/* Light Mode (Dealer) */
+.appraisals-table-dealer {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px auto;
+}
+
+.appraisals-table-dealer th,
+.appraisals-table-dealer td {
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.appraisals-table-dealer tr {
+  margin: 0;
+}
+
+.appraisals-table-dealer th {
+  font-weight: 400;
+  padding-bottom: 5px;
+}
+
+.appraisals-table-dealer tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.appraisals-table-dealer tr:hover {
+  background-color: #f1f1f1;
+  cursor: pointer;
+}
+
+.appraisals-table-header {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-size: 12px;
+  color: #7d7b7b;
+}
+
+/* Dark Mode (Wholesaler) */
+.appraisals-table-wholesaler {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px auto;
+  background-color: #2e2e2e; /* Dark background for the table */
+}
+
+.appraisals-table-wholesaler th,
+.appraisals-table-wholesaler td {
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #e0e0e0; /* Light text color for dark mode */
+}
+
+.appraisals-table-wholesaler tr {
+  margin: 0;
+}
+
+.appraisals-table-wholesaler th {
+  font-weight: 400;
+  padding-bottom: 5px;
+  background-color: #1c1c1c; /* Darker background for headers */
+}
+
+.appraisals-table-wholesaler tr:nth-child(even) {
+  background-color: #3c3c3c; /* Slightly lighter dark background for even rows */
+}
+
+.appraisals-table-wholesaler tr:hover {
+  background-color: #4c4c4c; /* Highlight color for rows on hover */
+  cursor: pointer;
+}
+
+.appraisals-table-header {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-size: 12px;
+  color: #c0c0c0; /* Light color for dark mode */
+}
+
+/* Search Bar */
+.search-bar-dealer input {
+  width: 100%;
+  padding: 8px;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.search-bar-wholesaler {
+  flex: 1;
+}
+
+.search-bar-dealer {
+  flex: 1;
+}
+
+/* Dark Mode (Wholesaler) */
+.search-bar-wholesaler input {
+  width: 100%;
+  padding: 8px;
+  font-size: 12px;
+  border: 1px solid #444; /* Darker border for dark mode */
+  border-radius: 4px;
+  box-sizing: border-box;
+  outline: none;
+  background-color: #282828; /* Dark background for input */
+  color: #b0b0b0; /* Light text color for dark mode */
 }
 </style>

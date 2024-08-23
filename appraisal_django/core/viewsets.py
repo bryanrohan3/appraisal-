@@ -508,6 +508,10 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
                 'Active': 'Active',
                 'Pending - Management': 'Pending - Management',
                 'Pending - Sales': 'Pending - Sales',
+                'Complete - Won': 'Complete - Won',
+                'Complete - Lost': 'Complete - Lost',
+                'Complete - Missed': 'Complete - Missed',
+                'Complete - Priced': 'Complete - Priced',
                 # Add more status mappings if needed
             }
 
@@ -580,7 +584,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-    @action(detail=False, methods=['get', 'post'], url_path='csv', permission_classes=[IsDealer])
+    @action(detail=False, methods=['get', 'post'], url_path='csv', permission_classes=[IsDealer | IsWholesaler])
     def download_csv(self, request, *args, **kwargs):
         if request.method == 'POST':
             # Handle CSV generation here

@@ -6,13 +6,13 @@
         <p class="company">i@ppraisal</p>
       </div>
       <router-link
-        to="/dashboard"
-        :class="{ 'active-link': isActive('/dashboard') }"
+        to="/wholesaler/dashboard"
+        :class="{ 'active-link': isActive('/wholesaler/dashboard') }"
       >
         <div class="nav-item">
           <img
             :src="
-              isActive('/dashboard')
+              isActive('/wholesaler/dashboard')
                 ? require('@/assets/dashboard-active.svg')
                 : require('@/assets/dashboard.svg')
             "
@@ -23,13 +23,13 @@
       </router-link>
 
       <router-link
-        to="/appraisals"
-        :class="{ 'active-link': isActive('/appraisals') }"
+        to="/wholesaler/appraisals"
+        :class="{ 'active-link': isActive('/wholesaler/appraisals') }"
       >
         <div class="nav-item">
           <img
             :src="
-              isActive('/appraisals')
+              isActive('/wholesaler/appraisals')
                 ? require('@/assets/appraisal-icon-active.svg')
                 : require('@/assets/appraisal-icon.svg')
             "
