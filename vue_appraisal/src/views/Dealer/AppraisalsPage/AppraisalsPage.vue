@@ -12,26 +12,26 @@
       </div>
     </div>
 
-    <div class="filters-container">
+    <div :class="filtersContainerClass">
       <!-- Date Range Filter -->
-      <div class="date-range-filter">
-        <div class="date-filter-group">
-          <label for="start-date" class="date-label">Start Date</label>
+      <div :class="dateRangeFilterClass">
+        <div :class="dateFilterGroupClass">
+          <label for="start-date" :class="dateLabelClass">Start Date</label>
           <input
             type="date"
             id="start-date"
             v-model="startDate"
-            class="date-input"
+            :class="dateInputClass"
           />
         </div>
 
-        <div class="date-filter-group">
-          <label for="end-date" class="date-label">End Date</label>
+        <div :class="dateFilterGroupClass">
+          <label for="end-date" :class="dateLabelClass">End Date</label>
           <input
             type="date"
             id="end-date"
             v-model="endDate"
-            class="date-input"
+            :class="dateInputClass"
           />
         </div>
 
@@ -389,6 +389,31 @@ export default {
       return this.userRole === "wholesaler"
         ? "search-bar-wholesaler"
         : "search-bar-dealer";
+    },
+    filtersContainerClass() {
+      return this.userRole === "wholesaler"
+        ? "filters-container-dark"
+        : "filters-container-light";
+    },
+    dateRangeFilterClass() {
+      return this.userRole === "wholesaler"
+        ? "date-range-filter-dark"
+        : "date-range-filter-light";
+    },
+    dateFilterGroupClass() {
+      return this.userRole === "wholesaler"
+        ? "date-filter-group-dark"
+        : "date-filter-group-light";
+    },
+    dateLabelClass() {
+      return this.userRole === "wholesaler"
+        ? "date-label-dark"
+        : "date-label-light";
+    },
+    dateInputClass() {
+      return this.userRole === "wholesaler"
+        ? "date-input-dark"
+        : "date-input-light";
     },
     pageNumbers() {
       const pages = [];
@@ -1140,5 +1165,95 @@ export default {
   outline: none;
   background-color: #282828; /* Dark background for input */
   color: #b0b0b0; /* Light text color for dark mode */
+}
+
+/* Date Filter */
+/* Light Mode Styles */
+.filters-container-light {
+  display: flex;
+  padding: 10px;
+  padding-left: 0;
+}
+
+.date-range-filter-light {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #fff;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.date-filter-group-light {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.date-label-light {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.date-input-light {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 12px;
+  width: 120px;
+}
+
+.date-input-light:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+/* Dark Mode (Wholesaler) */
+/* Dark Mode Styles */
+.filters-container-dark {
+  display: flex;
+  padding: 10px;
+  padding-left: 0;
+}
+
+.date-range-filter-dark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #333;
+  padding: 8px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.date-filter-group-dark {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.date-label-dark {
+  font-size: 12px;
+  color: #bbb;
+  white-space: nowrap;
+}
+
+.date-input-dark {
+  padding: 6px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-size: 12px;
+  width: 120px;
+  background-color: #222;
+  color: #eee;
+}
+
+.date-input-dark:focus {
+  border-color: #66b2ff;
+  outline: none;
 }
 </style>
