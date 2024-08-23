@@ -279,7 +279,7 @@
                   {{ appraisal.initiating_dealer.first_name }}
                   {{ appraisal.initiating_dealer.last_name }}
                 </td>
-                <td>{{ appraisal.vehicle_make }}</td>
+                <td>{{ appraisal.dealership.dealership_name }}</td>
                 <td>{{ appraisal.vehicle_make }}</td>
                 <td>{{ appraisal.vehicle_model }}</td>
                 <td>{{ appraisal.vehicle_vin }}</td>
