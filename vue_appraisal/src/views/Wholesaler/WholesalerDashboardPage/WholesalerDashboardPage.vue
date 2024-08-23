@@ -254,6 +254,7 @@ button {
   margin: 0;
   font-size: 16px; /* Adjust the font size as needed */
   font-weight: 400; /* Adjust the font weight as needed */
+  margin-left: 20px;
 }
 
 .profile-picture {
