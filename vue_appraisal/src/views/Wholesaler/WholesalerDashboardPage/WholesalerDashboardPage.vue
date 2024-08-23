@@ -254,7 +254,6 @@ button {
   margin: 0;
   font-size: 16px; /* Adjust the font size as needed */
   font-weight: 400; /* Adjust the font weight as needed */
-  margin-left: 20px;
 }
 
 .profile-picture {
@@ -267,12 +266,10 @@ button {
 
 .name {
   margin: 0;
-  text-align: center;
   color: #eee;
 }
 .email {
   color: #aaa;
-  text-align: center;
   font-size: 12px;
 }
 
@@ -443,8 +440,6 @@ button {
 }
 
 .time-now {
-  padding-left: 40px;
-  margin: 0;
   font-size: 34px;
   font-weight: 500;
   color: #eee;
