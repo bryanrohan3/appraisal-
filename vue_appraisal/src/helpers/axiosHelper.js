@@ -37,6 +37,7 @@ const endpoints = {
   top_car: apiConstants.api_hostname + "appraisals/top-car/",
   createAppraisal: apiConstants.api_hostname + "appraisals/",
   dealerProfile: apiConstants.api_hostname + "dealer-profile/current/",
+  wholesalerProfile: apiConstants.api_hostname + "wholesaler-profile/current/",
   all_appraisals: apiConstants.api_hostname + "appraisals/",
   appraisals: apiConstants.api_hostname + "appraisals/csv",
   makeWinner: (offerId) =>

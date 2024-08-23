@@ -373,6 +373,14 @@ class WholesalerProfileViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin,
         
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='current', permission_classes=[IsWholesaler])
+    def current(self, request):
+        """
+        Retrieve the wholesaler profile of the currently authenticated user.
+        """
+        serializer = self.get_serializer(request.user.wholesalerprofile)
+        return Response(serializer.data)
 
 
 class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin):

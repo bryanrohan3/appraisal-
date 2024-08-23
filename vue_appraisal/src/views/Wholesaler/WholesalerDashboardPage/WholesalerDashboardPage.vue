@@ -6,15 +6,26 @@
 
     <div class="columns-container">
       <div class="column column-60">
-        <!-- Content for the 60% width column goes here -->
         <div class="greetings-container">
-          <p class="hello-greetings">
-            Hello, {{ userName }} 👋
-            <span class="date-now">{{ currentDate }}</span>
-          </p>
+          <div class="greetings">
+            <p class="hello-greetings">Hello, {{ userName }} 👋</p>
+            <div class="time-of-day">
+              <p class="time-now">{{ timeOfDay }}</p>
+            </div>
+          </div>
+
+          <div v-if="wholesalerProfileInfo" class="wholesaler-info">
+            <p class="company-name">
+              {{ wholesalerProfileInfo.wholesaler_name }}
+            </p>
+            <p class="email">{{ wholesalerProfileInfo.street_address }}</p>
+            <p class="email">{{ wholesalerProfileInfo.suburb }}</p>
+            <p class="email">{{ wholesalerProfileInfo.postcode }}</p>
+            <p class="email">{{ wholesalerProfileInfo.phone }}</p>
+          </div>
+
+          <span class="date-now">{{ currentDate }}</span>
         </div>
-        <p class="time-now">{{ timeOfDay }}</p>
-        <!-- Display dealership info -->
       </div>
 
       <div class="column column-40">
@@ -110,10 +121,12 @@ export default {
   data() {
     return {
       appraisals: [],
+      wholesalerProfileInfo: null,
     };
   },
   mounted() {
     this.fetchAppraisals();
+    this.fetchWholesalerProfileInfo();
   },
   methods: {
     ...mapMutations(["logout"]),
@@ -145,6 +158,15 @@ export default {
         this.appraisals = response.data; // Update appraisals data with API response
       } catch (error) {
         console.error("Error fetching appraisals:", error);
+      }
+    },
+    async fetchWholesalerProfileInfo() {
+      try {
+        const response = await axiosInstance.get(endpoints.wholesalerProfile);
+        this.wholesalerProfileInfo = response.data; // Store the wholesaler profile data
+        console.log("Wholesaler Profile Response:", response.data);
+      } catch (error) {
+        console.error("Error fetching wholesaler profile information:", error);
       }
     },
   },
@@ -212,16 +234,6 @@ button {
   gap: 20px;
 }
 
-.column {
-  padding: 10px;
-  box-sizing: border-box;
-  height: 140px;
-  border-radius: 10px;
-  /* shadow */
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-  transition: 0.3s;
-}
-
 .column-60 {
   width: 75%;
   background-color: #282828;
@@ -242,6 +254,7 @@ button {
   margin: 0;
   font-size: 16px; /* Adjust the font size as needed */
   font-weight: 400; /* Adjust the font weight as needed */
+  margin-left: 20px;
 }
 
 .profile-picture {
@@ -254,31 +267,13 @@ button {
 
 .name {
   margin: 0;
+  text-align: center;
   color: #eee;
 }
 .email {
   color: #aaa;
+  text-align: center;
   font-size: 12px;
-}
-
-/* welcome message styling */
-.hello-greetings {
-  padding-left: 10px;
-  font-size: 15px;
-  font-weight: 400;
-  margin-bottom: 5px;
-  color: #eee;
-}
-
-.hello-greetings {
-  padding-left: 40px;
-  font-size: 15px;
-  font-weight: 400;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-right: 10px;
 }
 
 .time-now {
@@ -381,5 +376,77 @@ button {
   background-color: #b2b2b2; /* Grey for Trashed */
   color: #fff;
   font-weight: 600;
+}
+
+/* New Code */
+.column {
+  padding: 10px;
+  box-sizing: border-box;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+  transition: 0.3s;
+  background-color: #282828;
+  display: flex;
+}
+
+.greetings-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* Welcome message styling */
+.greetings {
+  flex: 1;
+}
+
+.hello-greetings {
+  padding-left: 40px;
+  font-size: 15px;
+  font-weight: 400;
+  display: flex;
+  font-size: 14px;
+  font-weight: 400;
+  color: #eee;
+  margin-bottom: 5px;
+  padding-top: 0px;
+  margin-top: 0px;
+}
+
+.time-of-day-greeting {
+  font-size: 14px;
+  color: #ccc;
+  margin: 0;
+}
+
+.date-now {
+  font-size: 14px;
+  color: #aaa;
+  margin-right: 40px;
+}
+
+.wholesaler-info {
+  flex: 1;
+  margin-left: 40px;
+  color: #eee;
+}
+
+.wholesaler-info p {
+  margin: 2px 0;
+}
+
+/* Time of day styling */
+.time-of-day {
+  flex: 1;
+}
+
+.time-now {
+  padding-left: 40px;
+  margin: 0;
+  font-size: 34px;
+  font-weight: 500;
+  color: #eee;
 }
 </style>
