@@ -47,11 +47,10 @@ class PaginationMixin:
 class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = Dealership.objects.all()
     serializer_class = DealershipSerializer
-    permission_classes = [permissions.IsAuthenticated, IsDealer]
     serializer_classes = {
         'default': DealershipSerializer,
         'dealers': DealerProfileSmallSerializer,
-        'search': DealershipBasicSerializer
+        'search': DealershipNestedSerializer
     }
     pagination_class = CustomPagination
 
@@ -107,25 +106,40 @@ class DealershipViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins
     @action(detail=False, methods=['get'], permission_classes=[IsWholesaler])
     def search(self, request):
         """
-        Custom action to search for dealerships by name or other parameters.
+        Custom action to search for dealerships and wholesalers by name.
         """
+        dealership_name = request.query_params.get('dealership_name', None)
+        wholesaler_name = request.query_params.get('wholesaler_name', dealership_name)  # Use the same query parameter for simplicity
 
-        serializer = DealershipSearchSerializer(data=request.query_params)
-        serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
+        results = []
 
-        queryset = Dealership.objects.all()
-
-        dealership_name = validated_data.get('dealership_name')
+        # Search Dealerships
         if dealership_name:
-            queryset = queryset.filter(dealership_name__icontains=dealership_name)
+            dealerships = Dealership.objects.filter(dealership_name__icontains=dealership_name)
+            for dealership in dealerships:
+                results.append({
+                    'id': dealership.id,
+                    'name': dealership.dealership_name,
+                    'type': 'dealership'
+                })
 
-        page = self.paginate_queryset(queryset)
+        # Search Wholesalers
+        if wholesaler_name:
+            wholesalers = WholesalerProfile.objects.filter(wholesaler_name__icontains=wholesaler_name)
+            for wholesaler in wholesalers:
+                results.append({
+                    'id': wholesaler.id,
+                    'name': wholesaler.wholesaler_name,
+                    'type': 'wholesaler'
+                })
+
+        # Apply Pagination
+        page = self.paginate_queryset(results)
         if page is not None:
-            serializer = self.get_serializer(page, many=True)
+            serializer = SearchResultSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = SearchResultSerializer(results, many=True)
         return Response(serializer.data)
     
 

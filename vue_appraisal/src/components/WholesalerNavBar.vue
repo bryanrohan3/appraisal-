@@ -40,13 +40,13 @@
       </router-link>
 
       <router-link
-        to="/requests"
-        :class="{ 'active-link': isActive('/requests') }"
+        to="/wholesaler/requests"
+        :class="{ 'active-link': isActive('/wholesaler/requests') }"
       >
         <div class="nav-item">
           <img
             :src="
-              isActive('/requests')
+              isActive('/wholesaler/requests')
                 ? require('@/assets/requests-active.svg')
                 : require('@/assets/requests.svg')
             "

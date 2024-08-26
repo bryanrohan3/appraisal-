@@ -23,6 +23,14 @@
       <!-- Tab Buttons -->
       <button
         class="tab-button"
+        :class="{ active: activeTab === 'AddFriend' }"
+        @click="setActiveTab('AddFriend')"
+        v-if="this.userRole === 'wholesaler'"
+      >
+        Add Friend
+      </button>
+      <button
+        class="tab-button"
         :class="{ active: activeTab === 'Friends' }"
         @click="setActiveTab('Friends')"
       >
@@ -46,6 +54,38 @@
 
     <!-- Tab Content -->
     <div class="tab-content">
+      <div v-if="activeTab === 'AddFriend'" class="tab-pane content-container">
+        <div class="search-container">
+          <input
+            type="text"
+            v-model="searchQuery"
+            placeholder="Search friends..."
+            @input="debouncedSearch"
+            class="search-input"
+          />
+        </div>
+        <div v-if="searchResults.length" class="search-results">
+          <ul>
+            <li
+              v-for="result in searchResults"
+              :key="result.id"
+              :class="[
+                'result-item',
+                result.type === 'wholesaler' ? 'wholesaler' : 'dealership',
+              ]"
+            >
+              {{
+                result.type === "dealership"
+                  ? "Dealership: " + result.name
+                  : result.type === "wholesaler"
+                  ? "Wholesaler: " + result.name
+                  : "Unknown Type: " + result.name
+              }}
+            </li>
+          </ul>
+        </div>
+      </div>
+
       <!-- Friends Tab -->
       <div v-if="activeTab === 'Friends'" class="tab-pane content-container">
         <table v-if="friends.length" class="data-table">
@@ -138,18 +178,29 @@
 
 <script>
 import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
+import { mapGetters } from "vuex";
+import debounce from "lodash.debounce"; // Import lodash debounce
 
 export default {
   name: "RequestsPage",
   data() {
     return {
-      activeTab: "Friends", // Default active tab
+      activeTab: "AddFriend", // Default active tab
       selectedDealership: "",
       dealershipOptions: [],
       friends: [],
       pendingRequests: [],
       rejectedRequests: [],
+      searchQuery: "", // For search input
+      searchResults: [], // Store search results
     };
+  },
+  computed: {
+    ...mapGetters(["getUserProfile"]),
+    userRole() {
+      const userProfile = this.getUserProfile;
+      return userProfile ? userProfile.role : "guest";
+    },
   },
   methods: {
     setActiveTab(tab) {
@@ -157,6 +208,11 @@ export default {
       this.fetchRequests();
     },
     async fetchDealerProfileInfo() {
+      if (this.userRole !== "dealer") {
+        // Skip fetching dealer profile info if the user is not a dealer
+        return;
+      }
+
       try {
         const response = await axiosInstance.get(endpoints.dealerProfile);
         const dealershipIds = response.data.dealerships || [];
@@ -211,6 +267,24 @@ export default {
         console.error("Error responding to request:", error);
       }
     },
+    async searchWholesalers() {
+      if (this.searchQuery.length === 0) {
+        this.searchResults = [];
+        return;
+      }
+      try {
+        const response = await axiosInstance.get(
+          endpoints.searchWholesalersAndDealerships(this.searchQuery) // Adjust your endpoint accordingly
+        );
+        this.searchResults = response.data.results || [];
+      } catch (error) {
+        console.error("Error searching wholesalers and dealerships:", error);
+      }
+    },
+
+    debouncedSearch: debounce(function () {
+      this.searchWholesalers();
+    }, 300), // Debounce search by 300ms
   },
   mounted() {
     this.fetchDealerProfileInfo();
@@ -273,7 +347,7 @@ export default {
 }
 
 .tab-button.active {
-  color: #333;
+  color: #eb5a58;
   font-weight: 600;
 }
 
@@ -364,5 +438,58 @@ export default {
   text-align: center;
   color: #666;
   font-style: italic;
+}
+
+.tab-pane {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.search-input {
+  width: 98%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.search-results {
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  color: #333;
+}
+
+.result-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  color: #666;
+}
+
+.result-item:last-child {
+  border-bottom: none;
+}
+
+.result-item:hover {
+  background-color: #f1f1f1;
+}
+
+/* Specific styles for wholesalers and dealerships */
+.wholesaler {
+  background-color: #e0f7fa; /* Light blue background for wholesalers */
+}
+
+.dealership {
+  background-color: #c8e6c9; /* Light green background for dealerships */
 }
 </style>

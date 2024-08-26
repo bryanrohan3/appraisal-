@@ -1223,7 +1223,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
-  background-color: #333;
+  background-color: #2e2e2e;
   padding: 8px;
   border: 1px solid #444;
   border-radius: 6px;

@@ -84,6 +84,8 @@ const endpoints = {
     `${apiConstants.api_hostname}appraisals/${appraisalId}/invite_wholesaler/`, // Add this line
   wholesaler_dashboard_appraisals:
     apiConstants.api_hostname + "appraisals/wholesaler-dashboard-list/",
+  searchWholesalersAndDealerships: (dealershipName) =>
+    `${apiConstants.api_hostname}dealerships/search/?dealership_name=${dealershipName}`,
 };
 
 export { axiosInstance, endpoints };

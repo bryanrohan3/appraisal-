@@ -239,7 +239,11 @@ class WholesalerInviteSerializer(serializers.Serializer):
                 continue  # Skip wholesaler ID if it does not exist
         
         return invited_wholesalers
-
+    
+class SearchResultSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    type = serializers.CharField()  # 'dealership' or 'wholesaler'
 
 class WholesalerProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()
