@@ -248,6 +248,7 @@ class SearchResultSerializer(serializers.Serializer):
 class WholesalerProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     friends = serializers.SerializerMethodField()
+    # dealerships = serializers.SerializerMethodField()
 
     class Meta:
         model = WholesalerProfile
@@ -285,14 +286,33 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
         friend_ids = set()
         for request in accepted_friend_requests:
             if request.sender and request.sender != obj:
-                friend_ids.add(request.sender.id)
-            if request.recipient_wholesaler and request.recipient_wholesaler != obj:
-                friend_ids.add(request.recipient_wholesaler.id)
+                friend_ids.add(request.sender.user.username)
+            elif request.recipient_wholesaler and request.recipient_wholesaler != obj:
+                friend_ids.add(request.recipient_wholesaler.user.username)
+            elif request.dealership:
+                friend_ids.add(request.dealership.dealership_name)
 
         # Convert set to list
         friend_ids = list(friend_ids)
         
         return friend_ids
+    
+    # def get_dealerships(self, obj):
+    #     # Get the dealerships where the wholesaler is associated via friend requests
+    #     friend_requests = FriendRequest.objects.filter(
+    #         Q(sender=obj) | Q(recipient_wholesaler=obj),
+    #         status='accepted'
+    #     ).select_related('dealership')
+
+    #     # Extract the unique dealerships
+    #     dealerships = set()
+    #     for request in friend_requests:
+    #         if request.dealership:
+    #             dealerships.add(request.dealership)
+
+    #     # Serialize the dealerships
+    #     dealership_serializer = DealershipSerializer(dealerships, many=True)
+    #     return dealership_serializer.data
     
 
 class PhotoSerializer(serializers.ModelSerializer):
