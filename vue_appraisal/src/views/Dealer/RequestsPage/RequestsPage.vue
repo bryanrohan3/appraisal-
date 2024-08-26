@@ -2,7 +2,7 @@
   <div class="dashboard-container">
     <div class="title-container">
       <h1 class="title">Wholesalers List & Requests</h1>
-      <div class="dealership-dropdown">
+      <div v-if="this.userRole === 'dealer'" class="dealership-dropdown">
         <select
           class="input-dealership"
           v-model="selectedDealership"
@@ -65,25 +65,44 @@
           />
         </div>
         <div v-if="searchResults.length" class="search-results">
-          <ul>
-            <li
-              v-for="result in searchResults"
-              :key="result.id"
-              :class="[
-                'result-item',
-                result.type === 'wholesaler' ? 'wholesaler' : 'dealership',
-              ]"
-            >
-              {{
-                result.type === "dealership"
-                  ? "Dealership: " + result.name
-                  : result.type === "wholesaler"
-                  ? "Wholesaler: " + result.name
-                  : "Unknown Type: " + result.name
-              }}
-            </li>
-          </ul>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="result in searchResults"
+                :key="result.id"
+                :class="[
+                  result.type === 'wholesaler' ? 'wholesaler' : 'dealership',
+                ]"
+              >
+                <td>
+                  {{
+                    result.type === "dealership"
+                      ? "Dealership: " + result.name
+                      : result.type === "wholesaler"
+                      ? "Wholesaler: " + result.name
+                      : "Unknown Type: " + result.name
+                  }}
+                </td>
+                <td>
+                  <!-- Add Button -->
+                  <button
+                    class="action-button add"
+                    @click="addFriend(result.id)"
+                  >
+                    Add
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+        <p v-else class="no-data-message">No results found.</p>
       </div>
 
       <!-- Friends Tab -->
@@ -97,13 +116,11 @@
           </thead>
           <tbody>
             <tr v-for="request in friends" :key="request.id">
-              <td v-if="userRole === 'dealer'">{{ request.sender }}</td>
-              <td class="wholesaler-friends" v-if="userRole === 'wholesaler'">
-                {{
-                  request.dealership
-                    ? request.dealership_name
-                    : request.recipient_wholesaler_username
-                }}
+              <td v-if="userRole === 'wholesaler'">
+                {{ displayName(request) }}
+              </td>
+              <td v-else-if="userRole === 'dealer'">
+                {{ displayName(request) }}
               </td>
 
               <td>
@@ -209,6 +226,19 @@ export default {
     userRole() {
       const userProfile = this.getUserProfile;
       return userProfile ? userProfile.role : "guest";
+    },
+    displayName() {
+      return (request) => {
+        if (this.userRole === "wholesaler") {
+          return request.dealership
+            ? request.dealership_name
+            : request.recipient_wholesaler_username;
+        } else if (this.userRole === "dealer") {
+          return request.dealership ? request.dealership_name : request.sender; // For dealer, display sender if the dealership is null
+        } else {
+          return "Unknown";
+        }
+      };
     },
   },
   methods: {
@@ -318,6 +348,33 @@ export default {
         this.searchResults = response.data.results || [];
       } catch (error) {
         console.error("Error searching wholesalers and dealerships:", error);
+      }
+    },
+    async addFriend(friendId) {
+      const friend = this.searchResults.find(
+        (result) => result.id === friendId
+      );
+
+      let payload = {};
+
+      if (friend.type === "wholesaler") {
+        payload = {
+          recipient_wholesaler: friendId,
+        };
+      } else if (friend.type === "dealership") {
+        payload = {
+          dealership: friendId,
+        };
+      } else {
+        console.error("Unknown friend type:", friend.type);
+        return;
+      }
+
+      try {
+        await axiosInstance.post(endpoints.friendRequests, payload);
+        this.fetchRequests(); // Refresh the requests list after sending the friend request
+      } catch (error) {
+        console.error("Error sending friend request:", error);
       }
     },
 
@@ -492,6 +549,7 @@ export default {
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 16px;
+  margin-bottom: 20px;
 }
 
 .search-results {
@@ -501,39 +559,60 @@ export default {
   color: #333;
 }
 
-ul {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-  color: #333;
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
 }
 
-.result-item {
+.data-table th,
+.data-table td {
   padding: 10px;
   border-bottom: 1px solid #eee;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  text-align: left;
   color: #666;
 }
 
-.result-item:last-child {
+.data-table th {
+  background-color: #f2f2f2;
+}
+
+.data-table tr:last-child td {
   border-bottom: none;
 }
 
-.result-item:hover {
+.data-table tr:hover {
   background-color: #f1f1f1;
 }
 
 /* Specific styles for wholesalers and dealerships */
-.wholesaler {
+.wholesaler td {
   background-color: #e0f7fa; /* Light blue background for wholesalers */
 }
 
-.dealership {
+.dealership td {
   background-color: #c8e6c9; /* Light green background for dealerships */
 }
 
-.wholesaler-friends {
-  color: #333;
+.action-button.add {
+  padding: 6px 12px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.action-button.add:hover {
+  background-color: #45a049;
+}
+
+.no-data-message {
+  text-align: center;
+  color: #777;
+  margin-top: 20px;
+  font-size: 16px;
 }
 </style>

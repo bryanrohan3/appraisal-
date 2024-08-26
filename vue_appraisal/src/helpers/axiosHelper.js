@@ -89,6 +89,7 @@ const endpoints = {
   searchWholesalersAndDealerships: (dealershipName) =>
     `${apiConstants.api_hostname}dealerships/search/?dealership_name=${dealershipName}`,
   getSentRequests: `${apiConstants.api_hostname}friend-requests/sent/`,
+  friendRequests: apiConstants.api_hostname + "friend-requests/",
 };
 
 export { axiosInstance, endpoints };
