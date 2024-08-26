@@ -40,6 +40,8 @@ const endpoints = {
   wholesalerProfile: apiConstants.api_hostname + "wholesaler-profile/current/",
   all_appraisals: apiConstants.api_hostname + "appraisals/",
   appraisals: apiConstants.api_hostname + "appraisals/csv",
+  wholesalerRequestsReceived:
+    apiConstants.api_hostname + "friend-requests/received/",
   makeWinner: (offerId) =>
     `${apiConstants.api_hostname}offer/${offerId}/make-winner/`,
   updateOffer: (appraisalId, offerId) =>
@@ -86,6 +88,7 @@ const endpoints = {
     apiConstants.api_hostname + "appraisals/wholesaler-dashboard-list/",
   searchWholesalersAndDealerships: (dealershipName) =>
     `${apiConstants.api_hostname}dealerships/search/?dealership_name=${dealershipName}`,
+  getSentRequests: `${apiConstants.api_hostname}friend-requests/sent/`,
 };
 
 export { axiosInstance, endpoints };

@@ -593,13 +593,23 @@ from rest_framework import serializers
 class FriendRequestSerializer(serializers.ModelSerializer):
     sender = serializers.ReadOnlyField(source='sender.user.username')
     sender_id = serializers.PrimaryKeyRelatedField(source='sender', read_only=True)
-    dealership = serializers.PrimaryKeyRelatedField(queryset=Dealership.objects.all(), required=False)
-    recipient_wholesaler = serializers.PrimaryKeyRelatedField(queryset=WholesalerProfile.objects.all(), required=False)
+    dealership_name = serializers.SerializerMethodField()
+    recipient_wholesaler_username = serializers.SerializerMethodField()
 
     class Meta:
         model = FriendRequest
-        fields = ['id', 'sender', 'sender_id', 'dealership', 'recipient_wholesaler', 'status', 'created_at']
+        fields = ['id', 'sender', 'sender_id', 'dealership', 'dealership_name', 'recipient_wholesaler', 'recipient_wholesaler_username', 'status', 'created_at']
         read_only_fields = ['sender', 'sender_id', 'status', 'created_at']
+
+    def get_dealership_name(self, obj):
+        if obj.dealership:
+            return obj.dealership.dealership_name  # Replace 'name' with the actual field name in the Dealership model
+        return None
+
+    def get_recipient_wholesaler_username(self, obj):
+        if obj.recipient_wholesaler:
+            return obj.recipient_wholesaler.user.username
+        return None
 
     def validate(self, data):
         # Ensure either recipient wholesaler or dealership is specified
@@ -634,4 +644,3 @@ class FriendRequestSerializer(serializers.ModelSerializer):
         validated_data['sender'] = wholesaler_profile
 
         return FriendRequest.objects.create(**validated_data)
-    

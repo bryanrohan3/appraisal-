@@ -97,7 +97,15 @@
           </thead>
           <tbody>
             <tr v-for="request in friends" :key="request.id">
-              <td>{{ request.sender }}</td>
+              <td v-if="userRole === 'dealer'">{{ request.sender }}</td>
+              <td class="wholesaler-friends" v-if="userRole === 'wholesaler'">
+                {{
+                  request.dealership
+                    ? request.dealership_name
+                    : request.recipient_wholesaler_username
+                }}
+              </td>
+
               <td>
                 <button
                   class="action-button remove"
@@ -185,7 +193,7 @@ export default {
   name: "RequestsPage",
   data() {
     return {
-      activeTab: "AddFriend", // Default active tab
+      activeTab: "Friends", // Default active tab
       selectedDealership: "",
       dealershipOptions: [],
       friends: [],
@@ -193,6 +201,7 @@ export default {
       rejectedRequests: [],
       searchQuery: "", // For search input
       searchResults: [], // Store search results
+      wholesalerProfileInfo: null,
     };
   },
   computed: {
@@ -237,12 +246,42 @@ export default {
         console.error("Error fetching dealer profile information:", error);
       }
     },
-    async fetchRequests() {
-      if (!this.selectedDealership) return;
+    async fetchWholesalerProfileInfo() {
+      if (this.userRole !== "wholesaler") {
+        // Skip fetching wholesaler profile info if the user is not a wholesaler
+        return;
+      }
       try {
-        const response = await axiosInstance.get(
-          endpoints.getReceivedRequests(this.selectedDealership)
-        );
+        const response = await axiosInstance.get(endpoints.wholesalerProfile);
+        this.wholesalerProfileInfo = response.data; // Store the wholesaler profile data
+        console.log("Wholesaler Profile Response:", response.data);
+      } catch (error) {
+        console.error("Error fetching wholesaler profile information:", error);
+      }
+    },
+    async fetchRequests() {
+      try {
+        let response;
+
+        if (this.userRole === "dealer") {
+          if (!this.selectedDealership) return; // Ensure dealership is selected
+          response = await axiosInstance.get(
+            endpoints.getReceivedRequests(this.selectedDealership)
+          );
+        } else if (this.userRole === "wholesaler") {
+          if (this.activeTab === "Friends") {
+            response = await axiosInstance.get(endpoints.getSentRequests); // Use the endpoint for wholesaler's sent requests in Friends tab
+          } else if (this.activeTab === "Requests") {
+            response = await axiosInstance.get(
+              endpoints.wholesalerRequestsReceived
+            ); // Use the endpoint for wholesaler's received requests in Requests tab
+          } else {
+            return; // If neither tab, do nothing
+          }
+        } else {
+          return; // If neither dealer nor wholesaler, do nothing
+        }
+
         const results = response.data.results || [];
         this.friends = results.filter(
           (request) => request.status === "accepted"
@@ -288,6 +327,7 @@ export default {
   },
   mounted() {
     this.fetchDealerProfileInfo();
+    this.fetchWholesalerProfileInfo();
   },
 };
 </script>
@@ -491,5 +531,9 @@ ul {
 
 .dealership {
   background-color: #c8e6c9; /* Light green background for dealerships */
+}
+
+.wholesaler-friends {
+  color: #333;
 }
 </style>
