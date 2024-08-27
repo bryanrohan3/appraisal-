@@ -39,6 +39,11 @@ const routes = [
         name: "WholesalerRequestsPage",
         component: RequestsPage,
       },
+      {
+        path: "profile",
+        name: "WholesalerProfilePage",
+        component: ProfilePage,
+      },
     ],
   },
   {

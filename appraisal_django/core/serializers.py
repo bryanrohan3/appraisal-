@@ -252,7 +252,7 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WholesalerProfile
-        fields = ['user', 'wholesaler_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'friends', 'is_active']
+        fields = ['id', 'user', 'wholesaler_name', 'street_address', 'suburb', 'state', 'postcode', 'email', 'phone', 'friends', 'is_active']
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')
@@ -266,14 +266,23 @@ class WholesalerProfileSerializer(serializers.ModelSerializer):
         user_data = validated_data.pop('user', None)
         if user_data:
             user_serializer = UserSerializer(instance.user, data=user_data, partial=True)
-            # Just use is_valid(raise_exception=True)
             if user_serializer.is_valid():
                 user_serializer.save()
             else:
                 raise serializers.ValidationError(user_serializer.errors)
 
         # Update the wholesaler profile fields
-        return super().update(instance, validated_data)
+        instance.wholesaler_name = validated_data.get('wholesaler_name', instance.wholesaler_name)
+        instance.street_address = validated_data.get('street_address', instance.street_address)
+        instance.suburb = validated_data.get('suburb', instance.suburb)
+        instance.state = validated_data.get('state', instance.state)
+        instance.postcode = validated_data.get('postcode', instance.postcode)
+        instance.email = validated_data.get('email', instance.email)
+        instance.phone = validated_data.get('phone', instance.phone)
+        instance.is_active = validated_data.get('is_active', instance.is_active)
+        instance.save()
+        
+        return instance
     
     def get_friends(self, obj):
         # Get accepted friend requests where the wholesaler is either the sender or the recipient

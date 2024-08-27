@@ -57,13 +57,13 @@
       </router-link>
 
       <router-link
-        to="/profile"
-        :class="{ 'active-link': isActive('/profile') }"
+        to="/wholesaler/profile"
+        :class="{ 'active-link': isActive('/wholesaler/profile') }"
       >
         <div class="nav-item">
           <img
             :src="
-              isActive('/profile')
+              isActive('/wholesaler/profile')
                 ? require('@/assets/account-active.svg')
                 : require('@/assets/account.svg')
             "

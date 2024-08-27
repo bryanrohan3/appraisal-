@@ -31,7 +31,7 @@
 
           <div class="form-row-horizontal">
             <div class="form-group">
-              <label for="email">Username</label>
+              <label for="username">Username</label>
               <input
                 id="username"
                 type="text"
@@ -54,7 +54,7 @@
               <input id="role" type="text" :value="formattedRole" disabled />
             </div>
           </div>
-          <div class="form-row">
+          <div class="form-row" v-if="profile.dealership_names">
             <label for="dealerships">Dealerships</label>
             <table class="appraisals-table">
               <tbody>
@@ -75,7 +75,7 @@
     </div>
 
     <div
-      v-if="profile && profile.role === 'M'"
+      v-if="(profile && profile.role === 'M') || userRole === 'wholesaler'"
       class="delete-account-container"
     >
       <div class="delete-account-icon">
@@ -96,8 +96,8 @@
 </template>
 
 <script>
-import { endpoints, axiosInstance } from "@/helpers/axiosHelper";
-import { mapMutations } from "vuex";
+import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
+import { mapGetters } from "vuex";
 
 export default {
   name: "ProfilePage",
@@ -107,39 +107,62 @@ export default {
     };
   },
   computed: {
-    dealershipsString() {
-      return this.profile.dealership_names
-        .map((d) => d.dealership_name)
-        .join(", ");
+    ...mapGetters(["getUserProfile"]),
+    userRole() {
+      const userProfile = this.getUserProfile;
+      return userProfile ? userProfile.role : "guest";
     },
     formattedRole() {
       return this.profile.role === "M"
         ? "Management"
         : this.profile.role === "S"
         ? "Sales"
-        : "Unknown";
+        : "Wholesaler";
     },
   },
   async created() {
     try {
-      const response = await axiosInstance.get(endpoints.dealerProfile);
-      this.profile = response.data;
+      const userProfile = this.getUserProfile;
+
+      // Check userRole to determine correct endpoint
+      if (!userProfile) {
+        throw new Error("User profile is not available.");
+      }
+
+      const role = userProfile.role;
+      let profileEndpoint = "";
+
+      if (role === "wholesaler") {
+        profileEndpoint = endpoints.wholesalerProfile;
+      } else if (role === "dealer") {
+        profileEndpoint = endpoints.dealerProfile;
+      } else {
+        throw new Error("Unknown user role.");
+      }
+
+      // Fetch the profile data based on the role
+      const profileResponse = await axiosInstance.get(profileEndpoint);
+      this.profile = profileResponse.data;
       console.log("Profile data:", this.profile); // Log the profile data
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      console.error("Error fetching profile:", error.message);
     }
   },
   methods: {
-    ...mapMutations(["logout"]),
     async saveProfile() {
       try {
+        if (!this.profile) {
+          throw new Error("Profile data is not available.");
+        }
+
         const userId = this.profile.user.id;
+        const profileId = this.profile.id; // Ensure this is correct for both roles
 
-        // Ensure dealerProfileId is correctly set from the profile
-        const dealerProfileId = this.profile.id; // Adjust according to the actual key
+        console.log("User ID:", userId);
+        console.log("Profile ID:", profileId);
 
-        if (!dealerProfileId) {
-          throw new Error("Dealer Profile ID is missing.");
+        if (!profileId) {
+          throw new Error("Profile ID is missing.");
         }
 
         // Prepare the data for updating the phone number
@@ -155,18 +178,23 @@ export default {
           username: this.profile.user.username,
         };
 
-        // Update phone number
-        await axiosInstance.patch(
-          endpoints.dealerProfileUpdate(dealerProfileId),
-          phoneUpdateData
-        );
+        // Determine which endpoint to use based on user role
+        const updateProfileEndpoint =
+          this.userRole === "wholesaler"
+            ? endpoints.wholesalerProfileUpdate(profileId)
+            : endpoints.dealerProfileUpdate(profileId);
 
-        // Update other user details
+        console.log("Update profile endpoint:", updateProfileEndpoint);
+
+        // Update profile data
+        await axiosInstance.patch(updateProfileEndpoint, phoneUpdateData);
+
+        // Update user details
         await axiosInstance.patch(endpoints.updateUser(userId), userUpdateData);
 
         console.log("Profile updated successfully");
       } catch (error) {
-        console.error("Error updating profile:", error);
+        console.error("Error updating profile:", error.message);
       }
     },
 
