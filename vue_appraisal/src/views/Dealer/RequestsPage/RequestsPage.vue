@@ -54,7 +54,7 @@
 
     <!-- Tab Content -->
     <div class="tab-content">
-      <div v-if="activeTab === 'AddFriend'" class="tab-pane content-container">
+      <div v-if="activeTab === 'AddFriend'" class="content-container">
         <div class="search-container">
           <input
             type="text"
@@ -106,7 +106,7 @@
       </div>
 
       <!-- Friends Tab -->
-      <div v-if="activeTab === 'Friends'" class="tab-pane content-container">
+      <div v-if="activeTab === 'Friends'" class="content-container">
         <table v-if="friends.length" class="data-table">
           <thead>
             <tr>
@@ -116,11 +116,25 @@
           </thead>
           <tbody>
             <tr v-for="request in friends" :key="request.id">
-              <td v-if="userRole === 'wholesaler'">
-                {{ displayName(request) }}
-              </td>
-              <td v-else-if="userRole === 'dealer'">
-                {{ displayName(request) }}
+              <td v-if="userRole === 'dealer'">{{ request.sender }}</td>
+              <td class="wholesaler-friends" v-if="userRole === 'wholesaler'">
+                <!-- Display recipient_wholesaler_username if the user is the sender -->
+                <template
+                  v-if="
+                    request.recipient_wholesaler_username ===
+                    getUserProfile.username
+                  "
+                >
+                  {{ request.sender }}
+                </template>
+                <!-- Display sender if the user is the recipient -->
+                <template v-else>
+                  {{
+                    request.dealership
+                      ? request.dealership_name
+                      : request.recipient_wholesaler_username
+                  }}
+                </template>
               </td>
 
               <td>
@@ -138,7 +152,7 @@
       </div>
 
       <!-- Requests Tab -->
-      <div v-if="activeTab === 'Requests'" class="tab-pane content-container">
+      <div v-if="activeTab === 'Requests'" class="content-container">
         <table v-if="pendingRequests.length" class="data-table">
           <thead>
             <tr>
@@ -147,7 +161,13 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="request in pendingRequests" :key="request.id">
+            <!-- Filter out requests where the sender is the current user -->
+            <tr
+              v-for="request in pendingRequests.filter(
+                (request) => request.sender !== getUserProfile.username
+              )"
+              :key="request.id"
+            >
               <td>{{ request.sender }}</td>
               <td>
                 <button
@@ -227,19 +247,15 @@ export default {
       const userProfile = this.getUserProfile;
       return userProfile ? userProfile.role : "guest";
     },
-    displayName() {
-      return (request) => {
-        if (this.userRole === "wholesaler") {
-          return request.dealership
-            ? request.dealership_name
-            : request.recipient_wholesaler_username;
-        } else if (this.userRole === "dealer") {
-          return request.dealership ? request.dealership_name : request.sender; // For dealer, display sender if the dealership is null
-        } else {
-          return "Unknown";
-        }
-      };
-    },
+  },
+  mounted() {
+    this.fetchDealerProfileInfo();
+    this.fetchWholesalerProfileInfo();
+    if (this.userRole === "wholesaler") {
+      this.activeTab = "AddFriend";
+    } else if (this.userRole === "dealer") {
+      this.activeTab = "Friends";
+    }
   },
   methods: {
     setActiveTab(tab) {
@@ -291,37 +307,66 @@ export default {
     },
     async fetchRequests() {
       try {
-        let response;
+        let responseSentRequests;
+        let responseReceivedRequests;
 
         if (this.userRole === "dealer") {
           if (!this.selectedDealership) return; // Ensure dealership is selected
-          response = await axiosInstance.get(
+          responseSentRequests = await axiosInstance.get(
             endpoints.getReceivedRequests(this.selectedDealership)
           );
         } else if (this.userRole === "wholesaler") {
           if (this.activeTab === "Friends") {
-            response = await axiosInstance.get(endpoints.getSentRequests); // Use the endpoint for wholesaler's sent requests in Friends tab
-          } else if (this.activeTab === "Requests") {
-            response = await axiosInstance.get(
+            // Fetch from both endpoints
+            responseSentRequests = await axiosInstance.get(
+              endpoints.getSentRequests
+            );
+            responseReceivedRequests = await axiosInstance.get(
               endpoints.wholesalerRequestsReceived
-            ); // Use the endpoint for wholesaler's received requests in Requests tab
+            );
+
+            // Combine results
+            const sentRequests = responseSentRequests.data.results || [];
+            const receivedRequests =
+              responseReceivedRequests.data.results || [];
+
+            // Combine and process the results as needed
+            const allRequests = [...sentRequests, ...receivedRequests];
+            this.friends = allRequests.filter(
+              (request) => request.status === "accepted"
+            );
+            this.pendingRequests = allRequests.filter(
+              (request) => request.status === "pending"
+            );
+            this.rejectedRequests = allRequests.filter(
+              (request) => request.status === "rejected"
+            );
+
+            return; // Exit the method after processing both endpoints
+          } else if (this.activeTab === "Requests") {
+            responseReceivedRequests = await axiosInstance.get(
+              endpoints.wholesalerRequestsReceived
+            );
           } else {
-            return; // If neither tab, do nothing
+            return;
           }
         } else {
-          return; // If neither dealer nor wholesaler, do nothing
+          return;
         }
 
-        const results = response.data.results || [];
-        this.friends = results.filter(
-          (request) => request.status === "accepted"
-        );
-        this.pendingRequests = results.filter(
-          (request) => request.status === "pending"
-        );
-        this.rejectedRequests = results.filter(
-          (request) => request.status === "rejected"
-        );
+        // Process the results if only one endpoint was called
+        if (responseSentRequests) {
+          const results = responseSentRequests.data.results || [];
+          this.friends = results.filter(
+            (request) => request.status === "accepted"
+          );
+          this.pendingRequests = results.filter(
+            (request) => request.status === "pending"
+          );
+          this.rejectedRequests = results.filter(
+            (request) => request.status === "rejected"
+          );
+        }
       } catch (error) {
         console.error("Error fetching requests:", error);
       }
@@ -381,10 +426,6 @@ export default {
     debouncedSearch: debounce(function () {
       this.searchWholesalers();
     }, 300), // Debounce search by 300ms
-  },
-  mounted() {
-    this.fetchDealerProfileInfo();
-    this.fetchWholesalerProfileInfo();
   },
 };
 </script>
