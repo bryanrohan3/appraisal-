@@ -12,6 +12,7 @@ import AnalyticsPage from "@/views/Dealer/AnalyticsPage/AnalyticsPage.vue";
 import RequestsPage from "@/views/Dealer/RequestsPage/RequestsPage.vue";
 import ManagementPage from "@/views/Dealer/ManagementPage/ManagementPage.vue";
 import ProfilePage from "@/views/Dealer/ProfilePage/ProfilePage.vue";
+import WholesalerAppraisalPage from "@/views/Wholesaler/WholesalerAppraisalPage/WholesalerAppraisalPage.vue";
 
 const routes = [
   {
@@ -43,6 +44,11 @@ const routes = [
         path: "profile",
         name: "WholesalerProfilePage",
         component: ProfilePage,
+      },
+      {
+        path: "appraisals/:id",
+        name: "WholesalerAppraisalPage",
+        component: WholesalerAppraisalPage,
       },
     ],
   },

@@ -576,7 +576,13 @@ export default {
       this.fetchAppraisals(page);
     },
     viewAppraisal(id) {
-      this.$router.push({ name: "AppraisalViewPage", params: { id } });
+      if (this.userRole === "wholesaler") {
+        // Navigate to WholesalerAppraisalPage
+        this.$router.push({ path: `/wholesaler/appraisals/${id}` });
+      } else if (this.userRole === "dealer") {
+        // Navigate to AppraisalViewPage
+        this.$router.push({ name: "AppraisalViewPage", params: { id } });
+      }
     },
   },
 };
