@@ -583,7 +583,7 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
 
         return Response({'status': 'Appraisal deactivated'}, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['POST'], permission_classes=[IsDealer])
+    @action(detail=True, methods=['POST'], permission_classes=[IsDealer | IsWholesaler])
     def add_general_comment(self, request, pk=None):
         appraisal = self.get_object()
         user = request.user

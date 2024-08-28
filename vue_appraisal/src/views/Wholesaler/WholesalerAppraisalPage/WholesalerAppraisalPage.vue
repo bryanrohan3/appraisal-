@@ -12,7 +12,31 @@
       </p>
     </div>
 
-    <div v-if="appraisal" class="appraisals-container">
+    <div class="tabs">
+      <!-- Appraisal tab (always shown) -->
+      <button
+        class="tab-button"
+        :class="{ active: currentTab === 'appraisal' }"
+        @click="currentTab = 'appraisal'"
+      >
+        Appraisal
+      </button>
+
+      <!-- Offers and Comments tabs (only shown if viewing an appraisal) -->
+
+      <button
+        class="tab-button"
+        :class="{ active: currentTab === 'comments' }"
+        @click="currentTab = 'comments'"
+      >
+        Comments
+      </button>
+    </div>
+
+    <div
+      v-if="currentTab === 'appraisal' && appraisal"
+      class="appraisals-container"
+    >
       <div class="appraisals">
         <div class="photos-section">
           <div class="photo-placeholder">
@@ -161,26 +185,31 @@
       </div>
     </div>
 
-    <div v-else>
-      <p>Loading appraisal details...</p>
+    <div v-if="currentTab === 'comments'">
+      <CommentTab :appraisal="appraisal" />
     </div>
   </div>
 </template>
 
 <script>
 import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
+import CommentTab from "@/components/CommentTab.vue";
 
 export default {
   name: "WholesalerAppraisalPage",
   data() {
     return {
       appraisal: null,
+      currentTab: "appraisal",
       offerAmount: null, // To store the offer amount
       offer: {
         amount: null,
         passed: false,
       },
     };
+  },
+  components: {
+    CommentTab,
   },
   computed: {
     formattedRegistration() {
@@ -248,10 +277,19 @@ export default {
         });
     },
     getStatusClass(status) {
-      switch (
-        status
-        // add your status logic here
-      ) {
+      switch (status) {
+        case "Active":
+          return "status-active";
+        case "Complete - Won":
+          return "status-pending-management";
+        case "Complete - Lost":
+          return "status-complete";
+        case "Complete - Priced":
+          return "status-pending-sales";
+        case "Complete - Missed":
+          return "status-trashed";
+        default:
+          return "";
       }
     },
   },
@@ -655,5 +693,50 @@ export default {
   text-align: center;
   padding: 0%;
   color: #ccc;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  margin-bottom: 20px;
+  position: relative;
+  padding-left: 0;
+  padding-right: 0;
+  justify-content: flex-start; /* Align tabs to the left */
+}
+
+.tab-button {
+  background-color: transparent;
+  border: none;
+  padding: 10px 20px; /* Adjust padding as needed */
+  margin-right: 10px; /* Add space between buttons */
+  cursor: pointer;
+  font-size: 12px;
+  text-align: center;
+  color: #b0b0b0;
+  position: relative;
+}
+
+.tab-button.active {
+  color: #f26764;
+  font-weight: 600;
+}
+
+.tab-button::after {
+  content: "";
+  display: block;
+  height: 2px;
+  background-color: #eb5a58;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transform: scaleX(0);
+  transform-origin: bottom left;
+  transition: transform 0.3s ease;
+}
+
+.tab-button.active::after {
+  transform: scaleX(1);
 }
 </style>

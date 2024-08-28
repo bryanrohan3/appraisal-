@@ -11,13 +11,17 @@
       <button
         :class="{ active: currentTab === 'private' }"
         @click="currentTab = 'private'"
+        v-if="userRole === 'dealer'"
       >
         Private Comments
       </button>
     </div>
 
     <!-- General Comments Section -->
-    <div v-if="currentTab === 'general'" class="comment-section">
+    <div
+      v-if="currentTab === 'general'"
+      :class="['comment-section', { 'dark-mode': userRole === 'wholesaler' }]"
+    >
       <h3>General Comments</h3>
       <div v-if="(appraisal.general_comments?.length || 0) > 0">
         <div
@@ -77,6 +81,7 @@
 
 <script>
 import { axiosInstance, endpoints } from "@/helpers/axiosHelper";
+import { mapGetters, mapMutations } from "vuex";
 
 export default {
   name: "CommentTab",
@@ -98,6 +103,14 @@ export default {
         username: "Me", // Placeholder, update as needed
       },
     };
+  },
+  computed: {
+    ...mapGetters(["getUserProfile"]),
+    userRole() {
+      const userProfile = this.getUserProfile;
+      console.log(userProfile.role);
+      return userProfile ? userProfile.role : "guest"; // Adjust 'role' according to your user profile structure
+    },
   },
   methods: {
     formatDate(dateString) {
@@ -206,7 +219,7 @@ export default {
 }
 
 .tabs button.active {
-  color: #333;
+  color: #eb5a58;
   font-weight: 600;
   border-bottom: 2px solid #eb5a58;
 }
@@ -286,5 +299,64 @@ export default {
 
 .form-controls button:hover {
   background-color: #0056b3;
+}
+
+/* Dark Mode & Light Mode */
+.comment-section {
+  margin-bottom: 20px;
+  background-color: #f5f5f5; /* Default light background */
+  color: #333; /* Default text color */
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.comment {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  background-color: inherit; /* Inherit from parent */
+}
+
+.private-comment {
+  background-color: #f5f5f5;
+  border-left: 5px solid #eb5a58;
+}
+
+.dark-mode {
+  background-color: #121212; /* Dark background for wholesaler */
+  color: #e0e0e0; /* Light text color */
+}
+
+.dark-mode .comment {
+  border-color: #444;
+  background-color: #333; /* Darker comment background */
+}
+
+.dark-mode .private-comment {
+  border-left-color: #eb5a58; /* Keep border color */
+  background-color: #3a3a3a; /* Darker private comment background */
+}
+
+.dark-mode .comment-header {
+  color: #bbb; /* Light color for comment headers */
+}
+
+.dark-mode .comment-body {
+  color: #ddd; /* Lighter color for comment text */
+}
+
+.no-comments {
+  color: #777; /* Same color for no comments text */
+}
+
+.comment-form textarea {
+  background-color: #fff; /* Light background for textarea */
+  color: #000; /* Dark text for input */
+}
+
+.dark-mode .comment-form textarea {
+  background-color: #444; /* Dark mode background for textarea */
+  color: #fff; /* Light text color */
+  border: 1px solid #666; /* Darker border */
 }
 </style>
