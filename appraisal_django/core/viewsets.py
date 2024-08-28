@@ -677,6 +677,8 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             
             queryset = self.filter_queryset_by_keyword(queryset)
 
+            queryset = queryset.order_by('-start_date')
+
             # Paginate the queryset
             page = self.paginate_queryset(queryset)
             if page is not None:
@@ -1082,13 +1084,28 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
         elif to_date:
             queryset = queryset.filter(start_date__lte=to_date)
 
-        # Aggregate profit/loss by day
+        # Initialize profit/loss tracking
         daily_profit = defaultdict(Decimal)
         total_profit_or_loss = Decimal('0.0')
 
+        # Iterate over each appraisal to calculate profit/loss
         for appraisal in queryset:
-            if appraisal.winner:
-                profit_loss = Decimal(appraisal.winner.amount) - Decimal(appraisal.reserve_price)
+            winner = appraisal.winner
+
+            # Check if winner and necessary fields are present
+            if winner and winner.amount is not None and appraisal.reserve_price is not None:
+                try:
+                    # Calculate profit/loss as Winning Price - Reserve Price
+                    winning_price = Decimal(winner.amount)
+                    reserve_price = Decimal(appraisal.reserve_price)
+                    profit_loss = winning_price - reserve_price
+                except InvalidOperation:
+                    return Response(
+                        {"detail": "Invalid amount or reserve price value."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                # Add the profit/loss to the total and daily calculations
                 total_profit_or_loss += profit_loss
                 day = appraisal.start_date.strftime('%Y-%m-%d')  # Format date as 'YYYY-MM-DD'
                 daily_profit[day] += profit_loss
