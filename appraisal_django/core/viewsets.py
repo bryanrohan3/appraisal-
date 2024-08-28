@@ -23,7 +23,7 @@ from rest_framework.exceptions import NotFound
 from django.utils.dateparse import parse_date
 from collections import Counter
 from collections import defaultdict
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from rest_framework.exceptions import ValidationError
 
 
@@ -1093,15 +1093,21 @@ class AppraisalViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.
             winner = appraisal.winner
 
             # Check if winner and necessary fields are present
-            if winner and winner.amount is not None and appraisal.reserve_price is not None:
+            if winner and appraisal.reserve_price is not None:
                 try:
-                    # Calculate profit/loss as Winning Price - Reserve Price
-                    winning_price = Decimal(winner.amount)
+                    # Use adjusted_amount if it's not None; otherwise, use amount
+                    winning_price = (
+                        Decimal(winner.adjusted_amount)
+                        if winner.adjusted_amount is not None
+                        else Decimal(winner.amount)
+                    )
                     reserve_price = Decimal(appraisal.reserve_price)
+                    
+                    # Calculate profit/loss as Winning Price - Reserve Price
                     profit_loss = winning_price - reserve_price
-                except InvalidOperation:
+                except (InvalidOperation, TypeError):
                     return Response(
-                        {"detail": "Invalid amount or reserve price value."},
+                        {"detail": "Invalid adjusted amount, amount, or reserve price value."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
