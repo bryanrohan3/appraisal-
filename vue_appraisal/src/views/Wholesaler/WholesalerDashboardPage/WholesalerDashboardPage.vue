@@ -117,6 +117,9 @@ export default {
       const options = { year: "numeric", month: "long", day: "numeric" };
       return new Date().toLocaleDateString(undefined, options);
     },
+    goToProfile() {
+      this.$router.push("/wholesaler/profile");
+    },
   },
   data() {
     return {

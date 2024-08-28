@@ -13,9 +13,112 @@
     </div>
 
     <div v-if="appraisal" class="appraisals-container">
-      <div class="appraisals"></div>
+      <div class="appraisals">
+        <div class="photos-section">
+          <div class="photo-placeholder">
+            <p>No photos available</p>
+          </div>
+        </div>
+
+        <div class="description-section">
+          <p class="description">
+            {{ appraisal.vehicle_year }} {{ appraisal.vehicle_make }}
+            {{ appraisal.vehicle_model }}
+          </p>
+        </div>
+
+        <div>
+          <p class="odometer">{{ appraisal.odometer_reading }} mi.</p>
+        </div>
+
+        <div class="vehicle-details-section">
+          <h2 class="headers-more">Basics</h2>
+          <table class="details-table">
+            <tr>
+              <th>Year</th>
+              <td>{{ appraisal.vehicle_year }}</td>
+            </tr>
+            <tr>
+              <th>Make</th>
+              <td>{{ appraisal.vehicle_make }}</td>
+            </tr>
+            <tr>
+              <th>Model</th>
+              <td>{{ appraisal.vehicle_model }}</td>
+            </tr>
+            <tr>
+              <th>Engine Type</th>
+              <td>{{ appraisal.engine_type }}</td>
+            </tr>
+            <tr>
+              <th>Odometer Reading</th>
+              <td>{{ appraisal.odometer_reading }} mi</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="vehicle-details-section">
+          <h2 class="headers-more">More Details</h2>
+          <table class="details-table">
+            <tr>
+              <th>VIN</th>
+              <td>{{ appraisal.vehicle_vin }}</td>
+            </tr>
+            <tr>
+              <th>Vehicle Registration</th>
+              <td>{{ appraisal.vehicle_registration }}</td>
+            </tr>
+            <tr>
+              <th>Colour</th>
+              <td>{{ appraisal.color }}</td>
+            </tr>
+            <tr>
+              <th>Body Type</th>
+              <td>{{ appraisal.body_type }}</td>
+            </tr>
+            <tr>
+              <th>Transmission</th>
+              <td>{{ appraisal.transmission }}</td>
+            </tr>
+            <tr>
+              <th>Fuel Type</th>
+              <td>{{ appraisal.fuel_type }}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="vehicle-details-section">
+          <h2 class="headers-more">Sellers Info</h2>
+          <table class="details-table">
+            <tr>
+              <th>Dealership</th>
+              <td>{{ appraisal.dealership.dealership_name }}</td>
+            </tr>
+            <tr>
+              <th>Initiating Dealer</th>
+              <td>
+                {{ appraisal.initiating_dealer.first_name }}
+                {{ appraisal.initiating_dealer.last_name }}
+              </td>
+            </tr>
+            <tr>
+              <th>Last Updating Dealer</th>
+              <td>
+                {{ appraisal.last_updating_dealer.first_name }}
+                {{ appraisal.last_updating_dealer.last_name }}
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
 
       <div class="stats-container">
+        <div class="status-container">
+          <div :class="getStatusClass(appraisal.status)">
+            {{ appraisal.status }}
+          </div>
+        </div>
+
         <div v-if="appraisal" class="number-plate">
           <div class="registration">{{ formattedRegistration }}</div>
           <div class="dealership">AUSTRALIA - APPRAISAL</div>
@@ -27,13 +130,34 @@
               <span class="reserve-icon">$</span>
               <input
                 type="number"
-                placeholder="Reserve Price"
+                placeholder="Make Offer"
                 class="reserve-input"
+                v-model="offerAmount"
               />
-              <div class="reserve-button">Make Offer</div>
+              <div class="reserve-button" @click="makeOffer">Make Offer</div>
+              <p class="or">or</p>
+              <div class="reserve-button" @click="passOnOffer">Pass</div>
             </div>
           </div>
         </div>
+        <table class="details-table">
+          <tr v-for="offer in appraisal.offers" :key="offer.id">
+            <th>Amount</th>
+            <td>
+              <!-- Display logic based on the conditions -->
+              <span v-if="offer.amount === null && !offer.passed"
+                >No offer made</span
+              >
+              <span v-else-if="offer.amount !== null && !offer.passed">{{
+                offer.amount
+              }}</span>
+              <span v-else-if="offer.passed && offer.amount === null"
+                >Passed</span
+              >
+              <span v-else>N/A</span>
+            </td>
+          </tr>
+        </table>
       </div>
     </div>
 
@@ -51,6 +175,11 @@ export default {
   data() {
     return {
       appraisal: null,
+      offerAmount: null, // To store the offer amount
+      offer: {
+        amount: null,
+        passed: false,
+      },
     };
   },
   computed: {
@@ -61,7 +190,7 @@ export default {
       } else if (reg.length === 7) {
         return `${reg.slice(0, 3)}·${reg.slice(3, 5)} ${reg.slice(5)}`;
       }
-      return reg; // Return unformatted if it does not meet the conditions
+      return reg;
     },
     formattedVehicleDetails() {
       if (this.appraisal) {
@@ -70,10 +199,9 @@ export default {
         const model = this.appraisal.vehicle_model || "";
         return `${year} ${make} ${model}`;
       }
-      return ""; // Return an empty string or some placeholder text if appraisal is null
+      return "";
     },
   },
-
   created() {
     this.fetchAppraisal();
   },
@@ -88,6 +216,43 @@ export default {
         .catch((error) => {
           console.error("Error fetching appraisal details:", error);
         });
+    },
+    makeOffer() {
+      const appraisalId = this.$route.params.id;
+      if (this.offerAmount) {
+        axiosInstance
+          .post(endpoints.makeOffer(appraisalId), { amount: this.offerAmount })
+          .then(() => {
+            alert("Offer made successfully!");
+            this.offerAmount = null; // Clear the input after a successful offer
+          })
+          .catch((error) => {
+            console.error("Error making offer:", error);
+            alert("Failed to make an offer.");
+          });
+      } else {
+        alert("Please enter an offer amount.");
+      }
+    },
+    passOnOffer() {
+      const appraisalId = this.$route.params.id;
+      axiosInstance
+        .post(endpoints.passOnOffer(appraisalId))
+        .then(() => {
+          alert("You have passed on this offer.");
+          this.offerAmount = null; // Clear the input when passing
+        })
+        .catch((error) => {
+          console.error("Error passing on offer:", error);
+          alert("Failed to pass on the offer.");
+        });
+    },
+    getStatusClass(status) {
+      switch (
+        status
+        // add your status logic here
+      ) {
+      }
     },
   },
 };
@@ -137,6 +302,7 @@ export default {
   margin-right: auto;
   max-width: 1200px;
   padding: 20px;
+
   box-sizing: border-box;
 }
 
@@ -213,11 +379,8 @@ export default {
 }
 
 .appraisals {
-  background-color: #2e2e2e;
-  padding: 20px;
   box-sizing: border-box;
   border-radius: 10px;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
   flex: 3; /* Takes more space relative to .stats-container */
   height: 400px;
   min-height: 200px; /* Ensure it has a minimum height */
@@ -287,7 +450,7 @@ export default {
 
 .reserve-icon {
   position: absolute;
-  top: 20%;
+  top: 11%;
   transform: translateY(-50%);
   pointer-events: none; /* Prevents the icon from blocking input interaction */
   color: #ccc; /* Adjust the color as needed */
@@ -332,5 +495,165 @@ export default {
   width: 100%;
 
   margin-bottom: 10px;
+}
+
+/* Mock Photos Section */
+.photos-section {
+  background-color: #3c3c3c;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.photo-placeholder {
+  background-color: #555;
+  height: 350px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #ddd;
+  font-size: 14px;
+}
+
+/* Details Table */
+.details-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  table-layout: fixed;
+}
+
+.details-table th,
+.details-table td {
+  padding: 10px;
+  text-align: left;
+}
+
+.details-table th {
+  border-bottom: #555 1px solid;
+  color: #ccc;
+  font-size: 14px;
+}
+
+.details-table td {
+  color: #ddd;
+  border-bottom: #555 1px solid;
+  font-weight: 200;
+}
+
+.headers {
+  font-size: 28px;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.headers-more {
+  font-size: 28px;
+  margin-bottom: 5px;
+  margin-top: 50px;
+}
+
+.description {
+  font-size: 24px;
+  line-height: 1.5;
+  margin-bottom: 10px;
+  font-weight: 300;
+}
+
+.odometer {
+  font-size: 18px;
+  margin-bottom: 10px;
+  margin-top: 0px;
+  font-weight: 300;
+  color: #ccc;
+}
+
+.status {
+  font-size: 13px;
+  margin-top: 0px;
+  font-weight: 300;
+  color: #ccc;
+  font-weight: 600;
+  padding: 10px;
+  background-color: #2e2e2e;
+  border-radius: 25px;
+  text-align: center;
+}
+
+/* Specific color classes for status */
+.status-pending-sales {
+  background-color: #efd4b3; /* Orange for Pending - Sales */
+  color: #ff8f06;
+  font-weight: 600;
+
+  font-size: 13px;
+  margin-top: 0px;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 25px;
+  text-align: center;
+}
+
+.status-pending-management {
+  background-color: #9dc6f0; /* Dodger Blue for Pending - Management */
+  color: #3059d3;
+  font-weight: 600;
+
+  font-size: 13px;
+  margin-top: 0px;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 25px;
+  text-align: center;
+}
+
+.status-active {
+  background-color: #e0f2e5; /* Green for Active */
+  color: #65bd70;
+  font-weight: 600;
+
+  font-size: 13px;
+  margin-top: 0px;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 25px;
+  text-align: center;
+}
+
+.status-complete {
+  background-color: #f6c6c6; /* Red for Complete */
+  color: #eb5a58;
+  font-weight: 600;
+
+  font-size: 13px;
+  margin-top: 0px;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 25px;
+  text-align: center;
+}
+
+.status-trashed {
+  background-color: #b2b2b2; /* Grey for Trashed */
+  color: #fff;
+  font-weight: 600;
+
+  font-size: 13px;
+  margin-top: 0px;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 25px;
+  text-align: center;
+}
+
+.or {
+  font-size: 13px;
+  margin-top: 0px;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 25px;
+  text-align: center;
+  padding: 0%;
+  color: #ccc;
 }
 </style>

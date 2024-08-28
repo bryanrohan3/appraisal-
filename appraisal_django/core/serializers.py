@@ -5,6 +5,7 @@ from .models import *
 from datetime import timezone, datetime
 from django.db import transaction
 from django.db.models import Q
+from rest_framework.exceptions import PermissionDenied
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -454,10 +455,29 @@ class AppraisalSerializer(serializers.ModelSerializer):
             return obj.get_wholesaler_status(user.wholesalerprofile)
         return "Not authorized"
     
+    # def get_offers(self, obj):
+    #     offers = obj.offers.filter(
+    #         Q(amount__isnull=False) | Q(passed=True)
+    #     )
+    #     return OfferSerializer(offers, many=True).data
+
     def get_offers(self, obj):
-        offers = obj.offers.filter(
-            Q(amount__isnull=False) | Q(passed=True)
-        )
+        request = self.context.get('request')
+        user = request.user
+        
+        # Check if the user is a wholesaler and filter offers accordingly
+        if hasattr(user, 'wholesalerprofile'):
+            # Show only the offers made by the wholesaler
+            offers = obj.offers.filter(user=user.wholesalerprofile)
+        elif hasattr(user, 'dealerprofile'):
+            # Show all offers for dealers
+            offers = obj.offers.filter(
+                Q(amount__isnull=False) | Q(passed=True)
+            )
+        else:
+            # If the user is neither a wholesaler nor a dealer, deny access
+            raise PermissionDenied("You are not authorized to view offers.")
+
         return OfferSerializer(offers, many=True).data
     
     def get_invites(self, obj):
@@ -482,7 +502,6 @@ class AppraisalSerializer(serializers.ModelSerializer):
             representation.pop('invites', None)
 
         if hasattr(user, 'wholesalerprofile'):
-            representation.pop('offers', None)
             representation.pop('invites', None)
             representation.pop('private_comments', None)
             representation.pop('reserve_price', None)
