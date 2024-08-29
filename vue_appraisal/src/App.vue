@@ -25,5 +25,8 @@ body {
   background-color: #121212; /* Wholesaler background color */
   color: white; /* Ensure text is readable */
   min-height: 100vh; /* Ensure it takes the full viewport height */
+  overflow: scroll;
+  overflow-x: hidden;
+  scrollbar-color: gray #121212;
 }
 </style>
