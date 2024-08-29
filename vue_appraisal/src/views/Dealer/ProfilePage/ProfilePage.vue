@@ -56,7 +56,7 @@
           </div>
           <div class="form-row" v-if="profile.dealership_names">
             <label for="dealerships">Dealerships</label>
-            <table class="appraisals-table">
+            <table class="table table-dealer">
               <tbody>
                 <tr
                   v-for="(dealership, index) in profile.dealership_names"
@@ -225,6 +225,8 @@ export default {
 </script>
 
 <style scoped>
+@import "@/assets/utils/table.scss";
+
 .dashboard-container {
   margin: 0 auto;
   max-width: 1200px;
@@ -317,37 +319,6 @@ input[type="email"]:focus,
 select:focus {
   border-color: #eb5a58;
   outline: none;
-}
-
-/* Table Styling */
-.appraisals-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 10px 0;
-}
-
-.appraisals-table th,
-.appraisals-table td {
-  text-align: left;
-  padding: 8px;
-  font-size: 14px;
-}
-
-.appraisals-table th {
-  font-weight: 600;
-  background-color: #aaa;
-  color: #fff;
-}
-
-.appraisals-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-.appraisals-table-header {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  font-size: 14px;
-  color: #fff;
 }
 
 .button-text {

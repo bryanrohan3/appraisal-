@@ -65,8 +65,8 @@
           />
         </div>
         <div v-if="searchResults.length" class="search-results">
-          <table class="data-table">
-            <thead>
+          <table class="table table-dealer">
+            <thead class="table-header">
               <tr>
                 <th>Name</th>
                 <th>Action</th>
@@ -107,8 +107,8 @@
 
       <!-- Friends Tab -->
       <div v-if="activeTab === 'Friends'" class="content-container">
-        <table v-if="friends.length" class="data-table">
-          <thead>
+        <table v-if="friends.length" class="table table-dealer">
+          <thead class="table-header">
             <tr>
               <th>Sender</th>
               <th>Action</th>
@@ -153,8 +153,8 @@
 
       <!-- Requests Tab -->
       <div v-if="activeTab === 'Requests'" class="content-container">
-        <table v-if="pendingRequests.length" class="data-table">
-          <thead>
+        <table v-if="pendingRequests.length" class="table table-dealer">
+          <thead class="table-header">
             <tr>
               <th>Sender</th>
               <th>Action</th>
@@ -194,8 +194,8 @@
         v-if="activeTab === 'RejectedRequests'"
         class="tab-pane content-container"
       >
-        <table v-if="rejectedRequests.length" class="data-table">
-          <thead>
+        <table v-if="rejectedRequests.length" class="table table-dealer">
+          <thead class="table-header">
             <tr>
               <th>Sender</th>
               <th>Action</th>
@@ -204,7 +204,7 @@
           <tbody>
             <tr v-for="request in rejectedRequests" :key="request.id">
               <td>{{ request.sender }}</td>
-              <td>
+              <td class="table-action">
                 <button
                   class="action-button accept"
                   @click="respondToRequest(request.id, 'accepted')"
@@ -519,32 +519,6 @@ export default {
   border-radius: 4px;
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.data-table thead {
-  background-color: #f4f4f4;
-}
-
-.data-table th,
-.data-table td {
-  padding: 12px;
-  text-align: left;
-  font-size: 12px;
-}
-
-.data-table th {
-  font-weight: bold;
-}
-
-.data-table tbody tr:hover {
-  background-color: #f1f1f1;
-}
-
 .action-button {
   padding: 6px 10px;
   border: none;
@@ -600,36 +574,7 @@ export default {
   color: #333;
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-
-.data-table th,
-.data-table td {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  text-align: left;
-  color: #666;
-}
-
-.data-table th {
-  background-color: #f2f2f2;
-}
-
-.data-table tr:last-child td {
-  border-bottom: none;
-}
-
-.data-table tr:hover {
-  background-color: #f1f1f1;
-}
-
 /* Specific styles for wholesalers and dealerships */
-.wholesaler td {
-  background-color: #e0f7fa; /* Light blue background for wholesalers */
-}
 
 .dealership td {
   background-color: #c8e6c9; /* Light green background for dealerships */
