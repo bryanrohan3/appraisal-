@@ -70,9 +70,9 @@
     <div class="appraisals-container">
       <div class="appraisals">
         <p class="recent-appraisals">Recent Appraisals</p>
-        <table class="appraisals-table">
+        <table class="table table-dealer">
           <thead>
-            <tr class="appraisals-table-header">
+            <tr class="table-header">
               <th>Client Name</th>
               <th>Car Make</th>
               <th>Car Model</th>
@@ -370,41 +370,6 @@ button {
     Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   font-weight: 600;
   padding-left: 10px;
-}
-
-/* Table Styling */
-.appraisals-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 10px auto;
-}
-
-.appraisals-table th,
-.appraisals-table td {
-  text-align: left;
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
-.appraisals-table tr {
-  margin: 0;
-}
-
-.appraisals-table th {
-  font-weight: 400;
-
-  padding-bottom: 5px;
-}
-
-.appraisals-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-.appraisals-table-header {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  font-size: 12px;
-  color: #7d7b7b;
 }
 
 /* Status color styling */
