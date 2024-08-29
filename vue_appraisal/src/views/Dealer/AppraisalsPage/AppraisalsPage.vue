@@ -203,9 +203,9 @@
             </div>
           </div>
           <!-- Table -->
-          <table :class="tableClass" v-if="this.userRole === 'dealer'">
+          <table class="table table-dealer" v-if="this.userRole === 'dealer'">
             <thead>
-              <tr class="appraisals-table-header">
+              <tr class="table-header">
                 <th>ID</th>
                 <th>Client Name</th>
                 <th>Car Make</th>
@@ -245,19 +245,21 @@
                   {{ appraisal.initiating_dealer.last_name }}
                 </td>
                 <td>
-                  <!-- display winner and if null display null -->
-                  <span v-if="appraisal.winner">
-                    {{ appraisal.winner.username }}
-                  </span>
+                  <span v-if="appraisal.winner">{{
+                    appraisal.winner.username
+                  }}</span>
                   <span v-else>null</span>
                 </td>
               </tr>
             </tbody>
           </table>
 
-          <table :class="tableClass" v-else="this.userRole === 'wholesaler'">
+          <table
+            class="table table-wholesaler"
+            v-if="this.userRole === 'wholesaler'"
+          >
             <thead>
-              <tr class="appraisals-table-header">
+              <tr class="table-header">
                 <th>ID</th>
                 <th>Initiating Dealer</th>
                 <th>Dealership</th>
@@ -589,6 +591,8 @@ export default {
 </script>
 
 <style scoped>
+@import "@/assets/utils/table.scss";
+
 .dashboard-container {
   margin-left: auto;
   margin-right: auto;
@@ -658,46 +662,6 @@ export default {
     Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   font-weight: 600;
   padding-left: 10px;
-}
-
-/* Table Styling */
-.appraisals-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 10px auto;
-}
-
-.appraisals-table th,
-.appraisals-table td {
-  text-align: left;
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
-.appraisals-table tr {
-  margin: 0;
-}
-
-.appraisals-table th {
-  font-weight: 400;
-
-  padding-bottom: 5px;
-}
-
-.appraisals-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-.appraisals-table tr:hover {
-  background-color: #f1f1f1;
-  cursor: pointer;
-}
-
-.appraisals-table-header {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  font-size: 12px;
-  color: #7d7b7b;
 }
 
 /* Status color styling */
@@ -1059,87 +1023,6 @@ export default {
 }
 
 /* Add other styles as needed */
-
-/* Light Mode (Dealer) */
-.appraisals-table-dealer {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 10px auto;
-}
-
-.appraisals-table-dealer th,
-.appraisals-table-dealer td {
-  text-align: left;
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
-.appraisals-table-dealer tr {
-  margin: 0;
-}
-
-.appraisals-table-dealer th {
-  font-weight: 400;
-  padding-bottom: 5px;
-}
-
-.appraisals-table-dealer tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-.appraisals-table-dealer tr:hover {
-  background-color: #f1f1f1;
-  cursor: pointer;
-}
-
-.appraisals-table-header {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  font-size: 12px;
-  color: #7d7b7b;
-}
-
-/* Dark Mode (Wholesaler) */
-.appraisals-table-wholesaler {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 10px auto;
-  background-color: #2e2e2e; /* Dark background for the table */
-}
-
-.appraisals-table-wholesaler th,
-.appraisals-table-wholesaler td {
-  text-align: left;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: #e0e0e0; /* Light text color for dark mode */
-}
-
-.appraisals-table-wholesaler tr {
-  margin: 0;
-}
-
-.appraisals-table-wholesaler th {
-  font-weight: 400;
-  padding-bottom: 5px;
-  background-color: #1c1c1c; /* Darker background for headers */
-}
-
-.appraisals-table-wholesaler tr:nth-child(even) {
-  background-color: #3c3c3c; /* Slightly lighter dark background for even rows */
-}
-
-.appraisals-table-wholesaler tr:hover {
-  background-color: #4c4c4c; /* Highlight color for rows on hover */
-  cursor: pointer;
-}
-
-.appraisals-table-header {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  font-size: 12px;
-  color: #c0c0c0; /* Light color for dark mode */
-}
 
 /* Search Bar */
 .search-bar-dealer input {

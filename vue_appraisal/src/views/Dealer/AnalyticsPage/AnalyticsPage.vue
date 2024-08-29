@@ -149,9 +149,9 @@
               v-if="currentTab === 'mostCommonCars'"
               class="most-common-cars-tab"
             >
-              <table class="cars-table">
+              <table class="table table-dealer">
                 <thead>
-                  <tr class="cars-table-header">
+                  <tr class="table-header">
                     <th>Make</th>
                     <th>Model</th>
                     <th>Count</th>
@@ -213,9 +213,9 @@
             </div>
 
             <div v-if="currentTab === 'topWholesalers'">
-              <table class="cars-table">
+              <table class="table table-dealer">
                 <thead>
-                  <tr class="cars-table-header">
+                  <tr class="table-header">
                     <th>Wholesaler Name</th>
                     <th>Username</th>
                     <th>Count</th>
@@ -725,6 +725,8 @@ export default {
 </script>
 
 <style scoped>
+@import "@/assets/utils/table.scss";
+
 .tabs-container {
   margin-bottom: 20px;
 }
@@ -1139,45 +1141,6 @@ export default {
 /* card styling */
 .most-common-cars-container {
   margin: 20px;
-}
-
-/* Cars Table Styling */
-.cars-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 10px auto;
-}
-
-.cars-table th,
-.cars-table td {
-  text-align: left;
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
-.cars-table tr {
-  margin: 0;
-}
-
-.cars-table th {
-  font-weight: 400;
-  padding-bottom: 5px;
-}
-
-.cars-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-.cars-table tr:hover {
-  background-color: #f1f1f1;
-  cursor: pointer;
-}
-
-.cars-table-header {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  font-size: 12px;
-  color: #7d7b7b;
 }
 
 /* Pagination Controls */
