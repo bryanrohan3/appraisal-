@@ -45,7 +45,7 @@
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 8px 16px;
-  height: 32.5px; /* Specific height adjustment */
+  height: 30px; /* Specific height adjustment */
 }
 
 .button--tertiary:hover {
@@ -70,4 +70,50 @@
 /* Button Group */
 .button-group {
   display: flex;
+}
+
+/* Tooltip Styles */
+.tooltip {
+  visibility: hidden;
+  width: 400px; /* Adjust width as needed */
+  background-color: #333; /* Tooltip background color */
+  color: #fff;
+  text-align: center;
+  border-radius: 5px;
+  padding: 5px 10px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%; /* Position above the icon */
+  left: 50%;
+  margin-left: -100px; /* Center the tooltip */
+  opacity: 0;
+  font-size: 11px;
+  transition: opacity 0.3s;
+}
+
+/* Tooltip Visibility on Hover */
+.info-icon:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Tooltip Icon */
+.info-icon {
+  display: inline-block;
+  position: relative;
+  margin-left: 5px; /* Adjust this value to move the icon closer */
+}
+
+.info-icon-circle {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-color: #a2a2a2; /* Circle color */
+  color: white;
+  text-align: center;
+  line-height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
 }

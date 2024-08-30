@@ -32,7 +32,7 @@
         <div class="profile-container">
           <p class="name">{{ userName }}</p>
           <p class="email">{{ userEmail }}</p>
-          <button class="edit-profile-button" @click="goToProfile">
+          <button class="button button--secondary" @click="goToProfile">
             Edit Profile
           </button>
         </div>
@@ -78,9 +78,6 @@
         </table>
       </div>
     </div>
-
-    <p>Welcome, {{ userName }}!</p>
-    <button @click="handleLogout">Logout</button>
   </div>
 </template>
 
@@ -205,22 +202,6 @@ export default {
 .car-icon {
   width: 20px;
   height: 20px;
-}
-
-button {
-  margin-top: 10px;
-  padding: 8px 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  font-weight: 400;
-  font-size: 12px;
-  border: none;
-  border-radius: 5px;
-  background-color: #f26764;
-  border: 1px solid #eee;
-  width: 60%;
-  color: #eee;
-  cursor: pointer;
 }
 
 .title {
