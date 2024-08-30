@@ -74,24 +74,28 @@
         <div class="tabs-container">
           <div class="tabs">
             <button
+              class="tab-button"
               :class="{ active: currentTab === 'status' }"
               @click="currentTab = 'status'"
             >
               Status
             </button>
             <button
+              class="tab-button"
               :class="{ active: currentTab === 'mostCommonCars' }"
               @click="currentTab = 'mostCommonCars'"
             >
               Most Common Cars
             </button>
             <button
+              class="tab-button"
               :class="{ active: currentTab === 'topWholesalers' }"
               @click="currentTab = 'topWholesalers'"
             >
               Top Wholesalers
             </button>
             <button
+              class="tab-button"
               :class="{ active: currentTab === 'profit' }"
               @click="currentTab = 'profit'"
             >
@@ -726,38 +730,6 @@ export default {
 
 <style scoped>
 @import "@/assets/utils/table.scss";
-
-.tabs-container {
-  margin-bottom: 20px;
-}
-
-.tabs {
-  display: flex;
-  margin-left: 20px;
-}
-
-.tabs button {
-  background-color: transparent;
-  border: none;
-  padding: 10px 20px; /* Adjust padding as needed */
-  margin-right: 10px; /* Add space between buttons */
-  cursor: pointer;
-  font-size: 12px;
-  text-align: center;
-  color: #b0b0b0;
-  position: relative;
-}
-
-.tabs button.active {
-  border-bottom: 2px solid #eb5a58;
-  color: #333;
-  font-weight: 600;
-}
-
-.tab-content {
-  padding: 20px;
-  padding-top: 0px;
-}
 
 /* Pie Chart */
 .pie-chart-container {

@@ -139,7 +139,7 @@
 
               <td>
                 <button
-                  class="action-button remove"
+                  class="button button--tertiary"
                   @click="respondToRequest(request.id, 'rejected')"
                 >
                   Remove
@@ -169,15 +169,15 @@
               :key="request.id"
             >
               <td>{{ request.sender }}</td>
-              <td>
+              <td class="button-group">
                 <button
-                  class="action-button accept"
+                  class="button button--tertiary"
                   @click="respondToRequest(request.id, 'accepted')"
                 >
                   Accept
                 </button>
                 <button
-                  class="action-button reject"
+                  class="button button--tertiary margin-left-5"
                   @click="respondToRequest(request.id, 'rejected')"
                 >
                   Reject
@@ -206,7 +206,7 @@
               <td>{{ request.sender }}</td>
               <td class="table-action">
                 <button
-                  class="action-button accept"
+                  class="button button--tertiary"
                   @click="respondToRequest(request.id, 'accepted')"
                 >
                   Accept
@@ -459,52 +459,6 @@ export default {
   border-radius: 4px;
   background-color: #fff;
   color: #333;
-}
-
-.tabs {
-  display: flex;
-  margin-bottom: 20px;
-  justify-content: flex-start;
-}
-
-.tab-button {
-  background-color: transparent;
-  border: none;
-  padding: 12px 24px;
-  margin-right: 10px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #b0b0b0;
-  position: relative;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
-}
-
-.tab-button:hover {
-  background-color: #f0f0f0;
-}
-
-.tab-button.active {
-  color: #eb5a58;
-  font-weight: 600;
-}
-
-.tab-button::after {
-  content: "";
-  display: block;
-  height: 2px;
-  background-color: #eb5a58;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  transform: scaleX(0);
-  transform-origin: bottom left;
-  transition: transform 0.3s ease;
-}
-
-.tab-button.active::after {
-  transform: scaleX(1);
 }
 
 .tab-content {

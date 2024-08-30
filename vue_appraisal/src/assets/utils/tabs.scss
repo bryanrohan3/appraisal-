@@ -1,0 +1,53 @@
+/* Tabs */
+.tabs {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+/* Tab Buttons Container */
+.tab-buttons {
+  display: flex;
+  justify-content: flex-start; /* Align tabs to the left */
+  gap: 10px; /* Add space between buttons */
+  border-bottom: 1px solid #ddd; /* Divider below tabs */
+  padding-bottom: 5px; /* Padding below tabs */
+}
+
+/* Tab Button Styles */
+.tab-button {
+  background-color: transparent;
+  border: none;
+  padding: 10px 20px; /* Adjust padding as needed */
+  cursor: pointer;
+  font-size: 12px; /* Adjust font size */
+  color: #b0b0b0;
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.tab-button:hover {
+  color: #eb5a58; /* Hover color */
+}
+
+.tab-button.active {
+  color: #eb5a58; /* Active tab color */
+  font-weight: 600; /* Active tab font weight */
+}
+
+.tab-button::after {
+  content: "";
+  display: block;
+  height: 2px;
+  background-color: #eb5a58;
+  position: absolute;
+  bottom: -5px; /* Slightly below tab */
+  left: 0;
+  right: 0;
+  transform: scaleX(0); /* Start hidden */
+  transform-origin: bottom left;
+  transition: transform 0.3s ease;
+}
+
+.tab-button.active::after {
+  transform: scaleX(1); /* Slide in from left */
+}

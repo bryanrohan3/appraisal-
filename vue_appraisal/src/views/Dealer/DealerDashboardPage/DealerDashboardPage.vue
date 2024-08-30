@@ -2,7 +2,7 @@
   <div class="dashboard-container">
     <div class="title-container">
       <h1 class="title">Dealer Dashboard Overview</h1>
-      <div class="notification-button">
+      <div class="button button--small">
         <img src="@/assets/bell.svg" alt="Car Icon" class="car-icon" />
       </div>
     </div>
@@ -60,7 +60,7 @@
           <div class="profile-picture"></div>
           <p class="name">{{ userName }}</p>
           <p class="email">{{ userEmail }}</p>
-          <button class="edit-profile-button" @click="goToProfile">
+          <button class="button button--secondary" @click="goToProfile">
             Edit Profile
           </button>
         </div>
@@ -123,9 +123,6 @@
         </div>
       </div>
     </div>
-
-    <p>Welcome, {{ userName }}!</p>
-    <button @click="handleLogout">Logout</button>
   </div>
 </template>
 
@@ -243,6 +240,8 @@ export default {
 </script>
 
 <style scoped>
+@import "@/assets/utils/buttons.scss";
+
 .dashboard-container {
   margin-left: auto;
   margin-right: auto;
@@ -273,21 +272,6 @@ export default {
 .car-icon {
   width: 20px;
   height: 20px;
-}
-
-button {
-  padding: 8px 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  font-weight: 400;
-  font-size: 12px;
-  border: none;
-  border-radius: 5px;
-  background-color: #ffffff;
-  border: 1px solid #000000;
-  width: 60%;
-  color: #000000;
-  cursor: pointer;
 }
 
 .title {

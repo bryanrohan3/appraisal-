@@ -1,0 +1,73 @@
+/* Common Button Styles */
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px; /* Adjust padding for all buttons */
+  font-size: 12px; /* Adjust font size */
+  font-weight: 400;
+  text-align: center;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Primary Button */
+.button--primary {
+  background-color: #f26764;
+  color: #ffffff; /* Text color */
+  border: 4px solid white;
+  border-radius: 50px;
+}
+
+.button--primary:hover {
+  background-color: #e15454;
+}
+
+/* Secondary Button */
+.button--secondary {
+  background-color: #ffffff;
+  color: #000000;
+  border: 1px solid #000000;
+  border-radius: 5px;
+  width: 60%;
+}
+
+.button--secondary:hover {
+  background-color: #f0f0f0;
+}
+
+/* Tertiary Button */
+.button--tertiary {
+  background-color: #fff;
+  color: #000000;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px 16px;
+  height: 32.5px; /* Specific height adjustment */
+}
+
+.button--tertiary:hover {
+  background-color: #e0e0e0;
+}
+/* Small Button */
+.button--small {
+  width: 40px; /* Adjust width to fit text */
+  height: 40px;
+  background-color: #f26764; /* Primary color */
+  color: #ffffff; /* Text color */
+  border: 4px solid white;
+  border-radius: 50%; /* Fully rounded */
+  margin-right: 20px; /* Margin adjustment */
+  padding: 0; /* Remove extra padding */
+}
+
+.button--small:hover {
+  background-color: #e15454; /* Slight hover effect */
+}
+
+/* Button Group */
+.button-group {
+  display: flex;
+}

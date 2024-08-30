@@ -35,7 +35,9 @@
           />
         </div>
 
-        <button @click="applyDateFilter" class="search-button">Apply</button>
+        <button @click="applyDateFilter" class="button button--tertiary">
+          Apply
+        </button>
       </div>
     </div>
 
@@ -183,8 +185,11 @@
                 @input="debouncedSearch"
               />
             </div>
-            <div class="action-buttons">
-              <button @click="exportData" class="export-button">
+            <div class="button-group">
+              <button
+                @click="exportData"
+                class="button button--tertiary margin-left-5"
+              >
                 <img
                   src="@/assets/download.svg"
                   alt="Download Icon"
@@ -192,7 +197,10 @@
                 />
                 Export CSV
               </button>
-              <button @click="openFilter" class="filter-button">
+              <button
+                @click="openFilter"
+                class="button button--tertiary margin-left-5"
+              >
                 <img
                   src="@/assets/filter-list.svg"
                   alt="Car Icon"
@@ -592,6 +600,7 @@ export default {
 
 <style scoped>
 @import "@/assets/utils/table.scss";
+@import "@/assets/utils/tabs.scss";
 
 .dashboard-container {
   margin-left: auto;
@@ -745,40 +754,6 @@ export default {
   flex: 1;
 }
 
-.action-buttons {
-  display: flex;
-}
-
-.export-button,
-.filter-button {
-  display: flex;
-  padding: 8px 16px;
-  margin-left: 10px;
-  font-size: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: #fff;
-  cursor: pointer;
-  height: 32.5px;
-}
-
-.export-button:hover,
-.filter-button:hover {
-  background-color: #e0e0e0;
-}
-
-.button-icon {
-  width: 16px; /* Adjust size as needed */
-  height: 16px; /* Adjust size as needed */
-  margin-right: 8px; /* Space between icon and text */
-  vertical-align: middle;
-}
-
-.export-button:hover,
-.filter-button:hover {
-  background-color: #e0e0e0;
-}
-
 /* Tooltip */
 .info-icon {
   display: inline-block;
@@ -844,51 +819,6 @@ export default {
   margin-left: 0; /* Remove the centering margin */
   opacity: 0;
   transition: opacity 0.3s;
-}
-
-/* Tabs */
-.tabs {
-  display: flex;
-  margin-bottom: 20px;
-  position: relative;
-  padding-left: 0;
-  padding-right: 0;
-  justify-content: flex-start; /* Align tabs to the left */
-}
-
-.tab-button {
-  background-color: transparent;
-  border: none;
-  padding: 10px 20px; /* Adjust padding as needed */
-  margin-right: 10px; /* Add space between buttons */
-  cursor: pointer;
-  font-size: 12px;
-  text-align: center;
-  color: #b0b0b0;
-  position: relative;
-}
-
-.tab-button.active {
-  color: #eb5a58;
-  font-weight: 600;
-}
-
-.tab-button::after {
-  content: "";
-  display: block;
-  height: 2px;
-  background-color: #eb5a58;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  transform: scaleX(0);
-  transform-origin: bottom left;
-  transition: transform 0.3s ease;
-}
-
-.tab-button.active::after {
-  transform: scaleX(1);
 }
 
 /* Pagination Controls */
@@ -965,21 +895,6 @@ export default {
 .date-input:focus {
   border-color: #007bff;
   outline: none;
-}
-
-.search-button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  background-color: #eb5a58;
-  color: #fff;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.search-button:hover {
-  background-color: #a43b39;
 }
 
 /* Define styles for wholesalers */

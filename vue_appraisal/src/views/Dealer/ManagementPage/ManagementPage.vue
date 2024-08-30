@@ -130,7 +130,9 @@
             </div>
           </div>
 
-          <button type="submit">Create User</button>
+          <button class="button button--tertiary" type="submit">
+            Create User
+          </button>
         </form>
       </div>
 
@@ -399,6 +401,8 @@ export default {
 </script>
 
 <style scoped>
+@import "@/assets/utils/buttons.scss";
+
 .dashboard-container {
   margin-left: auto;
   margin-right: auto;
@@ -418,53 +422,6 @@ export default {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   font-weight: 600;
-}
-
-/* Tab styles */
-.tabs {
-  display: flex;
-  margin-bottom: 20px;
-  justify-content: flex-start;
-}
-
-.tab-button {
-  background-color: transparent;
-  border: none;
-  padding: 12px 24px;
-  margin-right: 10px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #b0b0b0;
-  position: relative;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
-}
-
-.tab-button:hover {
-  background-color: #f0f0f0;
-}
-
-.tab-button.active {
-  color: #333;
-  font-weight: 600;
-}
-
-.tab-button::after {
-  content: "";
-  display: block;
-  height: 2px;
-  background-color: #eb5a58;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  transform: scaleX(0);
-  transform-origin: bottom left;
-  transition: transform 0.3s ease;
-}
-
-.tab-button.active::after {
-  transform: scaleX(1);
 }
 
 .tab-content {
@@ -501,21 +458,6 @@ input[type="email"]:focus,
 select:focus {
   border-color: #eb5a58;
   outline: none;
-}
-
-button[type="submit"] {
-  padding: 10px 20px;
-  background-color: #eb5a58;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.3s ease;
-}
-
-button[type="submit"]:hover {
-  background-color: #d14c4a;
 }
 
 label {

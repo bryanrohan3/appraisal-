@@ -52,8 +52,8 @@
               />
               <span class="checkbox-label">Ready for Management</span>
             </label>
-            <div class="notification-button" @click="submitForm">
-              <span class="button-text">Create Appraisal</span>
+            <div class="button button--primary" @click="submitForm">
+              <span>Create Appraisal</span>
             </div>
           </div>
         </div>
@@ -62,10 +62,10 @@
           <h1 class="title">View Appraisal Form</h1>
           <div class="checkbox-and-button">
             <!-- <button @click="duplicateAppraisal">Duplicate</button> -->
-            <div class="duplicate-button" @click="duplicateAppraisal">
-              <!-- <span class="button-text">Duplicate</span> -->
+            <div class="button button--small" @click="duplicateAppraisal">
               <img src="@/assets/duplicate.svg" alt="Duplicate" />
             </div>
+
             <label class="checkbox-container">
               <input
                 type="checkbox"
@@ -82,8 +82,8 @@
               />
               <span class="checkbox-label">Ready for Management</span>
             </label>
-            <div class="notification-button" @click="updateAppraisal">
-              <span class="button-text">Save Appraisal</span>
+            <div class="button button--primary" @click="updateAppraisal">
+              <span>Save Appraisal</span>
             </div>
           </div>
         </div>
@@ -296,7 +296,7 @@
           <template #vehicle-damages>
             <div class="damages-header">
               <p class="headers">Vehicle Damages</p>
-              <button @click="addDamage" class="add-damage-button">
+              <button @click="addDamage" class="button button--small">
                 <img src="@/assets/add.svg" alt="Car Icon" class="car-icon" />
               </button>
             </div>
@@ -325,7 +325,10 @@
                 placeholder="Cost"
                 class="input"
               />
-              <button @click="removeDamage(index)" class="remove-damage-button">
+              <button
+                @click="removeDamage(index)"
+                class="button button--primary"
+              >
                 Remove
               </button>
             </div>
@@ -691,6 +694,8 @@ export default {
 </script>
 
 <style scoped>
+@import "@/assets/utils/buttons.scss";
+
 .dashboard-container {
   margin-left: auto;
   margin-right: auto;
@@ -723,45 +728,6 @@ export default {
 .checkbox-label {
   font-size: 14px; /* Adjust font size as needed */
   font-weight: 400;
-}
-
-.notification-button {
-  width: 150px; /* Adjust width to fit text */
-  height: 40px;
-  border-radius: 20px; /* Rounded corners for button */
-  background-color: #f26764;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px; /* Adjust font size */
-  font-weight: 600;
-  color: #ffffff; /* Text color */
-  text-align: center;
-  border: 4px solid white;
-  border-radius: 50px;
-}
-
-.duplicate-button {
-  width: 40px; /* Adjust width to fit text */
-  height: 40px;
-  border-radius: 20px; /* Rounded corners for button */
-  background-color: #f26764;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px; /* Adjust font size */
-  font-weight: 600;
-  color: #ffffff; /* Text color */
-  text-align: center;
-  border: 4px solid white;
-  border-radius: 50px;
-  margin-right: 20px;
-}
-
-.button-text {
-  padding: 0 10px; /* Adjust padding as needed */
 }
 
 .title {
@@ -952,24 +918,6 @@ select {
   font-size: 14px;
 }
 
-.add-damage-button {
-  width: 30px; /* Size of the button */
-  height: 30px; /* Size of the button */
-  border-radius: 50%; /* Makes the button circular */
-  background-color: #f26764; /* Button background color */
-  border: none; /* Remove default border */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  margin-right: 10px;
-}
-
-.add-damage-button img {
-  width: 20px; /* Size of the icon */
-  height: 20px; /* Size of the icon */
-}
-
 .info-text {
   margin: 10px 0;
   font-size: 14px;
@@ -985,22 +933,6 @@ select {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px; /* Adjust as needed */
-}
-
-.remove-damage-button {
-  background-color: #f26764; /* Button background color */
-  border: none; /* Remove default border */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 10px;
-  margin-right: 10px;
-  border-radius: 10px;
-  margin-left: 10px;
-  color: #ffffff;
-  margin-bottom: 10px;
-  font-weight: 500;
 }
 
 .small-header {
@@ -1081,50 +1013,5 @@ input.reserve-input {
   font-size: 10px;
   color: #7d7b7b;
   margin-top: 30px;
-}
-
-/* Tabs */
-.tabs {
-  display: flex;
-  margin-bottom: 20px;
-  position: relative;
-  padding-left: 0;
-  padding-right: 0;
-  justify-content: flex-start; /* Align tabs to the left */
-}
-
-.tab-button {
-  background-color: transparent;
-  border: none;
-  padding: 10px 20px; /* Adjust padding as needed */
-  margin-right: 10px; /* Add space between buttons */
-  cursor: pointer;
-  font-size: 12px;
-  text-align: center;
-  color: #b0b0b0;
-  position: relative;
-}
-
-.tab-button.active {
-  color: #333;
-  font-weight: 600;
-}
-
-.tab-button::after {
-  content: "";
-  display: block;
-  height: 2px;
-  background-color: #eb5a58;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  transform: scaleX(0);
-  transform-origin: bottom left;
-  transition: transform 0.3s ease;
-}
-
-.tab-button.active::after {
-  transform: scaleX(1);
 }
 </style>

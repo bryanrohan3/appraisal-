@@ -2,8 +2,8 @@
   <div class="dashboard-container">
     <div class="title-container">
       <h1 class="title">Profile Page</h1>
-      <div class="notification-button" @click="saveProfile">
-        <span class="button-text">Save</span>
+      <div class="button button--primary" @click="saveProfile">
+        <span>Save Profile</span>
       </div>
     </div>
 
@@ -87,7 +87,10 @@
           After making a deletion request, you will have
           <strong>6 months</strong> to maintain this account.
         </p>
-        <button class="delete-account-button" @click="confirmDeleteAccount">
+        <button
+          class="button button--tertiary margin-top-10"
+          @click="confirmDeleteAccount"
+        >
           Delete My Account
         </button>
       </div>
@@ -226,6 +229,7 @@ export default {
 
 <style scoped>
 @import "@/assets/utils/table.scss";
+@import "@/assets/utils/margins.scss";
 
 .dashboard-container {
   margin: 0 auto;
@@ -321,27 +325,6 @@ select:focus {
   outline: none;
 }
 
-.button-text {
-  padding: 0 10px; /* Adjust padding as needed */
-}
-
-.notification-button {
-  width: 150px; /* Adjust width to fit text */
-  height: 40px;
-  border-radius: 20px; /* Rounded corners for button */
-  background-color: #eb5a58;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px; /* Adjust font size */
-  font-weight: 600;
-  color: #ffffff; /* Text color */
-  text-align: center;
-  border: 4px solid white;
-  border-radius: 50px;
-}
-
 .car {
   width: 20px; /* Keep the car size */
   margin-right: 10px; /* Keep spacing between the image and the dealership name */
@@ -384,21 +367,5 @@ select:focus {
 .delete-account-content strong {
   font-size: 16px;
   color: #343a40;
-}
-
-.delete-account-button {
-  margin-top: 10px;
-  padding: 10px 20px;
-  background-color: #eb5a58;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.3s ease;
-}
-
-.delete-account-button:hover {
-  background-color: #d9534f;
 }
 </style>
